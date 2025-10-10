@@ -1,127 +1,115 @@
 const mongoose = require("mongoose");
 
-const LangField = {
-    en: { type: String, trim: true },
-    vi: { type: String, trim: true },
+// ✅ Import referenced models so Mongoose knows them
+require("./Furnishing");
+require("./Parking");
+require("./PetPolicy");
+require("./AvailabilityStatus");
+require("./PropertyType");
+require("./User");
+
+const LocalizedString = {
+  en: { type: String, trim: true, default: "" },
+  vi: { type: String, trim: true, default: "" },
 };
 
-const AmenitySchema = new mongoose.Schema({
-    name: LangField,
-    km: { type: String, trim: true },
-});
-
-const UtilitySchema = new mongoose.Schema({
-    name: LangField,
-    icon: LangField,
-});
-
-const MediaSchema = new mongoose.Schema({
-    url: { type: String, required: true },
-    type: { type: String, enum: ["image", "video", "floorplan"], required: true },
-});
-
-const FinancialSchema = new mongoose.Schema({
-    currency: LangField,
-    price: { type: String, trim: true },
-    pricePerUnit: { type: String, trim: true },
-    contractTerms: LangField,
-    depositTerms: LangField,
-    maintenanceFee: LangField,
-});
-
-const ContactSchema = new mongoose.Schema({
-    ownersLandlord: LangField,
-    ownerLandlordText: LangField,
-    propertyConsultant: LangField,
-    internalNotes: LangField,
-});
-
-const PropertySchema = new mongoose.Schema(
-    {
-        // 1️⃣ Listing Information
-        listingInfo: {
-            propertyId: { type: String, required: true, trim: true },
-            transactionType: LangField,
-            projectCommunity: LangField,
-            zoneSubArea: LangField,
-            propertyTitle: LangField,
-            propertyType: LangField,
-            country: LangField,
-            state: LangField,
-            city: LangField,
-            postalCode: LangField,
-            address: LangField,
-            dateListed: { type: Date },
-            availabilityStatus: LangField,
-            availableFrom: { type: Date },
-        },
-
-        // 2️⃣ Property Information
-        propertyInfo: {
-            unit: LangField,
-            unitSize: LangField,
-            bedrooms: LangField,
-            bathrooms: LangField,
-            floors: LangField,
-            floorNumber: LangField,
-            furnishing: LangField,
-            yearBuilt: { type: Date },
-            view: LangField,
-            parkingAvailability: LangField,
-            petPolicy: LangField,
-            whatsNearby: LangField,
-            amenities: [AmenitySchema],
-            description: LangField,
-        },
-
-        // 3️⃣ Property Utility
-        utilities: [UtilitySchema],
-
-        // 4️⃣ Media (Images, Videos, Floor Plans)
-        media: [MediaSchema],
-
-        // 5️⃣ Financial details
-        financialDetails: FinancialSchema,
-
-        // 6️⃣ Contact / Management Details
-        contactManagement: ContactSchema,
-
-        status: {
-            type: String,
-            enum: ["Active", "Inactive"],
-            default: "Active",
-        },
-    },
-    { timestamps: true }
+const NearbyAmenitySchema = new mongoose.Schema(
+  {
+    name: LocalizedString,
+    distanceKM: { type: Number, default: 0 },
+  },
+  { _id: true }
 );
 
-// ✅ Auto-fill English and Vietnamese values
-PropertySchema.pre("save", function (next) {
-    function convertLangFields(obj) {
-        if (!obj || typeof obj !== "object") return obj;
-        for (const key in obj) {
-            const value = obj[key];
+const UtilitySchema = new mongoose.Schema(
+  {
+    name: LocalizedString,
+    icon: { type: String, default: "" },
+  },
+  { _id: true }
+);
 
-            // If it's a simple string field, wrap into { en, vi }
-            if (typeof value === "string" && !/^[0-9a-fA-F]{24}$/.test(value)) {
-                obj[key] = { en: value, vi: value };
-            }
+const ContactPersonSchema = new mongoose.Schema(
+  {
+    role: { type: String, default: "" },
+    name: { type: String, default: "" },
+    email: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    notes: { type: String, default: "" },
+  },
+  { _id: true }
+);
 
-            // If it's a nested object or array, go deeper
-            else if (Array.isArray(value)) {
-                obj[key] = value.map((v) => convertLangFields(v));
-            } else if (typeof value === "object") {
-                obj[key] = convertLangFields(value);
-            }
-        }
-        return obj;
-    }
+const CreatePropertySchema = new mongoose.Schema(
+  {
+    // Listing Information
+    propertyId: { type: String, unique: true, index: true },
+    transactionType: { type: String, trim: true, default: "" },
+    project: LocalizedString,
+    title: LocalizedString,
+    propertyType: { type: mongoose.Schema.Types.ObjectId, ref: "PropertyType" },
 
-    convertLangFields(this);
-    next();
-});
+    // Address / location
+    country: { type: String, trim: true, default: "" },
+    state: { type: String, trim: true, default: "" },
+    city: { type: String, trim: true, default: "" },
+    postalCode: { type: String, trim: true, default: "" },
+    address: LocalizedString,
+    dateListed: { type: Date, default: Date.now },
+    availabilityStatus: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AvailabilityStatus",
+    },
+    availableFrom: { type: Date },
 
+    // Property Information
+    unit: { type: String, default: "" },
+    unitSize: { type: Number, default: 0 },
+    bedrooms: { type: Number, default: 0 },
+    bathrooms: { type: Number, default: 0 },
+    floors: { type: Number, default: 1 },
+    floorNumber: { type: Number, default: 0 },
+    furnishing: { type: mongoose.Schema.Types.ObjectId, ref: "Furnishing" },
+    yearBuilt: { type: Number, default: null },
+    view: LocalizedString,
+    parkingAvailability: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Parking",
+    },
+    petPolicy: { type: mongoose.Schema.Types.ObjectId, ref: "PetPolicy" },
+    whatsNearby: [NearbyAmenitySchema],
+    description: LocalizedString,
 
-// ✅ SAFE EXPORT
-module.exports =
-    mongoose.models.Property || mongoose.model("Property", PropertySchema);
+    // Property Utility
+    utilities: [UtilitySchema],
+
+    // images and videos (kept as arrays; file upload handled elsewhere)
+    propertyImages: [{ type: String, default: "" }],
+    propertyVideos: [{ type: String, default: "" }],
+    floorPlans: [{ type: String, default: "" }],
+
+    // Financial details
+    currency: { type: String, default: "USD" },
+    price: { type: Number, default: 0 },
+    pricePerUnit: { type: Number, default: 0 },
+    contractTerms: LocalizedString,
+    depositPaymentTerms: LocalizedString,
+    maintenanceFeeMonthly: { type: Number, default: 0 },
+
+    // Contact / Management Details
+    owners: [ContactPersonSchema],
+    propertyConsultant: ContactPersonSchema,
+    internalNotes: { type: String, default: "" },
+
+    // Misc
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    status: {
+      type: String,
+      enum: ["Draft", "Published", "Archived"],
+      default: "Draft",
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("CreateProperty", CreatePropertySchema);

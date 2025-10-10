@@ -1039,6 +1039,11 @@ multer@^2.0.2:
     type-is "^1.6.18"
     xtend "^4.0.2"
 
+nanoid@^3.3.8:
+  version "3.3.11"
+  resolved "https://registry.npmjs.org/nanoid/-/nanoid-3.3.11.tgz"
+  integrity sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==
+
 negotiator@^1.0.0:
   version "1.0.0"
   resolved "https://registry.npmmirror.com/negotiator/-/negotiator-1.0.0.tgz"
@@ -1340,6 +1345,13 @@ setprototypeof@1.2.0:
   version "1.2.0"
   resolved "https://registry.npmmirror.com/setprototypeof/-/setprototypeof-1.2.0.tgz"
   integrity sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==
+
+shortid@^2.2.17:
+  version "2.2.17"
+  resolved "https://registry.npmjs.org/shortid/-/shortid-2.2.17.tgz"
+  integrity sha512-GpbM3gLF1UUXZvQw6MCyulHkWbRseNO4cyBEZresZRorwl1+SLu1ZdqgVtuwqz8mB6RpwPkm541mYSqrKyJSaA==
+  dependencies:
+    nanoid "^3.3.8"
 
 side-channel-list@^1.0.0:
   version "1.0.0"

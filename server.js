@@ -11,15 +11,6 @@ const rateLimit = require("express-rate-limit");
 const hpp = require("hpp");
 const colors = require("colors");
 const { Server } = require("socket.io");
-const propertyRoutes = require("./routes/propertyRoutes");
-const zoneSubAreaRoutes = require("./routes/zoneSubAreaRoutes");
-const propertyTypeRoutes = require("./routes/propertyTypeRoutes");
-const availabilityStatusRoutes = require("./routes/availabilityStatusRoutes");
-const unitRoutes = require("./routes/unitRoutes");
-const furnishingRoutes = require("./routes/furnishingRoutes");
-const parkingRoutes = require("./routes/parkingRoutes");
-const petPolicyRoutes = require("./routes/petPolicyRoutes");
-const createPropertyRoutes = require("./routes/createPropertyRoutes");
 
 // ===== Custom Modules =====
 const connectDB = require("./config/db");
@@ -29,6 +20,16 @@ const sanitizeInput = require("./middleware/sanitizeInput");
 // ===== Route Files =====
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
+const propertyRoutes = require("./routes/propertyRoutes");
+const zoneSubAreaRoutes = require("./routes/zoneSubAreaRoutes");
+const propertyTypeRoutes = require("./routes/propertyTypeRoutes");
+const availabilityStatusRoutes = require("./routes/availabilityStatusRoutes");
+const unitRoutes = require("./routes/unitRoutes");
+const furnishingRoutes = require("./routes/furnishingRoutes");
+const parkingRoutes = require("./routes/parkingRoutes");
+const petPolicyRoutes = require("./routes/petPolicyRoutes");
+const createPropertyRoutes = require("./routes/createPropertyRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -58,25 +59,25 @@ io.on("connection", (socket) => {
   });
 });
 
-// ===== File Upload =====
+/* =========================================================
+   ⚙️ Middleware Order (IMPORTANT!)
+========================================================= */
+
+// ✅ 1️⃣ Handle File Uploads BEFORE body parsers
 app.use(
   fileUpload({
     createParentPath: true,
-    useTempFiles: true,
-    tempFileDir: "/tmp/",
-    limits: { fileSize: 50 * 1024 * 1024 },
-    preserveExtension: true,
-    safeFileNames: true,
+    useTempFiles: false, // prevents tmp path issues
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
   })
 );
 
-// ===== CORS =====
+// ✅ 2️⃣ CORS Configuration
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:9002",
 ];
-
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -87,27 +88,21 @@ app.use(
   })
 );
 
-// ===== Core Middlewares =====
+// ✅ 3️⃣ Standard Security & Parsers
+app.use(
+  helmet({ crossOriginResourcePolicy: false, contentSecurityPolicy: false })
+);
 app.use(express.json({ limit: "2gb" }));
 app.use(express.urlencoded({ extended: true, limit: "2gb" }));
 app.use(cookieParser());
 app.use(sanitizeInput);
-
 if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
-
-app.use(
-  helmet({
-    crossOriginResourcePolicy: false,
-    contentSecurityPolicy: false,
-  })
-);
-
 app.use(hpp());
 
-// ===== Rate Limiter =====
+// ✅ 4️⃣ Rate Limiter
 app.use(
   rateLimit({
-    windowMs: 1 * 60 * 1000,
+    windowMs: 1 * 60 * 1000, // 1 min
     max: 500,
     message: {
       success: false,
@@ -116,7 +111,9 @@ app.use(
   })
 );
 
-// ===== Static Files =====
+/* =========================================================
+   🗂️ Static Upload Folder
+========================================================= */
 app.use(
   "/uploads",
   (req, res, next) => {
@@ -127,7 +124,9 @@ app.use(
   express.static(path.join(__dirname, "uploads"))
 );
 
-// ===== Routes =====
+/* =========================================================
+   🛠️ Routes
+========================================================= */
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/property", propertyRoutes);
@@ -139,12 +138,16 @@ app.use("/api/v1/furnishing", furnishingRoutes);
 app.use("/api/v1/parking", parkingRoutes);
 app.use("/api/v1/petpolicy", petPolicyRoutes);
 app.use("/api/v1/create-property", createPropertyRoutes);
+app.use("/api/v1", uploadRoutes);
 
-
-// ===== Global Error Handler =====
+/* =========================================================
+   🚨 Global Error Handler
+========================================================= */
 app.use(errorHandler);
 
-// ===== Start Server =====
+/* =========================================================
+   🚀 Server Start
+========================================================= */
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
   console.log(
