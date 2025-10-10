@@ -11,6 +11,15 @@ const rateLimit = require("express-rate-limit");
 const hpp = require("hpp");
 const colors = require("colors");
 const { Server } = require("socket.io");
+const propertyRoutes = require("./routes/propertyRoutes");
+const zoneSubAreaRoutes = require("./routes/zoneSubAreaRoutes");
+const propertyTypeRoutes = require("./routes/propertyTypeRoutes");
+const availabilityStatusRoutes = require("./routes/availabilityStatusRoutes");
+const unitRoutes = require("./routes/unitRoutes");
+const furnishingRoutes = require("./routes/furnishingRoutes");
+const parkingRoutes = require("./routes/parkingRoutes");
+const petPolicyRoutes = require("./routes/petPolicyRoutes");
+const createPropertyRoutes = require("./routes/createPropertyRoutes");
 
 // ===== Custom Modules =====
 const connectDB = require("./config/db");
@@ -121,6 +130,16 @@ app.use(
 // ===== Routes =====
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/property", propertyRoutes);
+app.use("/api/v1/zonesubarea", zoneSubAreaRoutes);
+app.use("/api/v1/propertytype", propertyTypeRoutes);
+app.use("/api/v1/availabilitystatus", availabilityStatusRoutes);
+app.use("/api/v1/unit", unitRoutes);
+app.use("/api/v1/furnishing", furnishingRoutes);
+app.use("/api/v1/parking", parkingRoutes);
+app.use("/api/v1/petpolicy", petPolicyRoutes);
+app.use("/api/v1/create-property", createPropertyRoutes);
+
 
 // ===== Global Error Handler =====
 app.use(errorHandler);
