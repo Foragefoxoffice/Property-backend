@@ -1,107 +1,123 @@
 const mongoose = require("mongoose");
-
-// ✅ Import referenced models so Mongoose knows them
+require("./User");
+require("./PropertyType");
+require("./AvailabilityStatus");
 require("./Furnishing");
 require("./Parking");
 require("./PetPolicy");
-require("./AvailabilityStatus");
-require("./PropertyType");
-require("./User");
 
-const LocalizedString = {
-  en: { type: String, trim: true, default: "" },
-  vi: { type: String, trim: true, default: "" },
-};
-
-const NearbyAmenitySchema = new mongoose.Schema(
+/* =========================================================
+   🌍 Localized Field Schema
+   Allows both { en, vi } and ignores extra nested issues
+========================================================= */
+const LocalizedString = new mongoose.Schema(
   {
-    name: LocalizedString,
-    distanceKM: { type: Number, default: 0 },
+    en: { type: String, trim: true, default: "" },
+    vi: { type: String, trim: true, default: "" },
+  },
+  { _id: false, strict: false } // ✅ critical: keeps empty/partial keys
+);
+
+/* =========================================================
+   📍 Subschemas
+========================================================= */
+const AmenitySchema = new mongoose.Schema(
+  {
+    whatNearbyAmenityName: LocalizedString,
+    whatNearbyKm: { type: Number, default: 0 },
   },
   { _id: true }
 );
 
 const UtilitySchema = new mongoose.Schema(
   {
-    name: LocalizedString,
-    icon: { type: String, default: "" },
+    propertyUtilityUnitName: LocalizedString,
+    propertyUtilityIcon: { type: String, default: "" },
   },
   { _id: true }
 );
 
-const ContactPersonSchema = new mongoose.Schema(
-  {
-    role: { type: String, default: "" },
-    name: { type: String, default: "" },
-    email: { type: String, default: "" },
-    phone: { type: String, default: "" },
-    notes: { type: String, default: "" },
-  },
-  { _id: true }
-);
-
+/* =========================================================
+   🏗️ Main Property Schema
+========================================================= */
 const CreatePropertySchema = new mongoose.Schema(
   {
-    // Listing Information
-    propertyId: { type: String, unique: true, index: true },
-    transactionType: { type: String, trim: true, default: "" },
-    project: LocalizedString,
-    title: LocalizedString,
-    propertyType: { type: mongoose.Schema.Types.ObjectId, ref: "PropertyType" },
-
-    // Address / location
-    country: { type: String, trim: true, default: "" },
-    state: { type: String, trim: true, default: "" },
-    city: { type: String, trim: true, default: "" },
-    postalCode: { type: String, trim: true, default: "" },
-    address: LocalizedString,
-    dateListed: { type: Date, default: Date.now },
-    availabilityStatus: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "AvailabilityStatus",
+    /* 🏷️ 1. Listing Information */
+    listingInformation: {
+      listingInformationPropertyId: { type: String, unique: true },
+      listingInformationTransactionType: LocalizedString,
+      listingInformationProjectCommunity: LocalizedString,
+      listingInformationZoneSubArea: LocalizedString,
+      listingInformationPropertyTitle: LocalizedString,
+      listingInformationBlockName: LocalizedString,
+      listingInformationPropertyType: LocalizedString,
+      // listingInformationCountry: { type: String, trim: true, default: "" },
+      // listingInformationState: { type: String, trim: true, default: "" },
+      // listingInformationCity: LocalizedString,
+      // listingInformationPostalCode: { type: String, trim: true, default: "" },
+      // listingInformationAddress: LocalizedString,
+      listingInformationDateListed: { type: Date, default: Date.now },
+      listingInformationAvailabilityStatus: LocalizedString,
+      listingInformationAvailableFrom: { type: Date },
     },
-    availableFrom: { type: Date },
 
-    // Property Information
-    unit: { type: String, default: "" },
-    unitSize: { type: Number, default: 0 },
-    bedrooms: { type: Number, default: 0 },
-    bathrooms: { type: Number, default: 0 },
-    floors: { type: Number, default: 1 },
-    floorNumber: { type: Number, default: 0 },
-    furnishing: { type: mongoose.Schema.Types.ObjectId, ref: "Furnishing" },
-    yearBuilt: { type: Number, default: null },
-    view: LocalizedString,
-    parkingAvailability: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Parking",
+    /* 🧱 2. Property Information */
+    propertyInformation: {
+      informationUnit: LocalizedString,
+      informationUnitSize: { type: Number, default: 0 },
+      informationBedrooms: { type: Number, default: 0 },
+      informationBathrooms: { type: Number, default: 0 },
+      informationFloors: { type: Number, default: 1 },
+      // informationFloorNumber: { type: Number, default: 0 },
+      informationFurnishing: LocalizedString,
+      // informationYearBuilt: { type: Number, default: null },
+      informationView: LocalizedString,
+      // informationParkingAvailability: LocalizedString,
+      // informationPetPolicy: LocalizedString,
     },
-    petPolicy: { type: mongoose.Schema.Types.ObjectId, ref: "PetPolicy" },
-    whatsNearby: [NearbyAmenitySchema],
-    description: LocalizedString,
 
-    // Property Utility
-    utilities: [UtilitySchema],
+    /* 📍 3. What’s Nearby */
+    whatNearby: {
+      // whatNearbyContent: LocalizedString,
+      whatNearbyDescription: LocalizedString,
+      // whatNearbyList: [AmenitySchema],
+    },
 
-    // images and videos (kept as arrays; file upload handled elsewhere)
-    propertyImages: [{ type: String, default: "" }],
-    propertyVideos: [{ type: String, default: "" }],
-    floorPlans: [{ type: String, default: "" }],
+    /* ⚙️ 4. Property Utility */
+    propertyUtility: [UtilitySchema],
 
-    // Financial details
-    currency: { type: String, default: "USD" },
-    price: { type: Number, default: 0 },
-    pricePerUnit: { type: Number, default: 0 },
-    contractTerms: LocalizedString,
-    depositPaymentTerms: LocalizedString,
-    maintenanceFeeMonthly: { type: Number, default: 0 },
+    /* 🖼️ 5. Images / Videos */
+    imagesVideos: {
+      propertyImages: [{ type: String, default: "" }],
+      propertyVideo: [{ type: String, default: "" }],
+      floorPlan: [{ type: String, default: "" }],
+    },
 
-    // Contact / Management Details
-    owners: [ContactPersonSchema],
-    propertyConsultant: ContactPersonSchema,
-    internalNotes: { type: String, default: "" },
+    /* 💰 6. Financial Details */
+    financialDetails: {
+      financialDetailsCurrency: { type: String, default: "USD" },
+      financialDetailsPrice: { type: Number, default: 0 },
+      financialDetailsTerms: LocalizedString,
+      financialDetailsDeposit: LocalizedString,
+      financialDetailsMainFee: LocalizedString,
+      // 🆕 Added Fields
+      financialDetailsLeasePrice: { type: Number, default: 0 },
+      financialDetailsContractLength: { type: String, trim: true, default: "" },
+      financialDetailsPricePerNight: { type: Number, default: 0 },
+      financialDetailsCheckIn: { type: String, trim: true, default: "" },
+      financialDetailsCheckOut: { type: String, trim: true, default: "" },
+    },
 
-    // Misc
+    /* 👤 7. Contact / Management */
+    contactManagement: {
+      contactManagementOwner: LocalizedString,
+      contactManagementOwnerNotes: LocalizedString,
+      contactManagementConsultant: LocalizedString,
+      contactManagementConnectingPoint: LocalizedString,
+      contactManagementConnectingPointNotes: LocalizedString,
+      contactManagementInternalNotes: LocalizedString,
+    },
+    /* 🧩 Meta */
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     status: {
       type: String,

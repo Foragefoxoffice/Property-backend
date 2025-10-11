@@ -10,11 +10,6 @@ const {
 const router = express.Router();
 
 router.route("/").get(getProperties).post(createProperty);
-
-router
-  .route("/:id")
-  .get(getProperty)
-  .put(updateProperty)
-  .delete(deleteProperty);
+router.route("/:id").get(getProperty).put(updateProperty).delete(deleteProperty);
 
 module.exports = router;
