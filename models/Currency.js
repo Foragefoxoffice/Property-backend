@@ -1,16 +1,16 @@
 const mongoose = require("mongoose");
 
-const UnitSchema = new mongoose.Schema(
+const CurrencySchema = new mongoose.Schema(
   {
-    code: {
+    currencyCode: {
       en: { type: String, required: true, trim: true },
       vi: { type: String, required: true, trim: true },
     },
-    name: {
+    currencyName: {
       en: { type: String, required: true, trim: true },
       vi: { type: String, required: true, trim: true },
     },
-    symbol: {
+    currencySymbol: {
       en: { type: String, required: true, trim: true },
       vi: { type: String, required: true, trim: true },
     },
@@ -27,4 +27,4 @@ const UnitSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Unit", UnitSchema);
+module.exports = mongoose.model("Currency", CurrencySchema);

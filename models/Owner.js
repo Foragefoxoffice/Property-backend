@@ -1,30 +1,38 @@
 const mongoose = require("mongoose");
 
-const UnitSchema = new mongoose.Schema(
+const OwnerSchema = new mongoose.Schema(
   {
-    code: {
+    ownerName: {
       en: { type: String, required: true, trim: true },
       vi: { type: String, required: true, trim: true },
     },
-    name: {
+    ownerType: {
       en: { type: String, required: true, trim: true },
       vi: { type: String, required: true, trim: true },
     },
-    symbol: {
+    ownerNumber: {
       en: { type: String, required: true, trim: true },
       vi: { type: String, required: true, trim: true },
+    },
+    ownerFacebook: {
+      en: { type: String, trim: true },
+      vi: { type: String, trim: true },
+    },
+    ownerNotes: {
+      en: { type: String, trim: true },
+      vi: { type: String, trim: true },
+    },
+    photo: {
+      type: String, // URL of uploaded image
+      default: null,
     },
     status: {
       type: String,
       enum: ["Active", "Inactive"],
       default: "Active",
     },
-    isDefault: {
-      type: Boolean,
-      default: false,
-    },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Unit", UnitSchema);
+module.exports = mongoose.model("Owner", OwnerSchema);

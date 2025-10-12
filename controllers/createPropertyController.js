@@ -11,7 +11,8 @@ async function generateNextPropertyId() {
     .select("listingInformation.listingInformationPropertyId");
 
   if (!lastProperty) return "P1001";
-  const lastId = lastProperty.listingInformation?.listingInformationPropertyId || "";
+  const lastId =
+    lastProperty.listingInformation?.listingInformationPropertyId || "";
   const numericPart = parseInt(lastId.replace(/\D/g, ""), 10) || 1000;
   return `P${numericPart + 1}`;
 }
