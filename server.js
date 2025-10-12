@@ -50,6 +50,7 @@ const io = new Server(httpServer, {
       "http://localhost:5173",
       "http://localhost:5174",
       "http://localhost:9002",
+      "https://183-housingsolutions.vercel.app",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
@@ -82,6 +83,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:9002",
+  "https://183-housingsolutions.vercel.app",
 ];
 app.use(
   cors({
