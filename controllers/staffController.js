@@ -11,7 +11,6 @@ exports.getStaffs = asyncHandler(async (req, res) => {
   });
 });
 
-// ✅ Create new staff
 exports.createStaff = asyncHandler(async (req, res) => {
   const {
     staffsImage,
@@ -23,6 +22,7 @@ exports.createStaff = asyncHandler(async (req, res) => {
     staffsNumber,
     staffsNotes_en,
     staffsNotes_vi,
+    staffsEmail,
   } = req.body;
 
   if (
@@ -31,18 +31,25 @@ exports.createStaff = asyncHandler(async (req, res) => {
     !staffsRole_en ||
     !staffsRole_vi ||
     !staffsNumber ||
-    !staffsId
+    !staffsId ||
+    !staffsEmail
   ) {
     throw new ErrorResponse(
-      "All English and Vietnamese fields plus ID and Number are required",
+      "All English and Vietnamese fields plus ID, Number, and Email are required",
       400
     );
+  }
+
+  const existingEmail = await Staff.findOne({ staffsEmail });
+  if (existingEmail) {
+    throw new ErrorResponse("Email already exists", 400);
   }
 
   const staff = await Staff.create({
     staffsImage: staffsImage || null,
     staffsName: { en: staffsName_en, vi: staffsName_vi },
     staffsId,
+    staffsEmail,
     staffsRole: { en: staffsRole_en, vi: staffsRole_vi },
     staffsNumber,
     staffsNotes: { en: staffsNotes_en, vi: staffsNotes_vi },
@@ -67,12 +74,13 @@ exports.updateStaff = asyncHandler(async (req, res) => {
     staffsNumber,
     staffsNotes_en,
     staffsNotes_vi,
+    staffsEmail,
   } = req.body;
 
   const staff = await Staff.findById(req.params.id);
   if (!staff) throw new ErrorResponse("Staff not found", 404);
 
-  // 🧠 Force multilingual fields to always be objects
+  // Ensure object structure
   if (typeof staff.staffsName !== "object")
     staff.staffsName = { en: "", vi: "" };
   if (typeof staff.staffsRole !== "object")
@@ -80,7 +88,16 @@ exports.updateStaff = asyncHandler(async (req, res) => {
   if (typeof staff.staffsNotes !== "object")
     staff.staffsNotes = { en: "", vi: "" };
 
-  // ✅ Apply updates safely
+  // Prevent duplicate email check (only if changed)
+  if (staffsEmail && staffsEmail !== staff.staffsEmail) {
+    const existingEmail = await Staff.findOne({ staffsEmail });
+    if (existingEmail) {
+      throw new ErrorResponse("Email already exists", 400);
+    }
+    staff.staffsEmail = staffsEmail;
+  }
+
+  // Update safely
   staff.staffsName.en = staffsName_en ?? staff.staffsName.en;
   staff.staffsName.vi = staffsName_vi ?? staff.staffsName.vi;
   staff.staffsRole.en = staffsRole_en ?? staff.staffsRole.en;

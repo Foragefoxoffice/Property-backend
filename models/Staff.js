@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const StaffSchema = new mongoose.Schema(
   {
     staffsImage: {
-      type: String, // Base64 or URL
+      type: String,
       default: null,
     },
     staffsName: {
@@ -15,6 +15,17 @@ const StaffSchema = new mongoose.Schema(
       required: true,
       trim: true,
       unique: true,
+    },
+    staffsEmail: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      unique: true,
+      match: [
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        "Please provide a valid email address",
+      ],
     },
     staffsRole: {
       en: { type: String, required: true, trim: true },
