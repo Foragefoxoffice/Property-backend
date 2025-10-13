@@ -1,6 +1,8 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const CreateProperty = require("../models/CreateProperty");
+const ZoneSubArea = require("../models/ZoneSubArea");
+const mongoose = require("mongoose");
 
 /* =========================================================
    🔢 Generate Sequential Property ID
@@ -48,25 +50,62 @@ exports.createProperty = asyncHandler(async (req, res) => {
 
   if (!body.listingInformation) body.listingInformation = {};
 
-  // 🔹 Always generate a unique Property ID
+  /* =========================================================
+     1️⃣ Generate a Unique Property ID
+  ========================================================== */
   let propertyId =
     body.listingInformation.listingInformationPropertyId ||
     (await generateNextPropertyId());
 
-  // 🔍 Ensure no duplicate exists
   const exists = await CreateProperty.findOne({
     "listingInformation.listingInformationPropertyId": propertyId,
   });
+
   if (exists) propertyId = await generateNextPropertyId();
 
   body.listingInformation.listingInformationPropertyId = propertyId;
 
-  // 🔹 Create document
+  /* =========================================================
+     2️⃣ Handle Area / Zone (type or select)
+  ========================================================== */
+  if (body.listingInformation.listingInformationZoneSubArea) {
+    const val = body.listingInformation.listingInformationZoneSubArea;
+
+    // If user typed a value instead of selecting one
+    if (!mongoose.Types.ObjectId.isValid(val)) {
+      // Check if this zone name already exists
+      const existingZone = await ZoneSubArea.findOne({
+        $or: [{ "name.en": val }, { "name.vi": val }],
+      });
+
+      let zoneDoc = existingZone;
+      if (!zoneDoc) {
+        // Auto-create new zone
+        zoneDoc = await ZoneSubArea.create({
+          name: { en: val, vi: val },
+          code: {
+            en: val.slice(0, 3).toUpperCase(),
+            vi: val.slice(0, 3).toUpperCase(),
+          },
+          status: "Active",
+        });
+      }
+
+      body.listingInformation.listingInformationZoneSubArea = zoneDoc._id;
+    }
+  }
+
+  /* =========================================================
+     3️⃣ Create Property Document
+  ========================================================== */
   const newProperty = await CreateProperty.create({
     ...body,
     createdBy: req.user?.id || null,
   });
 
+  /* =========================================================
+     4️⃣ Send Response
+  ========================================================== */
   res.status(201).json({
     success: true,
     message: "Property created successfully",
