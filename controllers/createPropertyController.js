@@ -41,14 +41,17 @@ function deepNormalizeLocalized(data) {
     if (!Object.hasOwn(data, key)) continue;
     const val = data[key];
 
-    // Handle localized field objects
     if (val && typeof val === "object" && ("en" in val || "vi" in val)) {
       data[key] = normalizeLocalized(val);
     }
-    // Recurse deeper for nested objects
     else if (typeof val === "object" && !Array.isArray(val)) {
+      // Only recurse if it's not already a localized field
       data[key] = deepNormalizeLocalized(val);
     }
+    else {
+      data[key] = val;
+    }
+
   }
   return data;
 }
@@ -91,29 +94,34 @@ exports.createProperty = asyncHandler(async (req, res) => {
      3️⃣ Handle Area / Zone (type or select)
   ========================================================== */
   if (body.listingInformation.listingInformationZoneSubArea) {
-    const val = body.listingInformation.listingInformationZoneSubArea;
+    let val = body.listingInformation.listingInformationZoneSubArea;
 
-    // If user typed text instead of selecting ID
-    if (!mongoose.Types.ObjectId.isValid(val)) {
-      // Check if zone exists
-      const existingZone = await ZoneSubArea.findOne({
-        $or: [{ "name.en": val }, { "name.vi": val }],
-      });
+    // Normalize value if it's localized object
+    if (typeof val === "object" && (val.en || val.vi)) {
+      val = val.en?.trim() || val.vi?.trim() || "";
+    }
 
-      let zoneDoc = existingZone;
-      if (!zoneDoc) {
-        // Auto-create zone
-        zoneDoc = await ZoneSubArea.create({
-          name: { en: val, vi: val },
-          code: {
-            en: val.slice(0, 3).toUpperCase(),
-            vi: val.slice(0, 3).toUpperCase(),
-          },
-          status: "Active",
+    // Proceed only if val is a non-empty string
+    if (typeof val === "string" && val.trim() !== "") {
+      if (!mongoose.Types.ObjectId.isValid(val)) {
+        const existingZone = await ZoneSubArea.findOne({
+          $or: [{ "name.en": val }, { "name.vi": val }],
         });
-      }
 
-      body.listingInformation.listingInformationZoneSubArea = zoneDoc._id;
+        let zoneDoc = existingZone;
+        if (!zoneDoc) {
+          zoneDoc = await ZoneSubArea.create({
+            name: { en: val, vi: val },
+            code: {
+              en: val.slice(0, 3).toUpperCase(),
+              vi: val.slice(0, 3).toUpperCase(),
+            },
+            status: "Active",
+          });
+        }
+
+        body.listingInformation.listingInformationZoneSubArea = zoneDoc._id;
+      }
     }
   }
 
@@ -172,17 +180,15 @@ exports.getProperty = asyncHandler(async (req, res) => {
    ✏️ UPDATE PROPERTY
 ========================================================= */
 exports.updateProperty = asyncHandler(async (req, res) => {
-  const property = await CreateProperty.findById(req.params.id);
-  if (!property) throw new ErrorResponse("Property not found", 404);
+  const id =
+    typeof req.params.id === "object"
+      ? req.params.id._id || req.params.id.id || ""
+      : req.params.id;
 
-  const body = deepNormalizeLocalized(req.body || {});
-  if (body.listingInformation?.listingInformationPropertyNo) {
-    body.listingInformation.listingInformationPropertyNo = normalizeLocalized(
-      body.listingInformation.listingInformationPropertyNo
-    );
-  }
+  const property = await CreateProperty.findById(id);
+  if (!property) throw new ErrorResponse(`Resource not found with id of ${id}`, 404);
 
-  Object.assign(property, body);
+  Object.assign(property, req.body);
   await property.save();
 
   res.status(200).json({
@@ -191,6 +197,7 @@ exports.updateProperty = asyncHandler(async (req, res) => {
     data: property,
   });
 });
+
 
 /* =========================================================
    🗑️ DELETE PROPERTY

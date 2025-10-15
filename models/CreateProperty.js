@@ -117,6 +117,8 @@ const CreatePropertySchema = new mongoose.Schema(
       contactManagementConnectingPoint: LocalizedString,
       contactManagementConnectingPointNotes: LocalizedString,
       contactManagementInternalNotes: LocalizedString,
+      contactManagementSource: LocalizedString,
+      contactManagementAgentFee: { type: Number, default: 0 },
     },
     /* 🧩 Meta */
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
