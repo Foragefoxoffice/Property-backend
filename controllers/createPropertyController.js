@@ -22,21 +22,32 @@ async function generateNextPropertyId() {
 /* =========================================================
    🧰 Helpers
 ========================================================= */
-function normalizeLocalized(obj) {
-  if (!obj || typeof obj !== "object") return { en: "", vi: "" };
-  if (typeof obj === "string") return { en: obj, vi: obj };
-  return { en: obj.en || "", vi: obj.vi || "" };
+function normalizeLocalized(val) {
+  if (!val) return { en: "", vi: "" };
+  if (typeof val === "string") return { en: val, vi: val };
+  if (typeof val === "object") {
+    return {
+      en: val.en || val.vi || "",
+      vi: val.vi || val.en || "",
+    };
+  }
+  return { en: "", vi: "" };
 }
 
 function deepNormalizeLocalized(data) {
   if (!data || typeof data !== "object") return data;
+
   for (const key in data) {
     if (!Object.hasOwn(data, key)) continue;
     const val = data[key];
+
+    // Handle localized field objects
     if (val && typeof val === "object" && ("en" in val || "vi" in val)) {
       data[key] = normalizeLocalized(val);
-    } else if (typeof val === "object" && !Array.isArray(val)) {
-      deepNormalizeLocalized(val);
+    }
+    // Recurse deeper for nested objects
+    else if (typeof val === "object" && !Array.isArray(val)) {
+      data[key] = deepNormalizeLocalized(val);
     }
   }
   return data;
@@ -66,21 +77,32 @@ exports.createProperty = asyncHandler(async (req, res) => {
   body.listingInformation.listingInformationPropertyId = propertyId;
 
   /* =========================================================
-     2️⃣ Handle Area / Zone (type or select)
+     2️⃣ Ensure Property No is normalized (Fix)
+  ========================================================== */
+  if (body.listingInformation.listingInformationPropertyNo) {
+    body.listingInformation.listingInformationPropertyNo = normalizeLocalized(
+      body.listingInformation.listingInformationPropertyNo
+    );
+  } else {
+    body.listingInformation.listingInformationPropertyNo = { en: "", vi: "" };
+  }
+
+  /* =========================================================
+     3️⃣ Handle Area / Zone (type or select)
   ========================================================== */
   if (body.listingInformation.listingInformationZoneSubArea) {
     const val = body.listingInformation.listingInformationZoneSubArea;
 
-    // If user typed a value instead of selecting one
+    // If user typed text instead of selecting ID
     if (!mongoose.Types.ObjectId.isValid(val)) {
-      // Check if this zone name already exists
+      // Check if zone exists
       const existingZone = await ZoneSubArea.findOne({
         $or: [{ "name.en": val }, { "name.vi": val }],
       });
 
       let zoneDoc = existingZone;
       if (!zoneDoc) {
-        // Auto-create new zone
+        // Auto-create zone
         zoneDoc = await ZoneSubArea.create({
           name: { en: val, vi: val },
           code: {
@@ -96,7 +118,7 @@ exports.createProperty = asyncHandler(async (req, res) => {
   }
 
   /* =========================================================
-     3️⃣ Create Property Document
+     4️⃣ Create Property Document
   ========================================================== */
   const newProperty = await CreateProperty.create({
     ...body,
@@ -104,7 +126,7 @@ exports.createProperty = asyncHandler(async (req, res) => {
   });
 
   /* =========================================================
-     4️⃣ Send Response
+     5️⃣ Send Response
   ========================================================== */
   res.status(201).json({
     success: true,
@@ -153,7 +175,14 @@ exports.updateProperty = asyncHandler(async (req, res) => {
   const property = await CreateProperty.findById(req.params.id);
   if (!property) throw new ErrorResponse("Property not found", 404);
 
-  Object.assign(property, deepNormalizeLocalized(req.body));
+  const body = deepNormalizeLocalized(req.body || {});
+  if (body.listingInformation?.listingInformationPropertyNo) {
+    body.listingInformation.listingInformationPropertyNo = normalizeLocalized(
+      body.listingInformation.listingInformationPropertyNo
+    );
+  }
+
+  Object.assign(property, body);
   await property.save();
 
   res.status(200).json({

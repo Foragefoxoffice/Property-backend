@@ -45,6 +45,7 @@ const CreatePropertySchema = new mongoose.Schema(
     /* 🏷️ 1. Listing Information */
     listingInformation: {
       listingInformationPropertyId: { type: String, unique: true },
+      listingInformationPropertyNo: LocalizedString,
       listingInformationTransactionType: LocalizedString,
       listingInformationProjectCommunity: LocalizedString,
       listingInformationZoneSubArea: LocalizedString,
