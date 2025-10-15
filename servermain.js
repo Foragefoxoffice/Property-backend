@@ -139,7 +139,8 @@ const PORT = process.env.PORT || 5000;
 // Wait until MongoDB connects before starting server
 mongoose.connection.once("open", () => {
   console.log(
-    `✅ MongoDB Connected: ${mongoose.connection.host}:${mongoose.connection.port}`.green.bold
+    `✅ MongoDB Connected: ${mongoose.connection.host}:${mongoose.connection.port}`
+      .green.bold
   );
 
   app.listen(PORT, () => {
