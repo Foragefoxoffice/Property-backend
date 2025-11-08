@@ -2,29 +2,18 @@ const mongoose = require("mongoose");
 
 const ZoneSubAreaSchema = new mongoose.Schema(
     {
+        property: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Property",
+            required: true,
+        },
         code: {
-            en: {
-                type: String,
-                required: [true, "English code is required"],
-                trim: true,
-            },
-            vi: {
-                type: String,
-                required: [true, "Vietnamese code is required"],
-                trim: true,
-            },
+            en: { type: String, required: true, trim: true },
+            vi: { type: String, required: true, trim: true },
         },
         name: {
-            en: {
-                type: String,
-                required: [true, "English Zone/Sub-area name is required"],
-                trim: true,
-            },
-            vi: {
-                type: String,
-                required: [true, "Vietnamese Zone/Sub-area name is required"],
-                trim: true,
-            },
+            en: { type: String, required: true, trim: true },
+            vi: { type: String, required: true, trim: true },
         },
         status: {
             type: String,

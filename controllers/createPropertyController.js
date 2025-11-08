@@ -82,40 +82,6 @@ exports.createProperty = asyncHandler(async (req, res) => {
   }
 
   /* =========================================================
-     ✅ Handle Area / Zone (support typing new zone)
-  ========================================================== */
-  if (body.listingInformation.listingInformationZoneSubArea) {
-    let val = body.listingInformation.listingInformationZoneSubArea;
-
-    if (typeof val === "object" && (val.en || val.vi)) {
-      val = val.en?.trim() || val.vi?.trim() || "";
-    }
-
-    if (typeof val === "string" && val.trim() !== "") {
-      if (!mongoose.Types.ObjectId.isValid(val)) {
-        const existingZone = await ZoneSubArea.findOne({
-          $or: [{ "name.en": val }, { "name.vi": val }],
-        });
-
-        let zoneDoc = existingZone;
-
-        if (!zoneDoc) {
-          zoneDoc = await ZoneSubArea.create({
-            name: { en: val, vi: val },
-            code: {
-              en: val.slice(0, 3).toUpperCase(),
-              vi: val.slice(0, 3).toUpperCase(),
-            },
-            status: "Active",
-          });
-        }
-
-        body.listingInformation.listingInformationZoneSubArea = zoneDoc._id;
-      }
-    }
-  }
-
-  /* =========================================================
      ✅ Create Document
   ========================================================== */
   const newProperty = await CreateProperty.create({

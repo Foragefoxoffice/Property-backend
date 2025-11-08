@@ -5,56 +5,38 @@ const ZoneSubArea = require("../models/ZoneSubArea");
 // @desc    Get all Zone/Sub-area
 // @route   GET /api/v1/zonesubarea
 exports.getZoneSubAreas = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
-  const skip = (page - 1) * limit;
+  const query = {};
 
-  const zones = await ZoneSubArea.find()
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(Number(limit));
+  if (req.query.property) {
+    query.property = req.query.property;
+  }
 
-  const total = await ZoneSubArea.countDocuments();
+  const zones = await ZoneSubArea.find(query)
+    .populate("property")
+    .sort({ createdAt: -1 });
 
   res.status(200).json({
     success: true,
     count: zones.length,
-    total,
-    page: Number(page),
-    totalPages: Math.ceil(total / limit),
-    data: zones,
+    data: zones
   });
 });
+
 
 // @desc    Create Zone/Sub-area
 // @route   POST /api/v1/zonesubarea
 exports.createZoneSubArea = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, status } = req.body;
+  const { code_en, code_vi, name_en, name_vi, property } = req.body;
 
-  if (!code_en || !code_vi || !name_en || !name_vi) {
-    throw new ErrorResponse(
-      "All English and Vietnamese fields are required",
-      400
-    );
-  }
-
-  const existing = await ZoneSubArea.findOne({
-    $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
-  });
-  if (existing) {
-    throw new ErrorResponse("Zone/Sub-area code already exists", 400);
-  }
+  if (!property) throw new ErrorResponse("Property is required", 400);
 
   const zone = await ZoneSubArea.create({
+    property,
     code: { en: code_en, vi: code_vi },
     name: { en: name_en, vi: name_vi },
-    status: status || "Active",
   });
 
-  res.status(201).json({
-    success: true,
-    message: "Zone/Sub-area created successfully",
-    data: zone,
-  });
+  res.status(201).json({ success: true, data: zone });
 });
 
 // @desc    Update Zone/Sub-area

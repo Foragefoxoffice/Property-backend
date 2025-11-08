@@ -34,6 +34,9 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const ownerRoutes = require("./routes/ownerRoutes");
 const staffRoutes = require("./routes/staffRoutes");
 const currencyRoutes = require("./routes/currencyRoutes");
+const blockRoutes = require("./routes/blockRoutes");
+const feeTaxRoutes = require("./routes/feeTaxRoutes");
+const legalDocumentRoutes = require("./routes/legalDocumentRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -125,6 +128,10 @@ app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/owners", ownerRoutes);
 app.use("/api/v1/staffs", staffRoutes);
 app.use("/api/v1/currency", currencyRoutes);
+app.use("/api/v1/block", blockRoutes);
+app.use("/api/v1/feetax", feeTaxRoutes);
+app.use("/api/v1/legaldocument", legalDocumentRoutes);
+
 
 /* =========================================================
    🚨 Global Error Handler
