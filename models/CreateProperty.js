@@ -107,6 +107,10 @@ const CreatePropertySchema = new mongoose.Schema(
       financialDetailsPricePerNight: { type: Number, default: 0 },
       financialDetailsCheckIn: { type: String, trim: true, default: "" },
       financialDetailsCheckOut: { type: String, trim: true, default: "" },
+      financialDetailsAgentFee: { type: Number, default: 0 },
+      financialDetailsAgentPaymentAgenda: LocalizedString,
+      financialDetailsFeeTax: LocalizedString,
+      financialDetailsLegalDoc: LocalizedString,
     },
 
     /* 👤 7. Contact / Management */
