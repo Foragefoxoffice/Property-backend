@@ -149,6 +149,22 @@ exports.updateProperty = asyncHandler(async (req, res) => {
   });
 });
 
+exports.getPropertyByPropertyId = asyncHandler(async (req, res) => {
+  const property = await CreateProperty.findOne({
+    "listingInformation.listingInformationPropertyId": req.params.propertyId,
+  });
+
+  if (!property) {
+    throw new ErrorResponse("Property not found", 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    data: property,
+  });
+});
+
+
 /* =========================================================
    🗑️ DELETE PROPERTY
 ========================================================= */

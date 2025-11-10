@@ -6,12 +6,14 @@ const {
   updateProperty,
   deleteProperty,
   getNextPropertyId,
+  getPropertyByPropertyId
 } = require("../controllers/createPropertyController");
 
 const router = express.Router();
 
 // ✅ GET NEXT PROPERTY ID FIRST!
 router.get("/next-id", getNextPropertyId);
+router.get("/pid/:propertyId", getPropertyByPropertyId);
 
 // ✅ Main Property Routes
 router.route("/").get(getProperties).post(createProperty);
