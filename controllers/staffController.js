@@ -19,7 +19,8 @@ exports.createStaff = asyncHandler(async (req, res) => {
     staffsId,
     staffsRole_en,
     staffsRole_vi,
-    staffsNumber,
+    staffsNumbers,
+    staffsGender,
     staffsNotes_en,
     staffsNotes_vi,
     staffsEmail,
@@ -30,20 +31,15 @@ exports.createStaff = asyncHandler(async (req, res) => {
     !staffsName_vi ||
     !staffsRole_en ||
     !staffsRole_vi ||
-    !staffsNumber ||
     !staffsId ||
-    !staffsEmail
+    !staffsEmail ||
+    !staffsGender
   ) {
-    throw new ErrorResponse(
-      "All English and Vietnamese fields plus ID, Number, and Email are required",
-      400
-    );
+    throw new ErrorResponse("All fields are required", 400);
   }
 
   const existingEmail = await Staff.findOne({ staffsEmail });
-  if (existingEmail) {
-    throw new ErrorResponse("Email already exists", 400);
-  }
+  if (existingEmail) throw new ErrorResponse("Email already exists", 400);
 
   const staff = await Staff.create({
     staffsImage: staffsImage || null,
@@ -51,7 +47,8 @@ exports.createStaff = asyncHandler(async (req, res) => {
     staffsId,
     staffsEmail,
     staffsRole: { en: staffsRole_en, vi: staffsRole_vi },
-    staffsNumber,
+    staffsNumbers: staffsNumbers || [],
+    staffsGender,
     staffsNotes: { en: staffsNotes_en, vi: staffsNotes_vi },
   });
 
@@ -62,53 +59,26 @@ exports.createStaff = asyncHandler(async (req, res) => {
   });
 });
 
+
 // ✅ Update staff
 exports.updateStaff = asyncHandler(async (req, res) => {
-  const {
-    staffsImage,
-    staffsName_en,
-    staffsName_vi,
-    staffsId,
-    staffsRole_en,
-    staffsRole_vi,
-    staffsNumber,
-    staffsNotes_en,
-    staffsNotes_vi,
-    staffsEmail,
-  } = req.body;
+  const updateData = { ...req.body };
 
-  const staff = await Staff.findById(req.params.id);
-  if (!staff) throw new ErrorResponse("Staff not found", 404);
-
-  // Ensure object structure
-  if (typeof staff.staffsName !== "object")
-    staff.staffsName = { en: "", vi: "" };
-  if (typeof staff.staffsRole !== "object")
-    staff.staffsRole = { en: "", vi: "" };
-  if (typeof staff.staffsNotes !== "object")
-    staff.staffsNotes = { en: "", vi: "" };
-
-  // Prevent duplicate email check (only if changed)
-  if (staffsEmail && staffsEmail !== staff.staffsEmail) {
-    const existingEmail = await Staff.findOne({ staffsEmail });
-    if (existingEmail) {
-      throw new ErrorResponse("Email already exists", 400);
-    }
-    staff.staffsEmail = staffsEmail;
+  // Prevent duplicate email
+  if (updateData.staffsEmail) {
+    const existing = await Staff.findOne({
+      staffsEmail: updateData.staffsEmail,
+      _id: { $ne: req.params.id },
+    });
+    if (existing) throw new ErrorResponse("Email already exists", 400);
   }
 
-  // Update safely
-  staff.staffsName.en = staffsName_en ?? staff.staffsName.en;
-  staff.staffsName.vi = staffsName_vi ?? staff.staffsName.vi;
-  staff.staffsRole.en = staffsRole_en ?? staff.staffsRole.en;
-  staff.staffsRole.vi = staffsRole_vi ?? staff.staffsRole.vi;
-  staff.staffsNotes.en = staffsNotes_en ?? staff.staffsNotes.en;
-  staff.staffsNotes.vi = staffsNotes_vi ?? staff.staffsNotes.vi;
-  staff.staffsId = staffsId ?? staff.staffsId;
-  staff.staffsNumber = staffsNumber ?? staff.staffsNumber;
-  staff.staffsImage = staffsImage ?? staff.staffsImage;
+  const staff = await Staff.findByIdAndUpdate(req.params.id, updateData, {
+    new: true,
+    runValidators: true,
+  });
 
-  await staff.save();
+  if (!staff) throw new ErrorResponse("Staff not found", 404);
 
   res.status(200).json({
     success: true,
@@ -116,6 +86,7 @@ exports.updateStaff = asyncHandler(async (req, res) => {
     data: staff,
   });
 });
+
 
 // ✅ Delete staff
 exports.deleteStaff = asyncHandler(async (req, res) => {

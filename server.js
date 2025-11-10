@@ -9,7 +9,6 @@ const fileUpload = require("express-fileupload");
 const rateLimit = require("express-rate-limit");
 const hpp = require("hpp");
 const colors = require("colors");
-const mongoose = require("mongoose");
 
 // ===== Custom Modules =====
 const connectDB = require("./config/db");
@@ -34,9 +33,6 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const ownerRoutes = require("./routes/ownerRoutes");
 const staffRoutes = require("./routes/staffRoutes");
 const currencyRoutes = require("./routes/currencyRoutes");
-const blockRoutes = require("./routes/blockRoutes");
-const feeTaxRoutes = require("./routes/feeTaxRoutes");
-const legalDocumentRoutes = require("./routes/legalDocumentRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -128,37 +124,11 @@ app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/owners", ownerRoutes);
 app.use("/api/v1/staffs", staffRoutes);
 app.use("/api/v1/currency", currencyRoutes);
-app.use("/api/v1/block", blockRoutes);
-app.use("/api/v1/feetax", feeTaxRoutes);
-app.use("/api/v1/legaldocument", legalDocumentRoutes);
-
 
 /* =========================================================
    🚨 Global Error Handler
 ========================================================= */
 app.use(errorHandler);
-
-/* =========================================================
-   ✅ Start Server (for Local Development)
-========================================================= */
-const PORT = process.env.PORT || 5000;
-
-// Wait until MongoDB connects before starting server
-mongoose.connection.once("open", () => {
-  console.log(
-    `✅ MongoDB Connected: ${mongoose.connection.host}:${mongoose.connection.port}`
-      .green.bold
-  );
-
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on: http://localhost:${PORT}`.cyan.bold);
-  });
-});
-
-// Handle MongoDB connection errors
-mongoose.connection.on("error", (err) => {
-  console.error(`❌ MongoDB connection error: ${err.message}`.red);
-});
 
 /* =========================================================
    ✅ Export (Required for Vercel)

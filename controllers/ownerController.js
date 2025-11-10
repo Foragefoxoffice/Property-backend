@@ -2,8 +2,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const Owner = require("../models/Owner");
 
-// @desc    Get all owners
-// @route   GET /api/v1/owners
+// GET /api/v1/owners
 exports.getOwners = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const skip = (page - 1) * limit;
@@ -25,45 +24,44 @@ exports.getOwners = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Create new owner
-// @route   POST /api/v1/owners
+// POST /api/v1/owners
 exports.createOwner = asyncHandler(async (req, res) => {
   const {
     ownerName_en,
     ownerName_vi,
-    ownerType_en,
-    ownerType_vi,
-    ownerNumber_en,
-    ownerNumber_vi,
-    ownerFacebook_en,
-    ownerFacebook_vi,
+    gender,
+
+    phoneNumbers = [],       // ✅ FIXED
+    emailAddresses = [],     // ✅ FIXED
+
+    socialMedia_iconName = [],
+    socialMedia_link_en = [],
+    socialMedia_link_vi = [],
+
     ownerNotes_en,
     ownerNotes_vi,
-    photo,
     status,
   } = req.body;
 
-  if (
-    !ownerName_en ||
-    !ownerName_vi ||
-    !ownerType_en ||
-    !ownerType_vi ||
-    !ownerNumber_en ||
-    !ownerNumber_vi
-  ) {
-    throw new ErrorResponse(
-      "All English and Vietnamese fields for Name, Type, and Contact Number are required",
-      400
-    );
+  if (!ownerName_en || !gender) {
+    throw new ErrorResponse("Required fields missing", 400);
   }
 
+
   const newOwner = await Owner.create({
-    ownerName: { en: ownerName_en, vi: ownerName_vi },
-    ownerType: { en: ownerType_en, vi: ownerType_vi },
-    ownerNumber: { en: ownerNumber_en, vi: ownerNumber_vi },
-    ownerFacebook: { en: ownerFacebook_en, vi: ownerFacebook_vi },
+    ownerName: {
+      en: ownerName_en,
+      vi: ownerName_vi || ownerName_en   // ✅ Auto copy 
+    },
+    gender,
+    phoneNumbers,
+    emailAddresses,
+
+    socialMedia_iconName,
+    socialMedia_link_en,
+    socialMedia_link_vi,
+
     ownerNotes: { en: ownerNotes_en, vi: ownerNotes_vi },
-    photo: photo || null, // Base64 string here
     status: status || "Active",
   });
 
@@ -74,43 +72,38 @@ exports.createOwner = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Update owner
-// @route   PUT /api/v1/owners/:id
-exports.updateOwner = asyncHandler(async (req, res) => {
-  const {
-    ownerName_en,
-    ownerName_vi,
-    ownerType_en,
-    ownerType_vi,
-    ownerNumber_en,
-    ownerNumber_vi,
-    ownerFacebook_en,
-    ownerFacebook_vi,
-    ownerNotes_en,
-    ownerNotes_vi,
-    photo,
-    status,
-  } = req.body;
 
+// PUT /api/v1/owners/:id
+exports.updateOwner = asyncHandler(async (req, res) => {
   const owner = await Owner.findById(req.params.id);
   if (!owner) throw new ErrorResponse("Owner not found", 404);
 
-  owner.ownerName.en = ownerName_en ?? owner.ownerName.en;
-  owner.ownerName.vi = ownerName_vi ?? owner.ownerName.vi;
-  owner.ownerType.en = ownerType_en ?? owner.ownerType.en;
-  owner.ownerType.vi = ownerType_vi ?? owner.ownerType.vi;
-  owner.ownerNumber.en = ownerNumber_en ?? owner.ownerNumber.en;
-  owner.ownerNumber.vi = ownerNumber_vi ?? owner.ownerNumber.vi;
-  owner.ownerFacebook.en = ownerFacebook_en ?? owner.ownerFacebook.en;
-  owner.ownerFacebook.vi = ownerFacebook_vi ?? owner.ownerFacebook.vi;
-  owner.ownerNotes.en = ownerNotes_en ?? owner.ownerNotes.en;
-  owner.ownerNotes.vi = ownerNotes_vi ?? owner.ownerNotes.vi;
-  owner.status = status ?? owner.status;
+  const d = req.body;
 
-  // ✅ Store Base64 directly
-  if (photo) {
-    owner.photo = photo;
-  }
+  owner.ownerName.en = d.ownerName_en ?? owner.ownerName.en;
+  owner.ownerName.vi = d.ownerName_vi ?? owner.ownerName.vi;
+
+  owner.gender = d.gender ?? owner.gender;
+
+  if (Array.isArray(d.phoneNumbers))
+    owner.phoneNumbers = d.phoneNumbers;
+
+  if (Array.isArray(d.emailAddresses))
+    owner.emailAddresses = d.emailAddresses;
+
+  if (Array.isArray(d.socialMedia_iconName))
+    owner.socialMedia_iconName = d.socialMedia_iconName;
+
+  if (Array.isArray(d.socialMedia_link_en))
+    owner.socialMedia_link_en = d.socialMedia_link_en;
+
+  if (Array.isArray(d.socialMedia_link_vi))
+    owner.socialMedia_link_vi = d.socialMedia_link_vi;
+
+  owner.ownerNotes.en = d.ownerNotes_en ?? owner.ownerNotes.en;
+  owner.ownerNotes.vi = d.ownerNotes_vi ?? owner.ownerNotes.vi;
+
+  owner.status = d.status ?? owner.status;
 
   await owner.save();
 
@@ -121,8 +114,8 @@ exports.updateOwner = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Delete an owner
-// @route   DELETE /api/v1/owners/:id
+
+// DELETE /api/v1/owners/:id
 exports.deleteOwner = asyncHandler(async (req, res) => {
   const owner = await Owner.findById(req.params.id);
   if (!owner) throw new ErrorResponse("Owner not found", 404);
