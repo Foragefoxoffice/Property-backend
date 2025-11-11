@@ -68,7 +68,10 @@ const CreatePropertySchema = new mongoose.Schema(
       informationUnitSize: { type: Number, default: 0 },
       informationBedrooms: { type: Number, default: 0 },
       informationBathrooms: { type: Number, default: 0 },
-      informationFloors: { type: Number, default: 1 },
+      informationFloors: {
+        type: mongoose.Schema.Types.Mixed, // ✅ allows number or text
+        default: 1,
+      },
       // informationFloorNumber: { type: Number, default: 0 },
       informationFurnishing: LocalizedString,
       // informationYearBuilt: { type: Number, default: null },

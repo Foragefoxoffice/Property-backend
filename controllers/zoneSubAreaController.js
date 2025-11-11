@@ -1,30 +1,28 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const ZoneSubArea = require("../models/ZoneSubArea");
+const Property = require("../models/Property");
+const Block = require("../models/Block");
 
-// @desc    Get all Zone/Sub-area
-// @route   GET /api/v1/zonesubarea
+// ✅ GET all zones/sub-areas
 exports.getZoneSubAreas = asyncHandler(async (req, res) => {
   const query = {};
 
-  if (req.query.property) {
-    query.property = req.query.property;
-  }
+  if (req.query.property) query.property = req.query.property;
 
   const zones = await ZoneSubArea.find(query)
     .populate("property")
+    .populate("blocks")
     .sort({ createdAt: -1 });
 
   res.status(200).json({
     success: true,
     count: zones.length,
-    data: zones
+    data: zones,
   });
 });
 
-
-// @desc    Create Zone/Sub-area
-// @route   POST /api/v1/zonesubarea
+// ✅ CREATE Zone/Sub-area
 exports.createZoneSubArea = asyncHandler(async (req, res) => {
   const { code_en, code_vi, name_en, name_vi, property } = req.body;
 
@@ -36,11 +34,15 @@ exports.createZoneSubArea = asyncHandler(async (req, res) => {
     name: { en: name_en, vi: name_vi },
   });
 
+  // ✅ Add Zone to Property
+  await Property.findByIdAndUpdate(property, {
+    $push: { zones: zone._id },
+  });
+
   res.status(201).json({ success: true, data: zone });
 });
 
-// @desc    Update Zone/Sub-area
-// @route   PUT /api/v1/zonesubarea/:id
+// ✅ UPDATE Zone/Sub-area
 exports.updateZoneSubArea = asyncHandler(async (req, res) => {
   const { code_en, code_vi, name_en, name_vi, status } = req.body;
 
@@ -62,11 +64,18 @@ exports.updateZoneSubArea = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Delete Zone/Sub-area
-// @route   DELETE /api/v1/zonesubarea/:id
+// ✅ DELETE Zone/Sub-area
 exports.deleteZoneSubArea = asyncHandler(async (req, res) => {
   const zone = await ZoneSubArea.findById(req.params.id);
   if (!zone) throw new ErrorResponse("Zone/Sub-area not found", 404);
+
+  // ✅ Remove this zone ID from its Property
+  await Property.findByIdAndUpdate(zone.property, {
+    $pull: { zones: zone._id },
+  });
+
+  // ✅ Delete Blocks inside this zone
+  await Block.deleteMany({ zone: zone._id });
 
   await zone.deleteOne();
 

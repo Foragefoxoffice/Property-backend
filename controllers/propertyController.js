@@ -1,32 +1,24 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const Property = require("../models/Property");
+const ZoneSubArea = require("../models/ZoneSubArea");
+const Block = require("../models/Block");
 
-// @desc    Get all properties
-// @route   GET /api/v1/property
+// ✅ GET all properties (with zones + blocks)
 exports.getProperties = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10 } = req.query;
-    const skip = (page - 1) * limit;
-
     const properties = await Property.find()
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit));
-
-    const total = await Property.countDocuments();
+        .populate("zones")
+        .populate("blocks")
+        .sort({ createdAt: -1 });
 
     res.status(200).json({
         success: true,
         count: properties.length,
-        total,
-        page: Number(page),
-        totalPages: Math.ceil(total / limit),
         data: properties,
     });
 });
 
-// @desc    Create a new property
-// @route   POST /api/v1/property
+// ✅ CREATE Property
 exports.createProperty = asyncHandler(async (req, res) => {
     const { code_en, code_vi, name_en, name_vi, status } = req.body;
 
@@ -34,7 +26,6 @@ exports.createProperty = asyncHandler(async (req, res) => {
         throw new ErrorResponse("All English and Vietnamese fields are required", 400);
     }
 
-    // Check if any English or Vietnamese code already exists
     const existing = await Property.findOne({
         $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
     });
@@ -55,8 +46,7 @@ exports.createProperty = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Update property
-// @route   PUT /api/v1/property/:id
+// ✅ UPDATE Property
 exports.updateProperty = asyncHandler(async (req, res) => {
     const { code_en, code_vi, name_en, name_vi, status } = req.body;
 
@@ -78,11 +68,16 @@ exports.updateProperty = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Delete property
-// @route   DELETE /api/v1/property/:id
+// ✅ DELETE Property (ALSO deletes Zones & Blocks under it)
 exports.deleteProperty = asyncHandler(async (req, res) => {
     const property = await Property.findById(req.params.id);
     if (!property) throw new ErrorResponse("Property not found", 404);
+
+    // ✅ Delete related Zones
+    await ZoneSubArea.deleteMany({ property: property._id });
+
+    // ✅ Delete related Blocks
+    await Block.deleteMany({ property: property._id });
 
     await property.deleteOne();
 

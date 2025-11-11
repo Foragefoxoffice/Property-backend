@@ -37,6 +37,7 @@ const currencyRoutes = require("./routes/currencyRoutes");
 const blockRoutes = require("./routes/blockRoutes");
 const feeTaxRoutes = require("./routes/feeTaxRoutes");
 const legalDocumentRoutes = require("./routes/legalDocumentRoutes");
+const floorRangeRoutes = require("./routes/floorRangeRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -131,6 +132,7 @@ app.use("/api/v1/currency", currencyRoutes);
 app.use("/api/v1/block", blockRoutes);
 app.use("/api/v1/feetax", feeTaxRoutes);
 app.use("/api/v1/legaldocument", legalDocumentRoutes);
+app.use("/api/v1/floorRange", floorRangeRoutes);
 
 
 /* =========================================================

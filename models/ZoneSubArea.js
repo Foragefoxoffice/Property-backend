@@ -20,6 +20,9 @@ const ZoneSubAreaSchema = new mongoose.Schema(
             enum: ["Active", "Inactive"],
             default: "Active",
         },
+
+        // ✅ NEW
+        blocks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Block" }],
     },
     { timestamps: true }
 );
