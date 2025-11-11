@@ -127,6 +127,35 @@ const CreatePropertySchema = new mongoose.Schema(
       contactManagementSource: LocalizedString,
       contactManagementAgentFee: { type: Number, default: 0 },
     },
+
+    /* 👁️ Visibility Settings */
+
+    listingInformationVisibility: {
+      transactionType: { type: Boolean, default: false },
+      propertyId: { type: Boolean, default: false },
+      projectCommunity: { type: Boolean, default: false },
+      areaZone: { type: Boolean, default: false },
+      blockName: { type: Boolean, default: false },
+      propertyNo: { type: Boolean, default: false },
+      dateListed: { type: Boolean, default: false },
+      availableFrom: { type: Boolean, default: false },
+      availabilityStatus: { type: Boolean, default: false },
+    },
+
+    propertyInformationVisibility: {
+      unit: { type: Boolean, default: false },
+      unitSize: { type: Boolean, default: false },
+      bedrooms: { type: Boolean, default: false },
+      bathrooms: { type: Boolean, default: false },
+      floorRange: { type: Boolean, default: false },
+      furnishing: { type: Boolean, default: false },
+      view: { type: Boolean, default: false },
+    },
+
+    titleVisibility: { type: Boolean, default: false },
+    descriptionVisibility: { type: Boolean, default: false },
+    propertyUtilityVisibility: { type: Boolean, default: false },
+
     /* 🧩 Meta */
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     status: {

@@ -65,25 +65,9 @@ async function generateNextPropertyId() {
 exports.createProperty = asyncHandler(async (req, res) => {
   const body = deepNormalizeLocalized(req.body || {});
 
-  if (!body.listingInformation) body.listingInformation = {};
-
-  /* ✅ Always generate next ID from DB */
   const propertyId = await generateNextPropertyId();
-
   body.listingInformation.listingInformationPropertyId = propertyId;
 
-  /* ✅ Ensure Property No is normalized */
-  if (body.listingInformation.listingInformationPropertyNo) {
-    body.listingInformation.listingInformationPropertyNo = normalizeLocalized(
-      body.listingInformation.listingInformationPropertyNo
-    );
-  } else {
-    body.listingInformation.listingInformationPropertyNo = { en: "", vi: "" };
-  }
-
-  /* =========================================================
-     ✅ Create Document
-  ========================================================== */
   const newProperty = await CreateProperty.create({
     ...body,
     createdBy: req.user?.id || null,
@@ -134,8 +118,8 @@ exports.getProperty = asyncHandler(async (req, res) => {
 ========================================================= */
 exports.updateProperty = asyncHandler(async (req, res) => {
   const id = req.params.id;
-
   const property = await CreateProperty.findById(id);
+
   if (!property)
     throw new ErrorResponse(`Resource not found with id of ${id}`, 404);
 
@@ -163,7 +147,6 @@ exports.getPropertyByPropertyId = asyncHandler(async (req, res) => {
     data: property,
   });
 });
-
 
 /* =========================================================
    🗑️ DELETE PROPERTY
