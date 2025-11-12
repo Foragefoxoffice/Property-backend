@@ -26,6 +26,14 @@ function deepNormalizeLocalized(data) {
     if (!Object.hasOwn(data, key)) continue;
     const val = data[key];
 
+    if (key === "metaKeywords" && typeof val === "object") {
+      data[key] = {
+        en: Array.isArray(val.en) ? val.en : [],
+        vi: Array.isArray(val.vi) ? val.vi : [],
+      };
+      continue;
+    }
+
     if (val && typeof val === "object" && ("en" in val || "vi" in val)) {
       data[key] = normalizeLocalized(val);
     } else if (typeof val === "object" && !Array.isArray(val)) {
@@ -38,22 +46,32 @@ function deepNormalizeLocalized(data) {
 }
 
 /* =========================================================
-   🔢 Generate Next Property ID (PHS001 → PHS002)
+   🔢 Generate Next Property ID (Sale / Lease / Homestay)
 ========================================================= */
-async function generateNextPropertyId() {
+async function generateNextPropertyId(transactionType) {
+  const prefixes = {
+    "Sale": "SAL-VN-",
+    "Lease": "LSE-VN-",
+    "Home Stay": "HST-VN-",
+  };
+
+  const prefix = prefixes[transactionType] || "UNK-VN-";
+
   const lastProperty = await CreateProperty.findOne({
-    "listingInformation.listingInformationPropertyId": { $regex: /^PHS\d+$/ },
+    "listingInformation.listingInformationPropertyId": {
+      $regex: `^${prefix}\\d+$`,
+    },
   })
     .sort({ createdAt: -1 })
     .select("listingInformation.listingInformationPropertyId")
     .lean();
 
-  let nextId = "PHS001";
+  let nextId = `${prefix}0001`;
 
   if (lastProperty) {
     const lastId = lastProperty.listingInformation.listingInformationPropertyId;
-    const num = parseInt(lastId.replace("PHS", ""), 10);
-    nextId = `PHS${String(num + 1).padStart(3, "0")}`;
+    const numberPart = parseInt(lastId.replace(prefix, ""), 10);
+    nextId = `${prefix}${String(numberPart + 1).padStart(4, "0")}`;
   }
 
   return nextId;
@@ -65,20 +83,31 @@ async function generateNextPropertyId() {
 exports.createProperty = asyncHandler(async (req, res) => {
   const body = deepNormalizeLocalized(req.body || {});
 
-  const propertyId = await generateNextPropertyId();
-  body.listingInformation.listingInformationPropertyId = propertyId;
+  // ✅ If frontend already sent propertyId, DO NOT regenerate
+  if (!body.listingInformation?.listingInformationPropertyId) {
+    const transactionType =
+      body.listingInformation?.listingInformationTransactionType?.en ||
+      body.listingInformation?.listingInformationTransactionType;
+
+    if (!transactionType)
+      throw new ErrorResponse("Transaction type is required", 400);
+
+    const propertyId = await generateNextPropertyId(transactionType);
+    body.listingInformation.listingInformationPropertyId = propertyId;
+  }
 
   const newProperty = await CreateProperty.create({
     ...body,
+    seoInformation: body.seoInformation || {},
     createdBy: req.user?.id || null,
   });
-
   res.status(201).json({
     success: true,
     message: "Property created successfully",
     data: newProperty,
   });
 });
+
 
 /* =========================================================
    📜 GET ALL PROPERTIES
@@ -124,6 +153,13 @@ exports.updateProperty = asyncHandler(async (req, res) => {
     throw new ErrorResponse(`Resource not found with id of ${id}`, 404);
 
   Object.assign(property, req.body);
+
+  if (req.body.seoInformation) {
+    property.seoInformation = {
+      ...property.seoInformation.toObject(),
+      ...req.body.seoInformation,
+    };
+  }
   await property.save();
 
   res.status(200).json({
@@ -133,14 +169,15 @@ exports.updateProperty = asyncHandler(async (req, res) => {
   });
 });
 
+/* =========================================================
+   🔍 GET PROPERTY BY PROPERTY ID (e.g. SAL-VN-0001)
+========================================================= */
 exports.getPropertyByPropertyId = asyncHandler(async (req, res) => {
   const property = await CreateProperty.findOne({
     "listingInformation.listingInformationPropertyId": req.params.propertyId,
   });
 
-  if (!property) {
-    throw new ErrorResponse("Property not found", 404);
-  }
+  if (!property) throw new ErrorResponse("Property not found", 404);
 
   res.status(200).json({
     success: true,
@@ -155,7 +192,8 @@ exports.deleteProperty = asyncHandler(async (req, res) => {
   const property = await CreateProperty.findById(req.params.id);
   if (!property) throw new ErrorResponse("Property not found", 404);
 
-  await property.deleteOne();
+  property.status = "Archived";
+  await property.save();
 
   res.status(200).json({
     success: true,
@@ -164,10 +202,35 @@ exports.deleteProperty = asyncHandler(async (req, res) => {
 });
 
 /* =========================================================
-   🔢 API: Get Next Property ID
+   ❌ HARD DELETE (Permanent Delete)
+========================================================= */
+exports.permanentlyDeleteProperty = asyncHandler(async (req, res) => {
+  const property = await CreateProperty.findById(req.params.id);
+
+  if (!property) throw new ErrorResponse("Property not found", 404);
+
+  await property.deleteOne();
+
+  res.status(200).json({
+    success: true,
+    message: "Property permanently deleted",
+  });
+});
+
+
+/* =========================================================
+   🔢 API: Get Next Property ID (Frontend Use)
 ========================================================= */
 exports.getNextPropertyId = asyncHandler(async (req, res) => {
-  const nextId = await generateNextPropertyId();
+  const transactionType = req.query.transactionType?.en || req.query.transactionType;
+
+  if (!transactionType)
+    return res.status(400).json({
+      success: false,
+      message: "transactionType query is required",
+    });
+
+  const nextId = await generateNextPropertyId(transactionType);
 
   res.json({
     success: true,

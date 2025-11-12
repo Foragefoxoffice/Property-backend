@@ -155,6 +155,43 @@ const CreatePropertySchema = new mongoose.Schema(
     titleVisibility: { type: Boolean, default: false },
     descriptionVisibility: { type: Boolean, default: false },
     propertyUtilityVisibility: { type: Boolean, default: false },
+    videoVisibility: { type: Boolean, default: false },
+    floorImageVisibility: { type: Boolean, default: false },
+    financialVisibility: {
+      contractLength: { type: Boolean, default: false },
+      deposit: { type: Boolean, default: false },
+      paymentTerm: { type: Boolean, default: false },
+      feeTaxes: { type: Boolean, default: false },
+      legalDocs: { type: Boolean, default: false },
+      agentFee: { type: Boolean, default: false },
+      checkIn: { type: Boolean, default: false },
+      checkOut: { type: Boolean, default: false },
+    },
+
+    // ✅ Multilingual SEO fields
+    seoInformation: {
+      metaTitle: LocalizedString,
+      metaDescription: LocalizedString,
+
+      // ✅ Keywords become multilanguage array of objects
+      metaKeywords: {
+        en: [{ type: String }],
+        vi: [{ type: String }],
+      },
+
+      slugUrl: LocalizedString,
+      canonicalUrl: LocalizedString,
+      schemaType: LocalizedString,
+
+      allowIndexing: { type: Boolean, default: true },
+
+      ogTitle: LocalizedString,
+      ogDescription: LocalizedString,
+
+      // ✅ OG images remain global
+      ogImages: [{ type: String }],
+    },
+
 
     /* 🧩 Meta */
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
