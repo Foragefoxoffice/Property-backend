@@ -13,8 +13,8 @@ const BlockSchema = new mongoose.Schema(
       required: true,
     },
     code: {
-      en: { type: String, required: true, trim: true },
-      vi: { type: String, required: true, trim: true },
+      en: { type: String, required: false, trim: true },
+      vi: { type: String, required: false, trim: true },
     },
     name: {
       en: { type: String, required: true, trim: true },

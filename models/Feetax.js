@@ -5,12 +5,12 @@ const FeeTaxSchema = new mongoose.Schema(
     code: {
       en: {
         type: String,
-        required: [true, "English Fee/Tax code is required"],
+        required: [false, "English Fee/Tax code is required"],
         trim: true,
       },
       vi: {
         type: String,
-        required: [true, "Vietnamese Fee/Tax code is required"],
+        required: [false, "Vietnamese Fee/Tax code is required"],
         trim: true,
       },
     },

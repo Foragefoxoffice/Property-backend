@@ -6,10 +6,30 @@ const Block = require("../models/Block");
 
 // ✅ GET all properties (with zones + blocks)
 exports.getProperties = asyncHandler(async (req, res) => {
-    const properties = await Property.find()
-        .populate("zones")
-        .populate("blocks")
-        .sort({ createdAt: -1 });
+    const properties = await Property.aggregate([
+        {
+            $addFields: {
+                numericCode: { $toInt: "$code.en" }
+            }
+        },
+        { $sort: { numericCode: 1 } },
+        {
+            $lookup: {
+                from: "zonesubareas",
+                localField: "zones",
+                foreignField: "_id",
+                as: "zones"
+            }
+        },
+        {
+            $lookup: {
+                from: "blocks",
+                localField: "blocks",
+                foreignField: "_id",
+                as: "blocks"
+            }
+        }
+    ]);
 
     res.status(200).json({
         success: true,
@@ -18,23 +38,30 @@ exports.getProperties = asyncHandler(async (req, res) => {
     });
 });
 
+
 // ✅ CREATE Property
 exports.createProperty = asyncHandler(async (req, res) => {
-    const { code_en, code_vi, name_en, name_vi, status } = req.body;
+    const { name_en, name_vi, status } = req.body;
 
-    if (!code_en || !code_vi || !name_en || !name_vi) {
-        throw new ErrorResponse("All English and Vietnamese fields are required", 400);
+    if (!name_en || !name_vi) {
+        throw new ErrorResponse("English & Vietnamese names are required", 400);
     }
 
-    const existing = await Property.findOne({
-        $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
-    });
-    if (existing) {
-        throw new ErrorResponse("Property code already exists", 400);
+    // Generate next code
+    const existing = await Property.find({}, { "code.en": 1 }).lean();
+    const numericCodes = existing
+        .map((r) => parseInt(r.code?.en))
+        .filter((n) => !isNaN(n));
+
+    let next = 1;
+    if (numericCodes.length > 0) {
+        next = Math.max(...numericCodes) + 1;
     }
+
+    const autoCode = String(next).padStart(3, "0");
 
     const property = await Property.create({
-        code: { en: code_en, vi: code_vi },
+        code: { en: autoCode, vi: autoCode },
         name: { en: name_en, vi: name_vi },
         status: status || "Active",
     });
@@ -45,6 +72,7 @@ exports.createProperty = asyncHandler(async (req, res) => {
         data: property,
     });
 });
+
 
 // ✅ UPDATE Property
 exports.updateProperty = asyncHandler(async (req, res) => {

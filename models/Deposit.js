@@ -5,12 +5,12 @@ const DepositSchema = new mongoose.Schema(
     code: {
       en: {
         type: String,
-        required: [true, "English Deposit code is required"],
+        required: [false, "English Deposit code is required"],
         trim: true,
       },
       vi: {
         type: String,
-        required: [true, "Vietnamese Deposit code is required"],
+        required: [false, "Vietnamese Deposit code is required"],
         trim: true,
       },
     },

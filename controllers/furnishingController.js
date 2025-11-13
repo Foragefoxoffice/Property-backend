@@ -1,48 +1,50 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
-const Furnishing = require("../models/Parking");
+const Furnishing = require("../models/Furnishing");
 
-// @desc    Get all Furnishing options
-// @route   GET /api/v1/furnishing
+// =====================================
+// GET ALL (Sorted by Numeric Code)
+// =====================================
 exports.getFurnishings = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10 } = req.query;
-    const skip = (page - 1) * limit;
-
-    const furnishings = await Furnishing.find()
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit));
-
-    const total = await Furnishing.countDocuments();
+    const furnishings = await Furnishing.aggregate([
+        {
+            $addFields: {
+                numericCode: { $toInt: "$code.en" }
+            }
+        },
+        { $sort: { numericCode: 1 } } // Ascending
+    ]);
 
     res.status(200).json({
         success: true,
-        count: furnishings.length,
-        total,
-        page: Number(page),
-        totalPages: Math.ceil(total / limit),
         data: furnishings,
     });
 });
 
-// @desc    Create a new Furnishing option
-// @route   POST /api/v1/furnishing
+// =====================================
+// CREATE (AUTO-GENERATE CODE)
+// =====================================
 exports.createFurnishing = asyncHandler(async (req, res) => {
-    const { code_en, code_vi, name_en, name_vi, status } = req.body;
+    const { name_en, name_vi, status } = req.body;
 
-    if (!code_en || !code_vi || !name_en || !name_vi) {
-        throw new ErrorResponse("All English and Vietnamese fields are required", 400);
+    // Validate only names (codes are auto-generated)
+    if (!name_en || !name_vi) {
+        throw new ErrorResponse("English & Vietnamese names are required", 400);
     }
 
-    const existing = await Furnishing.findOne({
-        $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
-    });
-    if (existing) {
-        throw new ErrorResponse("Furnishing code already exists", 400);
-    }
+    // Get existing numeric codes
+    const existing = await Furnishing.find({}, { "code.en": 1 }).lean();
+    const nums = existing
+        .map(x => parseInt(x.code?.en))
+        .filter(n => !isNaN(n));
 
+    // Auto-generate next code
+    const nextNumber = nums.length ? Math.max(...nums) + 1 : 1;
+    const autoCode = String(nextNumber).padStart(3, "0");
+
+    // Create new furnishing
     const newFurnishing = await Furnishing.create({
-        code: { en: code_en, vi: code_vi },
+        code: { en: autoCode, vi: autoCode },
         name: { en: name_en, vi: name_vi },
         status: status || "Active",
     });
@@ -54,19 +56,19 @@ exports.createFurnishing = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Update Furnishing
-// @route   PUT /api/v1/furnishing/:id
+// =====================================
+// UPDATE (Name + Status only)
+// =====================================
 exports.updateFurnishing = asyncHandler(async (req, res) => {
-    const { code_en, code_vi, name_en, name_vi, status } = req.body;
+    const { name_en, name_vi, status } = req.body;
 
     const furnishing = await Furnishing.findById(req.params.id);
     if (!furnishing) throw new ErrorResponse("Furnishing not found", 404);
 
-    furnishing.code.en = code_en ?? furnishing.code.en;
-    furnishing.code.vi = code_vi ?? furnishing.code.vi;
-    furnishing.name.en = name_en ?? furnishing.name.en;
-    furnishing.name.vi = name_vi ?? furnishing.name.vi;
-    furnishing.status = status ?? furnishing.status;
+    // Update only editable fields
+    if (name_en) furnishing.name.en = name_en;
+    if (name_vi) furnishing.name.vi = name_vi;
+    if (status) furnishing.status = status;
 
     await furnishing.save();
 
@@ -77,8 +79,9 @@ exports.updateFurnishing = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Delete Furnishing
-// @route   DELETE /api/v1/furnishing/:id
+// =====================================
+// DELETE
+// =====================================
 exports.deleteFurnishing = asyncHandler(async (req, res) => {
     const furnishing = await Furnishing.findById(req.params.id);
     if (!furnishing) throw new ErrorResponse("Furnishing not found", 404);

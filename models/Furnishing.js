@@ -1,15 +1,21 @@
 // models/Furnishing.js
 const mongoose = require("mongoose");
 
-const LocalizedString = {
-  en: { type: String, trim: true, default: "" },
-  vi: { type: String, trim: true, default: "" },
-};
-
 const FurnishingSchema = new mongoose.Schema(
   {
-    name: LocalizedString,
-    description: LocalizedString,
+    code: {
+      en: { type: String, trim: true },
+      vi: { type: String, trim: true },
+    },
+    name: {
+      en: { type: String, required: true, trim: true },
+      vi: { type: String, required: true, trim: true },
+    },
+    status: {
+      type: String,
+      enum: ["Active", "Inactive"],
+      default: "Active",
+    },
   },
   { timestamps: true }
 );

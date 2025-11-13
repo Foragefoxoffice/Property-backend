@@ -5,12 +5,12 @@ const LegalDocumentSchema = new mongoose.Schema(
     code: {
       en: {
         type: String,
-        required: [true, "English legal document code is required"],
+        required: [false, "English legal document code is required"],
         trim: true,
       },
       vi: {
         type: String,
-        required: [true, "Vietnamese legal document code is required"],
+        required: [false, "Vietnamese legal document code is required"],
         trim: true,
       },
     },

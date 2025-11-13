@@ -5,12 +5,12 @@ const AvailabilityStatusSchema = new mongoose.Schema(
     code: {
       en: {
         type: String,
-        required: [true, "English Availability Status code is required"],
+        required: [false, "English Availability Status code is required"],
         trim: true,
       },
       vi: {
         type: String,
-        required: [true, "Vietnamese Availability Status code is required"],
+        required: [false, "Vietnamese Availability Status code is required"],
         trim: true,
       },
     },

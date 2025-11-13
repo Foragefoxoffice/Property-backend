@@ -4,51 +4,52 @@ const LegalDocument = require("../models/LegalDocument");
 
 // ✅ GET ALL
 exports.getLegalDocuments = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 100 } = req.query;
-  const skip = (page - 1) * limit;
-
-  const records = await LegalDocument.find()
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(Number(limit));
-
-  const total = await LegalDocument.countDocuments();
+  const records = await LegalDocument.aggregate([
+    { $addFields: { numericCode: { $toInt: "$code.en" } } },
+    { $sort: { numericCode: 1 } }
+  ]);
 
   res.status(200).json({
     success: true,
-    count: records.length,
-    total,
-    page: Number(page),
-    totalPages: Math.ceil(total / limit),
     data: records,
   });
 });
 
 // ✅ CREATE
 exports.createLegalDocument = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, status } = req.body;
+  const { name_en, name_vi, status } = req.body;
 
-  if (!code_en || !code_vi || !name_en || !name_vi) {
-    throw new ErrorResponse("All EN & VI fields are required", 400);
+  if (!name_en || !name_vi) {
+    throw new ErrorResponse("Name EN & VI are required", 400);
   }
 
-  const exists = await LegalDocument.findOne({
-    $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
-  });
-  if (exists) throw new ErrorResponse("Code already exists", 400);
+  // Read existing codes
+  const existing = await LegalDocument.find({}, { "code.en": 1 }).lean();
+
+  const numericCodes = existing
+    .map((r) => parseInt(r.code?.en))
+    .filter((n) => !isNaN(n));
+
+  let nextNumber = 1;
+  if (numericCodes.length > 0) {
+    nextNumber = Math.max(...numericCodes) + 1;
+  }
+
+  const autoCode = String(nextNumber).padStart(3, "0");
 
   const newRecord = await LegalDocument.create({
-    code: { en: code_en, vi: code_vi },
+    code: { en: autoCode, vi: autoCode },
     name: { en: name_en, vi: name_vi },
     status: status || "Active",
   });
 
   res.status(201).json({
     success: true,
-    message: "Legal document added successfully",
+    message: "Legal document created successfully",
     data: newRecord,
   });
 });
+
 
 // ✅ UPDATE
 exports.updateLegalDocument = asyncHandler(async (req, res) => {

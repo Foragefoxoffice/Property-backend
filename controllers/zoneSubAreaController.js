@@ -6,41 +6,72 @@ const Block = require("../models/Block");
 
 // ✅ GET all zones/sub-areas
 exports.getZoneSubAreas = asyncHandler(async (req, res) => {
-  const query = {};
-
-  if (req.query.property) query.property = req.query.property;
-
-  const zones = await ZoneSubArea.find(query)
-    .populate("property")
-    .populate("blocks")
-    .sort({ createdAt: -1 });
+  const zones = await ZoneSubArea.aggregate([
+    {
+      $addFields: {
+        numericCode: { $toInt: "$code.en" }
+      }
+    },
+    { $sort: { numericCode: 1 } },
+    {
+      $lookup: {
+        from: "properties",
+        localField: "property",
+        foreignField: "_id",
+        as: "property"
+      }
+    },
+    { $unwind: "$property" }
+  ]);
 
   res.status(200).json({
     success: true,
-    count: zones.length,
-    data: zones,
+    data: zones
   });
 });
+
 
 // ✅ CREATE Zone/Sub-area
 exports.createZoneSubArea = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, property } = req.body;
+  const { name_en, name_vi, property } = req.body;
 
-  if (!property) throw new ErrorResponse("Property is required", 400);
+  if (!property) {
+    throw new ErrorResponse("Property is required", 400);
+  }
+  if (!name_en || !name_vi) {
+    throw new ErrorResponse("English & Vietnamese names are required", 400);
+  }
+
+  // Get existing codes
+  const existing = await ZoneSubArea.find({ property }, { "code.en": 1 }).lean();
+
+  const numericCodes = existing
+    .map((r) => parseInt(r.code?.en))
+    .filter((n) => !isNaN(n));
+
+  let next = 1;
+  if (numericCodes.length > 0) {
+    next = Math.max(...numericCodes) + 1;
+  }
+
+  const autoCode = String(next).padStart(3, "0");
 
   const zone = await ZoneSubArea.create({
     property,
-    code: { en: code_en, vi: code_vi },
+    code: { en: autoCode, vi: autoCode },
     name: { en: name_en, vi: name_vi },
+    status: "Active",
   });
 
-  // ✅ Add Zone to Property
-  await Property.findByIdAndUpdate(property, {
-    $push: { zones: zone._id },
-  });
+  await Property.findByIdAndUpdate(property, { $push: { zones: zone._id } });
 
-  res.status(201).json({ success: true, data: zone });
+  res.status(201).json({
+    success: true,
+    message: "Zone/Sub-area created successfully",
+    data: zone,
+  });
 });
+
 
 // ✅ UPDATE Zone/Sub-area
 exports.updateZoneSubArea = asyncHandler(async (req, res) => {

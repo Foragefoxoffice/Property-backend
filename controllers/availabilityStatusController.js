@@ -3,15 +3,20 @@ const ErrorResponse = require("../utils/errorResponse");
 const AvailabilityStatus = require("../models/AvailabilityStatus");
 
 // @desc    Get all Availability Statuses
-// @route   GET /api/v1/availabilitystatus
 exports.getAvailabilityStatuses = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const skip = (page - 1) * limit;
 
-  const statuses = await AvailabilityStatus.find()
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(Number(limit));
+  const statuses = await AvailabilityStatus.aggregate([
+    {
+      $addFields: {
+        numericCode: { $toInt: "$code.en" }
+      }
+    },
+    { $sort: { numericCode: 1 } }, // ASCENDING
+    { $skip: skip },
+    { $limit: Number(limit) }
+  ]);
 
   const total = await AvailabilityStatus.countDocuments();
 
@@ -25,27 +30,33 @@ exports.getAvailabilityStatuses = asyncHandler(async (req, res) => {
   });
 });
 
+
 // @desc    Create Availability Status
-// @route   POST /api/v1/availabilitystatus
 exports.createAvailabilityStatus = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, status } = req.body;
+  const { name_en, name_vi, status } = req.body;
 
-  if (!code_en || !code_vi || !name_en || !name_vi) {
-    throw new ErrorResponse(
-      "All English and Vietnamese fields are required",
-      400
-    );
+  if (!name_en || !name_vi) {
+    throw new ErrorResponse("English and Vietnamese names are required", 400);
   }
 
-  const existing = await AvailabilityStatus.findOne({
-    $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
-  });
-  if (existing) {
-    throw new ErrorResponse("Availability Status code already exists", 400);
+  // Fetch all existing statuses
+  const all = await AvailabilityStatus.find().lean();
+
+  // Extract only numeric codes
+  const numericCodes = all
+    .map(item => parseInt(item.code?.en))
+    .filter(num => !isNaN(num)); // remove invalid numbers
+
+  // Determine next code
+  let nextNumber = 1;
+  if (numericCodes.length > 0) {
+    nextNumber = Math.max(...numericCodes) + 1;
   }
+
+  const autoCode = String(nextNumber).padStart(3, "0");
 
   const newStatus = await AvailabilityStatus.create({
-    code: { en: code_en, vi: code_vi },
+    code: { en: autoCode, vi: autoCode },
     name: { en: name_en, vi: name_vi },
     status: status || "Active",
   });
@@ -57,6 +68,7 @@ exports.createAvailabilityStatus = asyncHandler(async (req, res) => {
   });
 });
 
+
 // @desc    Update Availability Status
 // @route   PUT /api/v1/availabilitystatus/:id
 exports.updateAvailabilityStatus = asyncHandler(async (req, res) => {
@@ -66,8 +78,6 @@ exports.updateAvailabilityStatus = asyncHandler(async (req, res) => {
   if (!availability)
     throw new ErrorResponse("Availability Status not found", 404);
 
-  availability.code.en = code_en ?? availability.code.en;
-  availability.code.vi = code_vi ?? availability.code.vi;
   availability.name.en = name_en ?? availability.name.en;
   availability.name.vi = name_vi ?? availability.name.vi;
   availability.status = status ?? availability.status;

@@ -5,45 +5,42 @@ const PropertyType = require("../models/PropertyType");
 // @desc    Get all Property Types
 // @route   GET /api/v1/propertytype
 exports.getPropertyTypes = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10 } = req.query;
-    const skip = (page - 1) * limit;
-
-    const propertyTypes = await PropertyType.find()
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit));
-
-    const total = await PropertyType.countDocuments();
+    const propertyTypes = await PropertyType.aggregate([
+        { $addFields: { numericCode: { $toInt: "$code.en" } } },
+        { $sort: { numericCode: 1 } }
+    ]);
 
     res.status(200).json({
         success: true,
-        count: propertyTypes.length,
-        total,
-        page: Number(page),
-        totalPages: Math.ceil(total / limit),
         data: propertyTypes,
     });
 });
 
+
 // @desc    Create a new Property Type
-// @route   POST /api/v1/propertytype
 exports.createPropertyType = asyncHandler(async (req, res) => {
-    const { code_en, code_vi, name_en, name_vi, status } = req.body;
+    const { name_en, name_vi, status } = req.body;
 
-    if (!code_en || !code_vi || !name_en || !name_vi) {
-        throw new ErrorResponse("All English and Vietnamese fields are required", 400);
+    if (!name_en || !name_vi) {
+        throw new ErrorResponse("English & Vietnamese names are required", 400);
     }
 
-    const existing = await PropertyType.findOne({
-        $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
-    });
+    // Get existing numeric codes
+    const existing = await PropertyType.find({}, { "code.en": 1 }).lean();
 
-    if (existing) {
-        throw new ErrorResponse("Property Type code already exists", 400);
+    const numericCodes = existing
+        .map((r) => parseInt(r.code?.en))
+        .filter((n) => !isNaN(n));
+
+    let next = 1;
+    if (numericCodes.length > 0) {
+        next = Math.max(...numericCodes) + 1;
     }
+
+    const autoCode = String(next).padStart(3, "0");
 
     const propertyType = await PropertyType.create({
-        code: { en: code_en, vi: code_vi },
+        code: { en: autoCode, vi: autoCode },
         name: { en: name_en, vi: name_vi },
         status: status || "Active",
     });
@@ -54,6 +51,7 @@ exports.createPropertyType = asyncHandler(async (req, res) => {
         data: propertyType,
     });
 });
+
 
 // @desc    Update Property Type
 // @route   PUT /api/v1/propertytype/:id

@@ -3,57 +3,47 @@ const ErrorResponse = require("../utils/errorResponse");
 const Unit = require("../models/Unit");
 
 // @desc    Get all Units
-// @route   GET /api/v1/unit
 exports.getUnits = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
-  const skip = (page - 1) * limit;
-
-  const units = await Unit.find()
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(Number(limit));
-
-  const total = await Unit.countDocuments();
+  const units = await Unit.aggregate([
+    {
+      $addFields: {
+        numericCode: { $toInt: "$code.en" }
+      }
+    },
+    { $sort: { numericCode: 1 } }
+  ]);
 
   res.status(200).json({
     success: true,
     count: units.length,
-    total,
-    page: Number(page),
-    totalPages: Math.ceil(total / limit),
     data: units,
   });
 });
 
+
 // @desc    Create Unit
-// @route   POST /api/v1/unit
 exports.createUnit = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, symbol_en, symbol_vi, status } =
-    req.body;
+  const { name_en, name_vi, symbol_en, symbol_vi, status } = req.body;
 
-  if (
-    !code_en ||
-    !code_vi ||
-    !name_en ||
-    !name_vi ||
-    !symbol_en ||
-    !symbol_vi
-  ) {
-    throw new ErrorResponse(
-      "All English and Vietnamese fields are required",
-      400
-    );
+  if (!name_en || !name_vi || !symbol_en || !symbol_vi) {
+    throw new ErrorResponse("English & Vietnamese names and symbols are required", 400);
   }
 
-  const existing = await Unit.findOne({
-    $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
-  });
-  if (existing) {
-    throw new ErrorResponse("Unit code already exists", 400);
+  // Generate next unit code
+  const existing = await Unit.find({}, { "code.en": 1 }).lean();
+  const numericCodes = existing
+    .map((r) => parseInt(r.code?.en))
+    .filter((n) => !isNaN(n));
+
+  let next = 1;
+  if (numericCodes.length > 0) {
+    next = Math.max(...numericCodes) + 1;
   }
+
+  const autoCode = String(next).padStart(3, "0");
 
   const newUnit = await Unit.create({
-    code: { en: code_en, vi: code_vi },
+    code: { en: autoCode, vi: autoCode },
     name: { en: name_en, vi: name_vi },
     symbol: { en: symbol_en, vi: symbol_vi },
     status: status || "Active",
@@ -65,6 +55,7 @@ exports.createUnit = asyncHandler(async (req, res) => {
     data: newUnit,
   });
 });
+
 
 // @desc    Update Unit
 // @route   PUT /api/v1/unit/:id

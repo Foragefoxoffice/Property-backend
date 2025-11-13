@@ -4,52 +4,53 @@ const FloorRange = require("../models/FloorRange");
 
 // ✅ Get All
 exports.getFloorRanges = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
-  const skip = (page - 1) * limit;
-
-  const floorRanges = await FloorRange.find()
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(Number(limit));
-
-  const total = await FloorRange.countDocuments();
+  const floorRanges = await FloorRange.aggregate([
+    { $addFields: { numericCode: { $toInt: "$code.en" } } },
+    { $sort: { numericCode: 1 } }
+  ]);
 
   res.status(200).json({
     success: true,
-    count: floorRanges.length,
-    total,
-    page: Number(page),
-    totalPages: Math.ceil(total / limit),
-    data: floorRanges,
+    data: floorRanges
   });
 });
 
+
 // ✅ Create
 exports.createFloorRange = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, status } = req.body;
+  const { name_en, name_vi, status } = req.body;
 
-  if (!code_en || !code_vi || !name_en || !name_vi) {
-    throw new ErrorResponse("All English and Vietnamese fields are required", 400);
+  if (!name_en || !name_vi) {
+    throw new ErrorResponse("English & Vietnamese names are required", 400);
   }
 
-  const exists = await FloorRange.findOne({
-    $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
-  });
+  // Get all existing numeric codes
+  const allRanges = await FloorRange.find({}, { "code.en": 1 }).lean();
 
-  if (exists) throw new ErrorResponse("Floor Range code already exists", 400);
+  const numericCodes = allRanges
+    .map(r => parseInt(r.code?.en))
+    .filter(n => !isNaN(n));
 
-  const newEntry = await FloorRange.create({
-    code: { en: code_en, vi: code_vi },
+  let next = 1;
+  if (numericCodes.length > 0) {
+    next = Math.max(...numericCodes) + 1;
+  }
+
+  const autoCode = String(next).padStart(3, "0");
+
+  const created = await FloorRange.create({
+    code: { en: autoCode, vi: autoCode },
     name: { en: name_en, vi: name_vi },
     status: status || "Active",
   });
 
   res.status(201).json({
     success: true,
-    message: "Floor Range created successfully",
-    data: newEntry,
+    message: "Floor Range created",
+    data: created
   });
 });
+
 
 // ✅ Update
 exports.updateFloorRange = asyncHandler(async (req, res) => {

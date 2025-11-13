@@ -5,45 +5,46 @@ const Deposit = require("../models/Deposit");
 // @desc    Get all Deposits
 // @route   GET /api/v1/deposit
 exports.getDeposits = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
-  const skip = (page - 1) * limit;
-
-  const deposits = await Deposit.find()
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(Number(limit));
-
-  const total = await Deposit.countDocuments();
+  const deposits = await Deposit.aggregate([
+    {
+      $addFields: {
+        numericCode: { $toInt: "$code.en" }
+      }
+    },
+    { $sort: { numericCode: 1 } } // ASCENDING
+  ]);
 
   res.status(200).json({
     success: true,
-    count: deposits.length,
-    total,
-    page: Number(page),
-    totalPages: Math.ceil(total / limit),
     data: deposits,
   });
 });
 
-// @desc    Create Deposit
-// @route   POST /api/v1/deposit
-exports.createDeposit = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, status } = req.body;
 
-  if (!code_en || !code_vi || !name_en || !name_vi) {
-    throw new ErrorResponse(
-      "All English and Vietnamese fields are required",
-      400
-    );
+// @desc    Create Deposit
+exports.createDeposit = asyncHandler(async (req, res) => {
+  const { name_en, name_vi, status } = req.body;
+
+  if (!name_en || !name_vi) {
+    throw new ErrorResponse("Deposit name EN & VI required", 400);
   }
 
-  const existing = await Deposit.findOne({
-    $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
-  });
-  if (existing) throw new ErrorResponse("Deposit code already exists", 400);
+  // Find all codes and compute next number
+  const allDeposits = await Deposit.find().lean();
+
+  const numericCodes = allDeposits
+    .map((d) => parseInt(d.code?.en))
+    .filter((n) => !isNaN(n));
+
+  let nextNumber = 1;
+  if (numericCodes.length > 0) {
+    nextNumber = Math.max(...numericCodes) + 1;
+  }
+
+  const autoCode = String(nextNumber).padStart(3, "0");
 
   const newDeposit = await Deposit.create({
-    code: { en: code_en, vi: code_vi },
+    code: { en: autoCode, vi: autoCode },
     name: { en: name_en, vi: name_vi },
     status: status || "Active",
   });
