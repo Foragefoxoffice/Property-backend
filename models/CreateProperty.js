@@ -192,7 +192,6 @@ const CreatePropertySchema = new mongoose.Schema(
       ogImages: [{ type: String }],
     },
 
-
     /* 🧩 Meta */
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     status: {
@@ -203,5 +202,6 @@ const CreatePropertySchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+CreatePropertySchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model("CreateProperty", CreatePropertySchema);

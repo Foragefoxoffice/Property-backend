@@ -7,7 +7,10 @@ const {
   deleteProperty,
   getNextPropertyId,
   getPropertyByPropertyId,
-  permanentlyDeleteProperty
+  permanentlyDeleteProperty,
+  copyPropertyToSale,
+  copyPropertyToLease,
+  copyPropertyToHomeStay,
 } = require("../controllers/createPropertyController");
 
 const router = express.Router();
@@ -16,6 +19,11 @@ const router = express.Router();
 router.get("/next-id", getNextPropertyId);
 router.get("/pid/:propertyId", getPropertyByPropertyId);
 router.delete("/permanent-delete/:id", permanentlyDeleteProperty);
+
+// Copy Property Routes
+router.post("/copy/sale/:id", copyPropertyToSale);
+router.post("/copy/lease/:id", copyPropertyToLease);
+router.post("/copy/homestay/:id", copyPropertyToHomeStay);
 
 // ✅ Main Property Routes
 router.route("/").get(getProperties).post(createProperty);

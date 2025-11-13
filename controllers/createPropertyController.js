@@ -50,8 +50,8 @@ function deepNormalizeLocalized(data) {
 ========================================================= */
 async function generateNextPropertyId(transactionType) {
   const prefixes = {
-    "Sale": "SAL-VN-",
-    "Lease": "LSE-VN-",
+    Sale: "SAL-VN-",
+    Lease: "LSE-VN-",
     "Home Stay": "HST-VN-",
   };
 
@@ -108,7 +108,6 @@ exports.createProperty = asyncHandler(async (req, res) => {
   });
 });
 
-
 /* =========================================================
    📜 GET ALL PROPERTIES
 ========================================================= */
@@ -117,8 +116,8 @@ exports.getProperties = asyncHandler(async (req, res) => {
     .populate(
       "listingInformation.listingInformationPropertyType listingInformation.listingInformationAvailabilityStatus propertyInformation.informationFurnishing createdBy"
     )
-    .sort({ createdAt: -1 });
-
+    .sort({ createdAt: -1 })
+    .allowDiskUse(true);
   res.status(200).json({
     success: true,
     count: properties.length,
@@ -217,12 +216,12 @@ exports.permanentlyDeleteProperty = asyncHandler(async (req, res) => {
   });
 });
 
-
 /* =========================================================
    🔢 API: Get Next Property ID (Frontend Use)
 ========================================================= */
 exports.getNextPropertyId = asyncHandler(async (req, res) => {
-  const transactionType = req.query.transactionType?.en || req.query.transactionType;
+  const transactionType =
+    req.query.transactionType?.en || req.query.transactionType;
 
   if (!transactionType)
     return res.status(400).json({
@@ -235,5 +234,106 @@ exports.getNextPropertyId = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     nextId,
+  });
+});
+
+// POST /api/properties/copy/:id
+exports.copyPropertyToSale = asyncHandler(async (req, res) => {
+  const original = await CreateProperty.findById(req.params.id);
+  if (!original) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Property not found" });
+  }
+
+  let newData = original.toObject();
+
+  delete newData._id;
+  delete newData.createdAt;
+  delete newData.updatedAt;
+
+  // Ensure nested objects use localized format
+  newData = deepNormalizeLocalized(newData);
+
+  // Set transaction type to Sale
+  newData.listingInformation.listingInformationTransactionType = {
+    en: "Sale",
+    vi: "Mua Bán",
+  };
+
+  // Generate next ID
+  const nextId = await generateNextPropertyId("Sale");
+  newData.listingInformation.listingInformationPropertyId = nextId;
+
+  const newProperty = await CreateProperty.create(newData);
+
+  return res.status(200).json({
+    success: true,
+    message: "Property copied to Sale",
+    data: newProperty,
+  });
+});
+
+exports.copyPropertyToLease = asyncHandler(async (req, res) => {
+  const original = await CreateProperty.findById(req.params.id);
+  if (!original)
+    return res
+      .status(404)
+      .json({ success: false, message: "Property not found" });
+
+  let newData = original.toObject();
+
+  delete newData._id;
+  delete newData.createdAt;
+  delete newData.updatedAt;
+
+  newData = deepNormalizeLocalized(newData);
+
+  newData.listingInformation.listingInformationTransactionType = {
+    en: "Lease",
+    vi: "Cho Thuê",
+  };
+
+  const nextId = await generateNextPropertyId("Lease");
+  newData.listingInformation.listingInformationPropertyId = nextId;
+
+  const newProperty = await CreateProperty.create(newData);
+
+  return res.status(200).json({
+    success: true,
+    message: "Property copied to Lease",
+    data: newProperty,
+  });
+});
+
+exports.copyPropertyToHomeStay = asyncHandler(async (req, res) => {
+  const original = await CreateProperty.findById(req.params.id);
+  if (!original)
+    return res
+      .status(404)
+      .json({ success: false, message: "Property not found" });
+
+  let newData = original.toObject();
+
+  delete newData._id;
+  delete newData.createdAt;
+  delete newData.updatedAt;
+
+  newData = deepNormalizeLocalized(newData);
+
+  newData.listingInformation.listingInformationTransactionType = {
+    en: "Home Stay",
+    vi: "Nhà Trọ",
+  };
+
+  const nextId = await generateNextPropertyId("Home Stay");
+  newData.listingInformation.listingInformationPropertyId = nextId;
+
+  const newProperty = await CreateProperty.create(newData);
+
+  return res.status(200).json({
+    success: true,
+    message: "Property copied to Home Stay",
+    data: newProperty,
   });
 });
