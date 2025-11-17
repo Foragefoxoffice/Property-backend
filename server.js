@@ -27,7 +27,8 @@ const unitRoutes = require("./routes/unitRoutes");
 const furnishingRoutes = require("./routes/furnishingRoutes");
 const parkingRoutes = require("./routes/parkingRoutes");
 const petPolicyRoutes = require("./routes/petPolicyRoutes");
-const createPropertyRoutes = require("./routes/createPropertyRoutes");
+const createPropertyRoutes = require("./routes/createPropertyRoutes.js");
+
 const uploadRoutes = require("./routes/uploadRoutes");
 const depositRoutes = require("./routes/depositRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");

@@ -3,28 +3,12 @@ const mongoose = require("mongoose");
 const PaymentSchema = new mongoose.Schema(
   {
     code: {
-      en: {
-        type: String,
-        required: [true, "English Payment code is required"],
-        trim: true,
-      },
-      vi: {
-        type: String,
-        required: [true, "Vietnamese Payment code is required"],
-        trim: true,
-      },
+      en: { type: String, trim: true },
+      vi: { type: String, trim: true },
     },
     name: {
-      en: {
-        type: String,
-        required: [true, "English Payment name is required"],
-        trim: true,
-      },
-      vi: {
-        type: String,
-        required: [true, "Vietnamese Payment name is required"],
-        trim: true,
-      },
+      en: { type: String, required: true, trim: true },
+      vi: { type: String, required: true, trim: true },
     },
     status: {
       type: String,
@@ -35,8 +19,8 @@ const PaymentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ Prevent duplicate codes across languages
-PaymentSchema.index({ "code.en": 1 }, { unique: true });
-PaymentSchema.index({ "code.vi": 1 }, { unique: true });
+// ❌ REMOVE unique indexes
+// PaymentSchema.index({ "code.en": 1 }, { unique: true });
+// PaymentSchema.index({ "code.vi": 1 }, { unique: true });
 
 module.exports = mongoose.model("Payment", PaymentSchema);

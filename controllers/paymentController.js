@@ -26,24 +26,33 @@ exports.getPayments = asyncHandler(async (req, res) => {
 });
 
 // @desc    Create Payment
-// @route   POST /api/v1/payment
 exports.createPayment = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, status } = req.body;
+  const { name_en, name_vi, status } = req.body;
 
-  if (!code_en || !code_vi || !name_en || !name_vi) {
+  if (!name_en || !name_vi) {
     throw new ErrorResponse(
       "All English and Vietnamese fields are required",
       400
     );
   }
 
-  const existing = await Payment.findOne({
-    $or: [{ "code.en": code_en }, { "code.vi": code_vi }],
-  });
-  if (existing) throw new ErrorResponse("Payment code already exists", 400);
+  // Fetch all payments to compute next sequence
+  const allPayments = await Payment.find().lean();
+
+  const numericCodes = allPayments
+    .map((p) => parseInt(p.code?.en))
+    .filter((n) => !isNaN(n));
+
+  let nextNumber = 1;
+  if (numericCodes.length > 0) {
+    nextNumber = Math.max(...numericCodes) + 1;
+  }
+
+  // Format like 001, 002, 003...
+  const autoCode = String(nextNumber).padStart(3, "0");
 
   const newPayment = await Payment.create({
-    code: { en: code_en, vi: code_vi },
+    code: { en: autoCode, vi: autoCode },
     name: { en: name_en, vi: name_vi },
     status: status || "Active",
   });
@@ -56,15 +65,13 @@ exports.createPayment = asyncHandler(async (req, res) => {
 });
 
 // @desc    Update Payment
-// @route   PUT /api/v1/payment/:id
 exports.updatePayment = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, status } = req.body;
+  const { name_en, name_vi, status } = req.body;
 
   const payment = await Payment.findById(req.params.id);
   if (!payment) throw new ErrorResponse("Payment not found", 404);
 
-  payment.code.en = code_en ?? payment.code.en;
-  payment.code.vi = code_vi ?? payment.code.vi;
+  // Only update allowed fields
   payment.name.en = name_en ?? payment.name.en;
   payment.name.vi = name_vi ?? payment.name.vi;
   payment.status = status ?? payment.status;

@@ -337,3 +337,16 @@ exports.copyPropertyToHomeStay = asyncHandler(async (req, res) => {
     data: newProperty,
   });
 });
+
+exports.restoreProperty = asyncHandler(async (req, res) => {
+  const property = await CreateProperty.findById(req.params.id);
+  if (!property) throw new ErrorResponse("Property not found", 404);
+
+  property.status = "Draft"; // or "Published" if you want
+  await property.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Property restored successfully",
+  });
+});
