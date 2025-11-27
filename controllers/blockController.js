@@ -41,6 +41,22 @@ exports.getBlocks = asyncHandler(async (req, res) => {
 exports.createBlock = asyncHandler(async (req, res) => {
   const { name_en, name_vi, property, zone } = req.body;
 
+  // ❌ Prevent duplicate block name inside same zone
+  const existingBlock = await Block.findOne({
+    zone,
+    $or: [
+      { "name.en": name_en },
+      { "name.vi": name_vi }
+    ]
+  });
+
+  if (existingBlock) {
+    throw new ErrorResponse(
+      "Block with same name already exists in this Zone/Sub-area",
+      400
+    );
+  }
+
   if (!property) throw new ErrorResponse("Property is required", 400);
   if (!zone) throw new ErrorResponse("Zone is required", 400);
   if (!name_en || !name_vi)
@@ -81,6 +97,23 @@ exports.updateBlock = asyncHandler(async (req, res) => {
   if (!block) throw new ErrorResponse("Block not found", 404);
 
   const { code_en, code_vi, name_en, name_vi, property, zone, status } = req.body;
+
+  // ❌ Prevent duplicate block name on update (exclude current block)
+  const duplicateBlock = await Block.findOne({
+    _id: { $ne: block._id },
+    zone: zone || block.zone,   // zone may be updated
+    $or: [
+      { "name.en": name_en },
+      { "name.vi": name_vi }
+    ]
+  });
+
+  if (duplicateBlock) {
+    throw new ErrorResponse(
+      "Another Block with same name already exists in this Zone/Sub-area",
+      400
+    );
+  }
 
   const oldProperty = block.property.toString();
   const oldZone = block.zone.toString();

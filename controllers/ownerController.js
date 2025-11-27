@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const Owner = require("../models/Owner");
+const CreateProperty = require("../models/CreateProperty");
 
 // GET /api/v1/owners
 exports.getOwners = asyncHandler(async (req, res) => {
@@ -119,6 +120,20 @@ exports.updateOwner = asyncHandler(async (req, res) => {
 exports.deleteOwner = asyncHandler(async (req, res) => {
   const owner = await Owner.findById(req.params.id);
   if (!owner) throw new ErrorResponse("Owner not found", 404);
+
+  const isUsed = await CreateProperty.exists({
+    $or: [
+      { "contactManagement.contactManagementOwner.en": owner.ownerName.en },
+      { "contactManagement.contactManagementOwner.vi": owner.ownerName.vi }
+    ]
+  });
+
+  if (isUsed) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+    });
+  }
 
   await owner.deleteOne();
 

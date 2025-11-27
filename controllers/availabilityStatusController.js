@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const AvailabilityStatus = require("../models/AvailabilityStatus");
+const CreateProperty = require("../models/CreateProperty");
 
 // @desc    Get all Availability Statuses
 exports.getAvailabilityStatuses = asyncHandler(async (req, res) => {
@@ -97,6 +98,20 @@ exports.deleteAvailabilityStatus = asyncHandler(async (req, res) => {
   const availability = await AvailabilityStatus.findById(req.params.id);
   if (!availability)
     throw new ErrorResponse("Availability Status not found", 404);
+
+  const isUsed = await CreateProperty.exists({
+    $or: [
+      { "listingInformation.listingInformationAvailabilityStatus.en": availability.name.en },
+      { "listingInformation.listingInformationAvailabilityStatus.vi": availability.name.vi }
+    ]
+  });
+
+  if (isUsed) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+    });
+  }
 
   await availability.deleteOne();
 

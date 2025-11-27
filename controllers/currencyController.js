@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const Currency = require("../models/Currency");
+const CreateProperty = require("../models/CreateProperty");
 
 /* =========================================================
    @desc    Get all currencies
@@ -103,9 +104,27 @@ exports.updateCurrency = asyncHandler(async (req, res) => {
    @desc    Delete a currency
    @route   DELETE /api/v1/currency/:id
 ========================================================= */
+/* =========================================================
+   @desc    Delete a currency
+   @route   DELETE /api/v1/currency/:id
+========================================================= */
 exports.deleteCurrency = asyncHandler(async (req, res) => {
   const currency = await Currency.findById(req.params.id);
   if (!currency) throw new ErrorResponse("Currency not found", 404);
+
+  const isUsed = await CreateProperty.exists({
+    $or: [
+      { "financialDetails.financialDetailsCurrency": currency.currencyCode.en },
+      { "financialDetails.financialDetailsCurrency": currency.currencyCode.vi }
+    ]
+  });
+
+  if (isUsed) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+    });
+  }
 
   await currency.deleteOne();
 

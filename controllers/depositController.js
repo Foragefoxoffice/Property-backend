@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const Deposit = require("../models/Deposit");
+const CreateProperty = require("../models/CreateProperty");
 
 // @desc    Get all Deposits
 // @route   GET /api/v1/deposit
@@ -81,9 +82,25 @@ exports.updateDeposit = asyncHandler(async (req, res) => {
 
 // @desc    Delete Deposit
 // @route   DELETE /api/v1/deposit/:id
+// @desc    Delete Deposit
+// @route   DELETE /api/v1/deposit/:id
 exports.deleteDeposit = asyncHandler(async (req, res) => {
   const deposit = await Deposit.findById(req.params.id);
   if (!deposit) throw new ErrorResponse("Deposit not found", 404);
+
+  const isUsed = await CreateProperty.exists({
+    $or: [
+      { "financialDetails.financialDetailsDeposit.en": deposit.name.en },
+      { "financialDetails.financialDetailsDeposit.vi": deposit.name.vi }
+    ]
+  });
+
+  if (isUsed) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+    });
+  }
 
   await deposit.deleteOne();
 

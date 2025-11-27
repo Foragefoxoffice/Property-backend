@@ -45,6 +45,22 @@ exports.createZoneSubArea = asyncHandler(async (req, res) => {
   // Get existing codes
   const existing = await ZoneSubArea.find({ property }, { "code.en": 1 }).lean();
 
+  // ❌ Prevent duplicate zone name inside same project
+  const existingZone = await ZoneSubArea.findOne({
+    property,
+    $or: [
+      { "name.en": name_en },
+      { "name.vi": name_vi }
+    ]
+  });
+
+  if (existingZone) {
+    throw new ErrorResponse(
+      "Zone/Sub-area with same name already exists in this Project/Community",
+      400
+    );
+  }
+
   const numericCodes = existing
     .map((r) => parseInt(r.code?.en))
     .filter((n) => !isNaN(n));
@@ -80,6 +96,24 @@ exports.updateZoneSubArea = asyncHandler(async (req, res) => {
   const zone = await ZoneSubArea.findById(req.params.id);
   if (!zone) throw new ErrorResponse("Zone/Sub-area not found", 404);
 
+  // ❌ Prevent duplicate name on update (excluding same ID)
+  const duplicateZone = await ZoneSubArea.findOne({
+    _id: { $ne: zone._id },
+    property: zone.property,
+    $or: [
+      { "name.en": name_en },
+      { "name.vi": name_vi }
+    ]
+  });
+
+  if (duplicateZone) {
+    throw new ErrorResponse(
+      "Another Zone/Sub-area with same name already exists in this Project/Community",
+      400
+    );
+  }
+
+  // Update fields
   zone.code.en = code_en ?? zone.code.en;
   zone.code.vi = code_vi ?? zone.code.vi;
   zone.name.en = name_en ?? zone.name.en;
@@ -94,6 +128,7 @@ exports.updateZoneSubArea = asyncHandler(async (req, res) => {
     data: zone,
   });
 });
+
 
 // ✅ DELETE Zone/Sub-area
 exports.deleteZoneSubArea = asyncHandler(async (req, res) => {

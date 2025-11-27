@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const PetPolicy = require("../models/PetPolicy");
+const CreateProperty = require("../models/CreateProperty");
 
 // @desc    Get all Pet Policies
 // @route   GET /api/v1/petpolicy
@@ -82,6 +83,20 @@ exports.updatePetPolicy = asyncHandler(async (req, res) => {
 exports.deletePetPolicy = asyncHandler(async (req, res) => {
     const policy = await PetPolicy.findById(req.params.id);
     if (!policy) throw new ErrorResponse("Pet Policy not found", 404);
+
+    const isUsed = await CreateProperty.exists({
+        $or: [
+            { "propertyUtility.propertyUtilityUnitName.en": policy.name.en },
+            { "propertyUtility.propertyUtilityUnitName.vi": policy.name.vi }
+        ]
+    });
+
+    if (isUsed) {
+        return res.status(400).json({
+            success: false,
+            message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+        });
+    }
 
     await policy.deleteOne();
 

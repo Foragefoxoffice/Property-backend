@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const Parking = require("../models/Parking");
+const CreateProperty = require("../models/CreateProperty");
 
 // @desc    Get all Parking Availability options
 // @route   GET /api/v1/parking
@@ -82,6 +83,20 @@ exports.updateParking = asyncHandler(async (req, res) => {
 exports.deleteParking = asyncHandler(async (req, res) => {
     const parking = await Parking.findById(req.params.id);
     if (!parking) throw new ErrorResponse("Parking Availability not found", 404);
+
+    const isUsed = await CreateProperty.exists({
+        $or: [
+            { "propertyUtility.propertyUtilityUnitName.en": parking.name.en },
+            { "propertyUtility.propertyUtilityUnitName.vi": parking.name.vi }
+        ]
+    });
+
+    if (isUsed) {
+        return res.status(400).json({
+            success: false,
+            message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+        });
+    }
 
     await parking.deleteOne();
 

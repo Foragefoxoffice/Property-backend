@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const LegalDocument = require("../models/LegalDocument");
+const CreateProperty = require("../models/CreateProperty");
 
 // ✅ GET ALL
 exports.getLegalDocuments = asyncHandler(async (req, res) => {
@@ -77,6 +78,20 @@ exports.updateLegalDocument = asyncHandler(async (req, res) => {
 exports.deleteLegalDocument = asyncHandler(async (req, res) => {
   const record = await LegalDocument.findById(req.params.id);
   if (!record) throw new ErrorResponse("Legal document not found", 404);
+
+  const isUsed = await CreateProperty.exists({
+    $or: [
+      { "financialDetails.financialDetailsLegalDoc.en": record.name.en },
+      { "financialDetails.financialDetailsLegalDoc.vi": record.name.vi }
+    ]
+  });
+
+  if (isUsed) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+    });
+  }
 
   await record.deleteOne();
 

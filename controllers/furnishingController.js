@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const Furnishing = require("../models/Furnishing");
+const CreateProperty = require("../models/CreateProperty");
 
 // =====================================
 // GET ALL (Sorted by Numeric Code)
@@ -82,9 +83,26 @@ exports.updateFurnishing = asyncHandler(async (req, res) => {
 // =====================================
 // DELETE
 // =====================================
+// =====================================
+// DELETE
+// =====================================
 exports.deleteFurnishing = asyncHandler(async (req, res) => {
     const furnishing = await Furnishing.findById(req.params.id);
     if (!furnishing) throw new ErrorResponse("Furnishing not found", 404);
+
+    const isUsed = await CreateProperty.exists({
+        $or: [
+            { "propertyInformation.informationFurnishing.en": furnishing.name.en },
+            { "propertyInformation.informationFurnishing.vi": furnishing.name.vi }
+        ]
+    });
+
+    if (isUsed) {
+        return res.status(400).json({
+            success: false,
+            message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+        });
+    }
 
     await furnishing.deleteOne();
 

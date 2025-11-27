@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const PropertyType = require("../models/PropertyType");
+const CreateProperty = require("../models/CreateProperty");
 
 // @desc    Get all Property Types
 // @route   GET /api/v1/propertytype
@@ -81,6 +82,20 @@ exports.updatePropertyType = asyncHandler(async (req, res) => {
 exports.deletePropertyType = asyncHandler(async (req, res) => {
     const propertyType = await PropertyType.findById(req.params.id);
     if (!propertyType) throw new ErrorResponse("Property Type not found", 404);
+
+    const isUsed = await CreateProperty.exists({
+        $or: [
+            { "listingInformation.listingInformationPropertyType.en": propertyType.name.en },
+            { "listingInformation.listingInformationPropertyType.vi": propertyType.name.vi }
+        ]
+    });
+
+    if (isUsed) {
+        return res.status(400).json({
+            success: false,
+            message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+        });
+    }
 
     await propertyType.deleteOne();
 

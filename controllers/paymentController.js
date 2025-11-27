@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const Payment = require("../models/Payment");
+const CreateProperty = require("../models/CreateProperty");
 
 // @desc    Get all Payments
 // @route   GET /api/v1/payment
@@ -87,9 +88,25 @@ exports.updatePayment = asyncHandler(async (req, res) => {
 
 // @desc    Delete Payment
 // @route   DELETE /api/v1/payment/:id
+// @desc    Delete Payment
+// @route   DELETE /api/v1/payment/:id
 exports.deletePayment = asyncHandler(async (req, res) => {
   const payment = await Payment.findById(req.params.id);
   if (!payment) throw new ErrorResponse("Payment not found", 404);
+
+  const isUsed = await CreateProperty.exists({
+    $or: [
+      { "financialDetails.financialDetailsTerms.en": payment.name.en },
+      { "financialDetails.financialDetailsTerms.vi": payment.name.vi }
+    ]
+  });
+
+  if (isUsed) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+    });
+  }
 
   await payment.deleteOne();
 

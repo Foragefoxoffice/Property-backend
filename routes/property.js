@@ -8,6 +8,8 @@ const {
     deleteProperty
 } = require("../controllers/propertyController");
 
+console.log("🔥 property.js routes LOADED - deleteProperty:", typeof deleteProperty);
+
 router.route("/")
     .get(getProperties)
     .post(createProperty);

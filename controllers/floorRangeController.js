@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const FloorRange = require("../models/FloorRange");
+const CreateProperty = require("../models/CreateProperty");
 
 // ✅ Get All
 exports.getFloorRanges = asyncHandler(async (req, res) => {
@@ -78,6 +79,20 @@ exports.updateFloorRange = asyncHandler(async (req, res) => {
 exports.deleteFloorRange = asyncHandler(async (req, res) => {
   const entry = await FloorRange.findById(req.params.id);
   if (!entry) throw new ErrorResponse("Floor Range not found", 404);
+
+  const isUsed = await CreateProperty.exists({
+    $or: [
+      { "propertyInformation.informationFloors": entry.name.en },
+      { "propertyInformation.informationFloors": entry.name.vi }
+    ]
+  });
+
+  if (isUsed) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+    });
+  }
 
   await entry.deleteOne();
 

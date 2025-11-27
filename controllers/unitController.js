@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const Unit = require("../models/Unit");
+const CreateProperty = require("../models/CreateProperty");
 
 // @desc    Get all Units
 exports.getUnits = asyncHandler(async (req, res) => {
@@ -85,9 +86,25 @@ exports.updateUnit = asyncHandler(async (req, res) => {
 
 // @desc    Delete Unit
 // @route   DELETE /api/v1/unit/:id
+// @desc    Delete Unit
+// @route   DELETE /api/v1/unit/:id
 exports.deleteUnit = asyncHandler(async (req, res) => {
   const unit = await Unit.findById(req.params.id);
   if (!unit) throw new ErrorResponse("Unit not found", 404);
+
+  const isUsed = await CreateProperty.exists({
+    $or: [
+      { "propertyInformation.informationUnit.en": unit.name.en },
+      { "propertyInformation.informationUnit.vi": unit.name.vi }
+    ]
+  });
+
+  if (isUsed) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+    });
+  }
 
   await unit.deleteOne();
 
