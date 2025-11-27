@@ -97,15 +97,28 @@ exports.updateProperty = asyncHandler(async (req, res) => {
 });
 
 // ✅ DELETE Property (ALSO deletes Zones & Blocks under it)
+// ❌ DO NOT DELETE if property has zones or blocks
 exports.deleteProperty = asyncHandler(async (req, res) => {
     const property = await Property.findById(req.params.id);
     if (!property) throw new ErrorResponse("Property not found", 404);
 
-    // ✅ Delete related Zones
-    await ZoneSubArea.deleteMany({ property: property._id });
+    // Check if zones exist
+    const zoneCount = await ZoneSubArea.countDocuments({ property: property._id });
+    if (zoneCount > 0) {
+        throw new ErrorResponse(
+            "Cannot delete Project/Community because zones/sub-areas exist. Please delete them first.",
+            400
+        );
+    }
 
-    // ✅ Delete related Blocks
-    await Block.deleteMany({ property: property._id });
+    // Check if blocks exist
+    const blockCount = await Block.countDocuments({ property: property._id });
+    if (blockCount > 0) {
+        throw new ErrorResponse(
+            "Cannot delete Project/Community because blocks exist. Please delete them first.",
+            400
+        );
+    }
 
     await property.deleteOne();
 
@@ -114,3 +127,4 @@ exports.deleteProperty = asyncHandler(async (req, res) => {
         message: "Property deleted successfully",
     });
 });
+

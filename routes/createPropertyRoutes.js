@@ -12,6 +12,8 @@ const {
   copyPropertyToLease,
   copyPropertyToHomeStay,
   restoreProperty,
+  getPropertiesByTransactionType,
+  getTrashProperties,
 } = require("../controllers/createPropertyController");
 
 const router = express.Router();
@@ -29,6 +31,10 @@ router.post("/copy/homestay/:id", copyPropertyToHomeStay);
 router.put("/restore/:id", restoreProperty);
 // ✅ Main Property Routes
 router.route("/").get(getProperties).post(createProperty);
+
+router.get("/transaction", getPropertiesByTransactionType);
+router.get("/trash", getTrashProperties);
+
 
 router
   .route("/:id")

@@ -15,20 +15,12 @@ const LocalizedString = new mongoose.Schema(
     en: { type: String, trim: true, default: "" },
     vi: { type: String, trim: true, default: "" },
   },
-  { _id: false, strict: false } // ✅ critical: keeps empty/partial keys
+  { _id: false, strict: false }
 );
 
 /* =========================================================
    📍 Subschemas
 ========================================================= */
-const AmenitySchema = new mongoose.Schema(
-  {
-    whatNearbyAmenityName: LocalizedString,
-    whatNearbyKm: { type: Number, default: 0 },
-  },
-  { _id: true }
-);
-
 const UtilitySchema = new mongoose.Schema(
   {
     propertyUtilityUnitName: LocalizedString,
@@ -52,11 +44,6 @@ const CreatePropertySchema = new mongoose.Schema(
       listingInformationPropertyTitle: LocalizedString,
       listingInformationBlockName: LocalizedString,
       listingInformationPropertyType: LocalizedString,
-      // listingInformationCountry: { type: String, trim: true, default: "" },
-      // listingInformationState: { type: String, trim: true, default: "" },
-      // listingInformationCity: LocalizedString,
-      // listingInformationPostalCode: { type: String, trim: true, default: "" },
-      // listingInformationAddress: LocalizedString,
       listingInformationDateListed: { type: Date, default: Date.now },
       listingInformationAvailabilityStatus: LocalizedString,
       listingInformationAvailableFrom: { type: Date },
@@ -72,19 +59,13 @@ const CreatePropertySchema = new mongoose.Schema(
         type: mongoose.Schema.Types.Mixed, // ✅ allows number or text
         default: 1,
       },
-      // informationFloorNumber: { type: Number, default: 0 },
       informationFurnishing: LocalizedString,
-      // informationYearBuilt: { type: Number, default: null },
       informationView: LocalizedString,
-      // informationParkingAvailability: LocalizedString,
-      // informationPetPolicy: LocalizedString,
     },
 
     /* 📍 3. What’s Nearby */
     whatNearby: {
-      // whatNearbyContent: LocalizedString,
       whatNearbyDescription: LocalizedString,
-      // whatNearbyList: [AmenitySchema],
     },
 
     /* ⚙️ 4. Property Utility */
@@ -104,7 +85,6 @@ const CreatePropertySchema = new mongoose.Schema(
       financialDetailsTerms: LocalizedString,
       financialDetailsDeposit: LocalizedString,
       financialDetailsMainFee: LocalizedString,
-      // 🆕 Added Fields
       financialDetailsLeasePrice: { type: Number, default: 0 },
       financialDetailsContractLength: { type: String, trim: true, default: "" },
       financialDetailsPricePerNight: { type: Number, default: 0 },
@@ -129,7 +109,6 @@ const CreatePropertySchema = new mongoose.Schema(
     },
 
     /* 👁️ Visibility Settings */
-
     listingInformationVisibility: {
       transactionType: { type: Boolean, default: false },
       propertyId: { type: Boolean, default: false },
@@ -168,28 +147,21 @@ const CreatePropertySchema = new mongoose.Schema(
       checkOut: { type: Boolean, default: false },
     },
 
-    // ✅ Multilingual SEO fields
+    /* 🔍 SEO Information */
     seoInformation: {
       metaTitle: LocalizedString,
       metaDescription: LocalizedString,
-
-      // ✅ Keywords become multilanguage array of objects
       metaKeywords: {
-        en: [{ type: String }],
-        vi: [{ type: String }],
+        en: [String],
+        vi: [String],
       },
-
       slugUrl: LocalizedString,
       canonicalUrl: LocalizedString,
       schemaType: LocalizedString,
-
       allowIndexing: { type: Boolean, default: true },
-
       ogTitle: LocalizedString,
       ogDescription: LocalizedString,
-
-      // ✅ OG images remain global
-      ogImages: [{ type: String }],
+      ogImages: [String],
     },
 
     /* 🧩 Meta */
@@ -202,6 +174,27 @@ const CreatePropertySchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+/* =========================================================
+   📌 INDEXES
+========================================================= */
 CreatePropertySchema.index({ createdAt: -1 });
+CreatePropertySchema.index({ status: 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationTransactionType.en": 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationTransactionType.vi": 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationPropertyId": 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationPropertyNo.en": 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationPropertyNo.vi": 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationPropertyType.en": 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationPropertyType.vi": 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationBlockName.en": 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationBlockName.vi": 1 });
+
+// 🔥 Combo index for FASTEST filtering
+CreatePropertySchema.index({
+  status: 1,
+  "listingInformation.listingInformationTransactionType.en": 1,
+  createdAt: -1
+});
 
 module.exports = mongoose.model("CreateProperty", CreatePropertySchema);

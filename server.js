@@ -19,7 +19,7 @@ const sanitizeInput = require("./middleware/sanitizeInput");
 // ===== Route Files =====
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
-const propertyRoutes = require("./routes/propertyRoutes");
+const projectCommunityRoutes = require("./routes/projectCommunity");
 const zoneSubAreaRoutes = require("./routes/zoneSubAreaRoutes");
 const propertyTypeRoutes = require("./routes/propertyTypeRoutes");
 const availabilityStatusRoutes = require("./routes/availabilityStatusRoutes");
@@ -27,8 +27,7 @@ const unitRoutes = require("./routes/unitRoutes");
 const furnishingRoutes = require("./routes/furnishingRoutes");
 const parkingRoutes = require("./routes/parkingRoutes");
 const petPolicyRoutes = require("./routes/petPolicyRoutes");
-const createPropertyRoutes = require("./routes/createPropertyRoutes.js");
-
+const createPropertyRoutes = require("./routes/createPropertyRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const depositRoutes = require("./routes/depositRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
@@ -40,6 +39,7 @@ const feeTaxRoutes = require("./routes/feeTaxRoutes");
 const legalDocumentRoutes = require("./routes/legalDocumentRoutes");
 const floorRangeRoutes = require("./routes/floorRangeRoutes");
 const propertyListingRoutes = require("./routes/propertyListingRoutes");
+const propertyRoutes = require("./routes/property");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -48,45 +48,72 @@ connectDB();
 const app = express();
 
 /* =========================================================
-   ⚙️ Middleware Order
+   🌐 FIX: Allow direct browser open of http://localhost:5000/
+========================================================= */
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "API Running 🚀",
+  });
+});
+
+/* =========================================================
+   📁 File Upload Middleware
 ========================================================= */
 app.use(
   fileUpload({
     createParentPath: true,
     useTempFiles: false,
-    limits: { fileSize: 50 * 1024 * 1024 },
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
   })
 );
 
-// ✅ CORS Configuration
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:9002",
-  "https://183-housingsolutions.vercel.app",
-];
+/* =========================================================
+   🌍 CORS CONFIG (403 FIX)
+========================================================= */
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-      else callback(new Error("Not allowed by CORS"));
+      // Allow Postman/no-origin + your allowed frontends
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:9002",
+        "https://183-housingsolutions.vercel.app",
+      ];
+
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
 );
 
-// ✅ Security & Parsers
+/* =========================================================
+   🔐 Security Middleware
+========================================================= */
 app.use(
-  helmet({ crossOriginResourcePolicy: false, contentSecurityPolicy: false })
+  helmet({
+    crossOriginResourcePolicy: false,
+    contentSecurityPolicy: false,
+  })
 );
+
 app.use(express.json({ limit: "2gb" }));
 app.use(express.urlencoded({ extended: true, limit: "2gb" }));
 app.use(cookieParser());
-app.use(sanitizeInput);
-if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
 app.use(hpp());
 
-// ✅ Rate Limiter
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
+
+/* =========================================================
+   ⛔ Rate Limiter
+========================================================= */
 app.use(
   rateLimit({
     windowMs: 1 * 60 * 1000,
@@ -99,23 +126,21 @@ app.use(
 );
 
 /* =========================================================
-   ⚠️ Static Upload Folder (Disabled on Vercel)
+   ⚠️ Skip sanitizeInput only for LOGIN
 ========================================================= */
-// app.use(
-//   "/uploads",
-//   (req, res, next) => {
-//     res.header("Access-Control-Allow-Origin", "*");
-//     res.header("Cross-Origin-Resource-Policy", "cross-origin");
-//     next();
-//   },
-//   express.static(path.join(__dirname, "uploads"))
-// );
+app.use((req, res, next) => {
+  if (req.path === "/api/v1/auth/login") {
+    return next(); // ignore sanitize on login
+  }
+  sanitizeInput(req, res, next);
+});
 
 /* =========================================================
-   🛠️ Routes
+   🛣️ API Routes
 ========================================================= */
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/project-community", projectCommunityRoutes);
 app.use("/api/v1/property", propertyRoutes);
 app.use("/api/v1/zonesubarea", zoneSubAreaRoutes);
 app.use("/api/v1/propertytype", propertyTypeRoutes);
@@ -138,16 +163,15 @@ app.use("/api/v1/floorRange", floorRangeRoutes);
 app.use("/api/v1/propertyListing", propertyListingRoutes);
 
 /* =========================================================
-   🚨 Global Error Handler
+   ⚠️ Error Handler
 ========================================================= */
 app.use(errorHandler);
 
 /* =========================================================
-   ✅ Start Server (for Local Development)
+   🚀 Start Server
 ========================================================= */
 const PORT = process.env.PORT || 5000;
 
-// Wait until MongoDB connects before starting server
 mongoose.connection.once("open", () => {
   console.log(
     `✅ MongoDB Connected: ${mongoose.connection.host}:${mongoose.connection.port}`
@@ -155,16 +179,15 @@ mongoose.connection.once("open", () => {
   );
 
   app.listen(PORT, () => {
-    console.log(`🚀 Server running on: http://localhost:${PORT}`.cyan.bold);
+    console.log(`🚀 Server running at http://localhost:${PORT}`.cyan.bold);
   });
 });
 
-// Handle MongoDB connection errors
 mongoose.connection.on("error", (err) => {
-  console.error(`❌ MongoDB connection error: ${err.message}`.red);
+  console.error(`❌ MongoDB Error: ${err.message}`.red);
 });
 
 /* =========================================================
-   ✅ Export (Required for Vercel)
+   📦 Export for Vercel
 ========================================================= */
 module.exports = app;

@@ -100,13 +100,19 @@ exports.deleteZoneSubArea = asyncHandler(async (req, res) => {
   const zone = await ZoneSubArea.findById(req.params.id);
   if (!zone) throw new ErrorResponse("Zone/Sub-area not found", 404);
 
-  // ✅ Remove this zone ID from its Property
+  // Check for linked blocks
+  const blockCount = await Block.countDocuments({ zone: zone._id });
+  if (blockCount > 0) {
+    throw new ErrorResponse(
+      "Cannot delete Zone/Sub-area because it contains Blocks. Delete the blocks first.",
+      400
+    );
+  }
+
+  // Remove zone link from property
   await Property.findByIdAndUpdate(zone.property, {
     $pull: { zones: zone._id },
   });
-
-  // ✅ Delete Blocks inside this zone
-  await Block.deleteMany({ zone: zone._id });
 
   await zone.deleteOne();
 
@@ -115,3 +121,4 @@ exports.deleteZoneSubArea = asyncHandler(async (req, res) => {
     message: "Zone/Sub-area deleted successfully",
   });
 });
+

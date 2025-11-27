@@ -122,12 +122,10 @@ exports.deleteBlock = asyncHandler(async (req, res) => {
   const block = await Block.findById(req.params.id);
   if (!block) throw new ErrorResponse("Block not found", 404);
 
-  // ✅ Remove block from Property
   await Property.findByIdAndUpdate(block.property, {
     $pull: { blocks: block._id },
   });
 
-  // ✅ Remove block from Zone
   await ZoneSubArea.findByIdAndUpdate(block.zone, {
     $pull: { blocks: block._id },
   });
@@ -139,3 +137,4 @@ exports.deleteBlock = asyncHandler(async (req, res) => {
     message: "Block deleted",
   });
 });
+

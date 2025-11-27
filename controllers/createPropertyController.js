@@ -113,9 +113,7 @@ exports.createProperty = asyncHandler(async (req, res) => {
 ========================================================= */
 exports.getProperties = asyncHandler(async (req, res) => {
   const properties = await CreateProperty.find()
-    .populate(
-      "listingInformation.listingInformationPropertyType listingInformation.listingInformationAvailabilityStatus propertyInformation.informationFurnishing createdBy"
-    )
+    .populate("createdBy")
     .sort({ createdAt: -1 })
     .allowDiskUse(true);
   res.status(200).json({
@@ -130,7 +128,7 @@ exports.getProperties = asyncHandler(async (req, res) => {
 ========================================================= */
 exports.getProperty = asyncHandler(async (req, res) => {
   const property = await CreateProperty.findById(req.params.id).populate(
-    "listingInformation.listingInformationPropertyType listingInformation.listingInformationAvailabilityStatus propertyInformation.informationFurnishing createdBy"
+    "createdBy"
   );
 
   if (!property) throw new ErrorResponse("Property not found", 404);
@@ -146,20 +144,18 @@ exports.getProperty = asyncHandler(async (req, res) => {
 ========================================================= */
 exports.updateProperty = asyncHandler(async (req, res) => {
   const id = req.params.id;
-  const property = await CreateProperty.findById(id);
+  const body = deepNormalizeLocalized(req.body);
+
+  console.log("Update Body SEO:", JSON.stringify(body.seoInformation, null, 2));
+
+  const property = await CreateProperty.findByIdAndUpdate(
+    id,
+    { $set: body },
+    { new: true, runValidators: true }
+  );
 
   if (!property)
     throw new ErrorResponse(`Resource not found with id of ${id}`, 404);
-
-  Object.assign(property, req.body);
-
-  if (req.body.seoInformation) {
-    property.seoInformation = {
-      ...property.seoInformation.toObject(),
-      ...req.body.seoInformation,
-    };
-  }
-  await property.save();
 
   res.status(200).json({
     success: true,
@@ -348,5 +344,107 @@ exports.restoreProperty = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Property restored successfully",
+  });
+});
+
+
+// New Endpoints 20/11/2025
+
+exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
+  let { type, page = 1, limit = 10, trashMode } = req.query;
+
+  if (!type) {
+    throw new ErrorResponse("Transaction type (type) is required", 400);
+  }
+
+  page = parseInt(page);
+  limit = parseInt(limit);
+
+  const skip = (page - 1) * limit;
+
+  // base filter for filtering by type
+  const filter = {
+    $or: [
+      { "listingInformation.listingInformationTransactionType.en": type },
+      { "listingInformation.listingInformationTransactionType.vi": type },
+    ],
+  };
+
+  // ⭐ ADD STATUS FILTER (important!)
+  if (trashMode === "true") {
+    filter.status = "Archived";         // only archived items
+  } else {
+    filter.status = { $ne: "Archived" }; // all except archived
+  }
+
+  // Count AFTER applying correct filters
+  const total = await CreateProperty.countDocuments(filter);
+
+  const properties = await CreateProperty.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  return res.status(200).json({
+    success: true,
+    page,
+    limit,
+    total,                  // now correct
+    totalPages: Math.ceil(total / limit),
+    count: properties.length,
+    data: properties,
+  });
+});
+
+exports.getTrashProperties = asyncHandler(async (req, res) => {
+  let { type, page = 1, limit = 10, search = "" } = req.query;
+
+  page = parseInt(page);
+  limit = parseInt(limit);
+
+  const skip = (page - 1) * limit;
+
+  // base filter → TRASH ONLY
+  const filter = {
+    status: "Archived",
+  };
+
+  // optional transaction type filter (Sale / Lease / Home Stay)
+  if (type) {
+    filter.$or = [
+      { "listingInformation.listingInformationTransactionType.en": type },
+      { "listingInformation.listingInformationTransactionType.vi": type },
+    ];
+  }
+
+  // optional search filter
+  if (search) {
+    filter.$or = [
+      { "listingInformation.listingInformationPropertyId": { $regex: search, $options: "i" } },
+      { "listingInformation.listingInformationPropertyNo.en": { $regex: search, $options: "i" } },
+      { "listingInformation.listingInformationPropertyNo.vi": { $regex: search, $options: "i" } },
+      { "listingInformation.listingInformationPropertyType.en": { $regex: search, $options: "i" } },
+      { "listingInformation.listingInformationPropertyType.vi": { $regex: search, $options: "i" } },
+      { "listingInformation.listingInformationBlockName.en": { $regex: search, $options: "i" } },
+      { "listingInformation.listingInformationBlockName.vi": { $regex: search, $options: "i" } },
+    ];
+  }
+
+  const total = await CreateProperty.countDocuments(filter);
+
+  const properties = await CreateProperty.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  return res.status(200).json({
+    success: true,
+    page,
+    limit,
+    total,
+    totalPages: Math.ceil(total / limit),
+    count: properties.length,
+    data: properties,
   });
 });
