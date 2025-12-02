@@ -38,43 +38,38 @@ exports.getBlocks = asyncHandler(async (req, res) => {
 
 
 // ✅ CREATE Block
+// ✅ CREATE Block
 exports.createBlock = asyncHandler(async (req, res) => {
   const { name_en, name_vi, property, zone } = req.body;
-
-  // ❌ Prevent duplicate block name inside same zone
-  const existingBlock = await Block.findOne({
-    zone,
-    $or: [
-      { "name.en": name_en },
-      { "name.vi": name_vi }
-    ]
-  });
-
-  if (existingBlock) {
-    throw new ErrorResponse(
-      "Block with same name already exists in this Zone/Sub-area",
-      400
-    );
-  }
 
   if (!property) throw new ErrorResponse("Property is required", 400);
   if (!zone) throw new ErrorResponse("Zone is required", 400);
   if (!name_en || !name_vi)
     throw new ErrorResponse("Block name EN & VI required", 400);
 
-  // Fetch all blocks
-  const allBlocks = await Block.find().lean();
+  // ❌ Prevent duplicate block name inside the same zone
+  const existingBlock = await Block.findOne({
+    zone,
+    $or: [
+      { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+      { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+    ]
+  });
 
-  // Extract numeric codes
+  if (existingBlock) {
+    throw new ErrorResponse(
+      "Block with this name already exists in this Zone/Sub-area",
+      400
+    );
+  }
+
+  // Auto-code generator
+  const allBlocks = await Block.find().lean();
   const numericCodes = allBlocks
     .map(b => parseInt(b.code?.en))
     .filter(n => !isNaN(n));
 
-  let nextNumber = 1;
-  if (numericCodes.length > 0) {
-    nextNumber = Math.max(...numericCodes) + 1;
-  }
-
+  let nextNumber = numericCodes.length > 0 ? Math.max(...numericCodes) + 1 : 1;
   const autoCode = String(nextNumber).padStart(3, "0");
 
   const block = await Block.create({
@@ -84,6 +79,7 @@ exports.createBlock = asyncHandler(async (req, res) => {
     name: { en: name_en, vi: name_vi },
   });
 
+  // Add to property + zone tables
   await Property.findByIdAndUpdate(property, { $push: { blocks: block._id } });
   await ZoneSubArea.findByIdAndUpdate(zone, { $push: { blocks: block._id } });
 
@@ -92,52 +88,58 @@ exports.createBlock = asyncHandler(async (req, res) => {
 
 
 // ✅ UPDATE Block
+// ✅ UPDATE Block
 exports.updateBlock = asyncHandler(async (req, res) => {
   const block = await Block.findById(req.params.id);
   if (!block) throw new ErrorResponse("Block not found", 404);
 
   const { code_en, code_vi, name_en, name_vi, property, zone, status } = req.body;
 
-  // ❌ Prevent duplicate block name on update (exclude current block)
-  const duplicateBlock = await Block.findOne({
-    _id: { $ne: block._id },
-    zone: zone || block.zone,   // zone may be updated
-    $or: [
-      { "name.en": name_en },
-      { "name.vi": name_vi }
-    ]
-  });
+  // Zone may be changed → use new one or old one
+  const effectiveZone = zone || block.zone;
 
-  if (duplicateBlock) {
-    throw new ErrorResponse(
-      "Another Block with same name already exists in this Zone/Sub-area",
-      400
-    );
+  // ❌ Prevent duplicate name on update within same zone
+  if (name_en || name_vi) {
+    const duplicateBlock = await Block.findOne({
+      _id: { $ne: block._id },
+      zone: effectiveZone,
+      $or: [
+        { "name.en": { $regex: new RegExp(`^${name_en || block.name.en}$`, "i") } },
+        { "name.vi": { $regex: new RegExp(`^${name_vi || block.name.vi}$`, "i") } }
+      ]
+    });
+
+    if (duplicateBlock) {
+      throw new ErrorResponse(
+        "Another Block with this name already exists in this Zone/Sub-area",
+        400
+      );
+    }
   }
 
   const oldProperty = block.property.toString();
   const oldZone = block.zone.toString();
 
-  // ✅ Update basic fields
+  // Update basic fields
   block.code.en = code_en ?? block.code.en;
   block.code.vi = code_vi ?? block.code.vi;
   block.name.en = name_en ?? block.name.en;
   block.name.vi = name_vi ?? block.name.vi;
   block.status = status ?? block.status;
 
-  // ✅ Update property & zone
+  // Update relation fields
   if (property) block.property = property;
   if (zone) block.zone = zone;
 
   await block.save();
 
-  // ✅ If property changed
+  // Update property relations
   if (property && property !== oldProperty) {
     await Property.findByIdAndUpdate(oldProperty, { $pull: { blocks: block._id } });
     await Property.findByIdAndUpdate(property, { $push: { blocks: block._id } });
   }
 
-  // ✅ If zone changed
+  // Update zone relations
   if (zone && zone !== oldZone) {
     await ZoneSubArea.findByIdAndUpdate(oldZone, { $pull: { blocks: block._id } });
     await ZoneSubArea.findByIdAndUpdate(zone, { $push: { blocks: block._id } });
@@ -149,6 +151,7 @@ exports.updateBlock = asyncHandler(async (req, res) => {
     data: block,
   });
 });
+
 
 // ✅ DELETE Block
 exports.deleteBlock = asyncHandler(async (req, res) => {

@@ -51,8 +51,8 @@ exports.createProperty = asyncHandler(async (req, res) => {
     // ❌ Prevent duplicate property name in EN or VI
     const existingProperty = await Property.findOne({
         $or: [
-            { "name.en": name_en },
-            { "name.vi": name_vi }
+            { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+            { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
         ]
     });
 
@@ -96,6 +96,24 @@ exports.updateProperty = asyncHandler(async (req, res) => {
 
     const property = await Property.findById(req.params.id);
     if (!property) throw new ErrorResponse("Property not found", 404);
+
+    // ❌ Prevent duplicate property name on update (excluding same ID)
+    if (name_en || name_vi) {
+        const duplicateProperty = await Property.findOne({
+            _id: { $ne: property._id },
+            $or: [
+                { "name.en": { $regex: new RegExp(`^${name_en || property.name.en}$`, "i") } },
+                { "name.vi": { $regex: new RegExp(`^${name_vi || property.name.vi}$`, "i") } }
+            ]
+        });
+
+        if (duplicateProperty) {
+            throw new ErrorResponse(
+                "A Project/Community with this name already exists.",
+                400
+            );
+        }
+    }
 
     property.code.en = code_en ?? property.code.en;
     property.code.vi = code_vi ?? property.code.vi;

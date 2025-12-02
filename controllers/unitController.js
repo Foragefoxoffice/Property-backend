@@ -30,6 +30,18 @@ exports.createUnit = asyncHandler(async (req, res) => {
     throw new ErrorResponse("English & Vietnamese names and symbols are required", 400);
   }
 
+  // ❌ Prevent duplicate name
+  const existingName = await Unit.findOne({
+    $or: [
+      { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+      { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+    ]
+  });
+
+  if (existingName) {
+    throw new ErrorResponse("Unit with this name already exists", 400);
+  }
+
   // Generate next unit code
   const existing = await Unit.find({}, { "code.en": 1 }).lean();
   const numericCodes = existing
@@ -66,6 +78,21 @@ exports.updateUnit = asyncHandler(async (req, res) => {
 
   const unit = await Unit.findById(req.params.id);
   if (!unit) throw new ErrorResponse("Unit not found", 404);
+
+  // ❌ Prevent duplicate name on update
+  if (name_en || name_vi) {
+    const duplicateName = await Unit.findOne({
+      _id: { $ne: unit._id },
+      $or: [
+        { "name.en": { $regex: new RegExp(`^${name_en || unit.name.en}$`, "i") } },
+        { "name.vi": { $regex: new RegExp(`^${name_vi || unit.name.vi}$`, "i") } }
+      ]
+    });
+
+    if (duplicateName) {
+      throw new ErrorResponse("Unit with this name already exists", 400);
+    }
+  }
 
   unit.code.en = code_en ?? unit.code.en;
   unit.code.vi = code_vi ?? unit.code.vi;

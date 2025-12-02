@@ -22,11 +22,16 @@ function normalizeLocalized(val) {
 function deepNormalizeLocalized(data) {
   if (!data || typeof data !== "object") return data;
 
+  // Handle arrays
+  if (Array.isArray(data)) {
+    return data.map(item => deepNormalizeLocalized(item));
+  }
+
   for (const key in data) {
     if (!Object.hasOwn(data, key)) continue;
     const val = data[key];
 
-    if (key === "metaKeywords" && typeof val === "object") {
+    if (key === "metaKeywords" && typeof val === "object" && val !== null) {
       data[key] = {
         en: Array.isArray(val.en) ? val.en : [],
         vi: Array.isArray(val.vi) ? val.vi : [],
@@ -36,7 +41,9 @@ function deepNormalizeLocalized(data) {
 
     if (val && typeof val === "object" && ("en" in val || "vi" in val)) {
       data[key] = normalizeLocalized(val);
-    } else if (typeof val === "object" && !Array.isArray(val)) {
+    } else if (Array.isArray(val)) {
+      data[key] = val.map(item => deepNormalizeLocalized(item));
+    } else if (typeof val === "object" && val !== null) {
       data[key] = deepNormalizeLocalized(val);
     } else {
       data[key] = val;
@@ -81,31 +88,73 @@ async function generateNextPropertyId(transactionType) {
    🏠 CREATE PROPERTY
 ========================================================= */
 exports.createProperty = asyncHandler(async (req, res) => {
-  const body = deepNormalizeLocalized(req.body || {});
+  try {
+    // Log data size instead of full content to avoid overflow
+    const bodySize = JSON.stringify(req.body).length;
+    console.log("📥 Incoming Request Body Size:", bodySize, "bytes", `(${(bodySize / 1024 / 1024).toFixed(2)} MB)`);
+    console.log("📥 Request Body Keys:", Object.keys(req.body));
 
-  // ✅ If frontend already sent propertyId, DO NOT regenerate
-  if (!body.listingInformation?.listingInformationPropertyId) {
-    const transactionType =
-      body.listingInformation?.listingInformationTransactionType?.en ||
-      body.listingInformation?.listingInformationTransactionType;
+    // Check image sizes
+    if (req.body.imagesVideos) {
+      console.log("🖼️ Images Count:", req.body.imagesVideos.propertyImages?.length || 0);
+      console.log("🎥 Videos Count:", req.body.imagesVideos.propertyVideo?.length || 0);
+      console.log("📐 Floor Plans Count:", req.body.imagesVideos.floorPlan?.length || 0);
 
-    if (!transactionType)
-      throw new ErrorResponse("Transaction type is required", 400);
+      // Log individual image sizes
+      if (req.body.imagesVideos.propertyImages) {
+        req.body.imagesVideos.propertyImages.forEach((img, idx) => {
+          const imgSize = img ? img.length : 0;
+          console.log(`  Image ${idx + 1} size: ${(imgSize / 1024).toFixed(2)} KB`);
+        });
+      }
+    }
 
-    const propertyId = await generateNextPropertyId(transactionType);
-    body.listingInformation.listingInformationPropertyId = propertyId;
+    const body = deepNormalizeLocalized(req.body || {});
+    const normalizedSize = JSON.stringify(body).length;
+    console.log("✅ After deepNormalizeLocalized Size:", normalizedSize, "bytes", `(${(normalizedSize / 1024 / 1024).toFixed(2)} MB)`);
+
+    // MongoDB BSON document size limit is 16MB
+    const MAX_BSON_SIZE = 16 * 1024 * 1024; // 16MB in bytes
+    if (normalizedSize > MAX_BSON_SIZE) {
+      throw new ErrorResponse(
+        `Document size (${(normalizedSize / 1024 / 1024).toFixed(2)} MB) exceeds MongoDB limit of 16MB. Please reduce image sizes or use file storage.`,
+        400
+      );
+    }
+
+    // ✅ If frontend already sent propertyId, DO NOT regenerate
+    if (!body.listingInformation?.listingInformationPropertyId) {
+      const transactionType =
+        body.listingInformation?.listingInformationTransactionType?.en ||
+        body.listingInformation?.listingInformationTransactionType;
+
+      if (!transactionType)
+        throw new ErrorResponse("Transaction type is required", 400);
+
+      const propertyId = await generateNextPropertyId(transactionType);
+      body.listingInformation.listingInformationPropertyId = propertyId;
+    }
+
+    const newProperty = await CreateProperty.create({
+      ...body,
+      seoInformation: body.seoInformation || {},
+      createdBy: req.user?.id || null,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Property created successfully",
+      data: newProperty,
+    });
+  } catch (error) {
+    console.error("❌ CREATE PROPERTY ERROR:", error);
+    console.error("Error Name:", error.name);
+    console.error("Error Message:", error.message);
+    if (error.errors) {
+      console.error("Validation Errors:", JSON.stringify(error.errors, null, 2));
+    }
+    throw error;
   }
-
-  const newProperty = await CreateProperty.create({
-    ...body,
-    seoInformation: body.seoInformation || {},
-    createdBy: req.user?.id || null,
-  });
-  res.status(201).json({
-    success: true,
-    message: "Property created successfully",
-    data: newProperty,
-  });
 });
 
 /* =========================================================
@@ -145,8 +194,6 @@ exports.getProperty = asyncHandler(async (req, res) => {
 exports.updateProperty = asyncHandler(async (req, res) => {
   const id = req.params.id;
   const body = deepNormalizeLocalized(req.body);
-
-  console.log("Update Body SEO:", JSON.stringify(body.seoInformation, null, 2));
 
   const property = await CreateProperty.findByIdAndUpdate(
     id,

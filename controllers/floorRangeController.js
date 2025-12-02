@@ -25,7 +25,19 @@ exports.createFloorRange = asyncHandler(async (req, res) => {
     throw new ErrorResponse("English & Vietnamese names are required", 400);
   }
 
-  // Get all existing numeric codes
+  // ❌ Prevent duplicate name
+  const existing = await FloorRange.findOne({
+    $or: [
+      { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+      { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+    ]
+  });
+
+  if (existing) {
+    throw new ErrorResponse("Floor Range with this name already exists", 400);
+  }
+
+  // Generate next auto code
   const allRanges = await FloorRange.find({}, { "code.en": 1 }).lean();
 
   const numericCodes = allRanges
@@ -52,13 +64,27 @@ exports.createFloorRange = asyncHandler(async (req, res) => {
   });
 });
 
-
 // ✅ Update
 exports.updateFloorRange = asyncHandler(async (req, res) => {
   const { code_en, code_vi, name_en, name_vi, status } = req.body;
 
   const entry = await FloorRange.findById(req.params.id);
   if (!entry) throw new ErrorResponse("Floor Range not found", 404);
+
+  // ❌ Prevent duplicate name on update
+  if (name_en || name_vi) {
+    const duplicate = await FloorRange.findOne({
+      _id: { $ne: entry._id },
+      $or: [
+        { "name.en": { $regex: new RegExp(`^${name_en || entry.name.en}$`, "i") } },
+        { "name.vi": { $regex: new RegExp(`^${name_vi || entry.name.vi}$`, "i") } }
+      ]
+    });
+
+    if (duplicate) {
+      throw new ErrorResponse("Floor Range with this name already exists", 400);
+    }
+  }
 
   entry.code.en = code_en ?? entry.code.en;
   entry.code.vi = code_vi ?? entry.code.vi;
@@ -74,6 +100,7 @@ exports.updateFloorRange = asyncHandler(async (req, res) => {
     data: entry,
   });
 });
+
 
 // ✅ Delete
 exports.deleteFloorRange = asyncHandler(async (req, res) => {

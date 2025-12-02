@@ -37,7 +37,19 @@ exports.createPayment = asyncHandler(async (req, res) => {
     );
   }
 
-  // Fetch all payments to compute next sequence
+  // ❌ Prevent duplicate name
+  const existing = await Payment.findOne({
+    $or: [
+      { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+      { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+    ],
+  });
+
+  if (existing) {
+    throw new ErrorResponse("Payment with this name already exists", 400);
+  }
+
+  // Generate next sequence code
   const allPayments = await Payment.find().lean();
 
   const numericCodes = allPayments
@@ -49,7 +61,6 @@ exports.createPayment = asyncHandler(async (req, res) => {
     nextNumber = Math.max(...numericCodes) + 1;
   }
 
-  // Format like 001, 002, 003...
   const autoCode = String(nextNumber).padStart(3, "0");
 
   const newPayment = await Payment.create({
@@ -65,6 +76,7 @@ exports.createPayment = asyncHandler(async (req, res) => {
   });
 });
 
+
 // @desc    Update Payment
 exports.updatePayment = asyncHandler(async (req, res) => {
   const { name_en, name_vi, status } = req.body;
@@ -72,7 +84,21 @@ exports.updatePayment = asyncHandler(async (req, res) => {
   const payment = await Payment.findById(req.params.id);
   if (!payment) throw new ErrorResponse("Payment not found", 404);
 
-  // Only update allowed fields
+  // ❌ Prevent duplicate name on update
+  if (name_en || name_vi) {
+    const duplicate = await Payment.findOne({
+      _id: { $ne: payment._id },
+      $or: [
+        { "name.en": { $regex: new RegExp(`^${name_en || payment.name.en}$`, "i") } },
+        { "name.vi": { $regex: new RegExp(`^${name_vi || payment.name.vi}$`, "i") } }
+      ]
+    });
+
+    if (duplicate) {
+      throw new ErrorResponse("Payment with this name already exists", 400);
+    }
+  }
+
   payment.name.en = name_en ?? payment.name.en;
   payment.name.vi = name_vi ?? payment.name.vi;
   payment.status = status ?? payment.status;
@@ -85,6 +111,7 @@ exports.updatePayment = asyncHandler(async (req, res) => {
     data: payment,
   });
 });
+
 
 // @desc    Delete Payment
 // @route   DELETE /api/v1/payment/:id

@@ -42,6 +42,18 @@ exports.createPetPolicy = asyncHandler(async (req, res) => {
         throw new ErrorResponse("Pet Policy code already exists", 400);
     }
 
+    // ❌ Prevent duplicate name
+    const existingName = await PetPolicy.findOne({
+        $or: [
+            { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+            { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+        ]
+    });
+
+    if (existingName) {
+        throw new ErrorResponse("Pet Policy with this name already exists", 400);
+    }
+
     const newPetPolicy = await PetPolicy.create({
         code: { en: code_en, vi: code_vi },
         name: { en: name_en, vi: name_vi },
@@ -62,6 +74,21 @@ exports.updatePetPolicy = asyncHandler(async (req, res) => {
 
     const policy = await PetPolicy.findById(req.params.id);
     if (!policy) throw new ErrorResponse("Pet Policy not found", 404);
+
+    // ❌ Prevent duplicate name on update
+    if (name_en || name_vi) {
+        const duplicateName = await PetPolicy.findOne({
+            _id: { $ne: policy._id },
+            $or: [
+                { "name.en": { $regex: new RegExp(`^${name_en || policy.name.en}$`, "i") } },
+                { "name.vi": { $regex: new RegExp(`^${name_vi || policy.name.vi}$`, "i") } }
+            ]
+        });
+
+        if (duplicateName) {
+            throw new ErrorResponse("Pet Policy with this name already exists", 400);
+        }
+    }
 
     policy.code.en = code_en ?? policy.code.en;
     policy.code.vi = code_vi ?? policy.code.vi;

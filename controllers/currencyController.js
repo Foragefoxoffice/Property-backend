@@ -28,34 +28,36 @@ exports.getCurrencies = asyncHandler(async (req, res) => {
   });
 });
 
-/* =========================================================
-   @desc    Create a currency
-   @route   POST /api/v1/currency
-========================================================= */
+// CREATE Currency
 exports.createCurrency = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, symbol_en, symbol_vi, status } =
-    req.body;
+  const { code_en, code_vi, name_en, name_vi, symbol_en, symbol_vi, status } = req.body;
 
-  if (
-    !code_en ||
-    !code_vi ||
-    !name_en ||
-    !name_vi ||
-    !symbol_en ||
-    !symbol_vi
-  ) {
-    throw new ErrorResponse(
-      "All English and Vietnamese fields are required",
-      400
-    );
+  if (!code_en || !code_vi || !name_en || !name_vi || !symbol_en || !symbol_vi) {
+    throw new ErrorResponse("All English and Vietnamese fields are required", 400);
   }
 
-  const existing = await Currency.findOne({
-    $or: [{ "currencyCode.en": code_en }, { "currencyCode.vi": code_vi }],
+  // ❌ Prevent duplicate currency code
+  const existingCode = await Currency.findOne({
+    $or: [
+      { "currencyCode.en": code_en },
+      { "currencyCode.vi": code_vi }
+    ]
   });
 
-  if (existing) {
+  if (existingCode) {
     throw new ErrorResponse("Currency code already exists", 400);
+  }
+
+  // ❌ Prevent duplicate currency name
+  const existingName = await Currency.findOne({
+    $or: [
+      { "currencyName.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+      { "currencyName.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+    ]
+  });
+
+  if (existingName) {
+    throw new ErrorResponse("Currency with this name already exists", 400);
   }
 
   const newCurrency = await Currency.create({
@@ -72,17 +74,45 @@ exports.createCurrency = asyncHandler(async (req, res) => {
   });
 });
 
-/* =========================================================
-   @desc    Update a currency
-   @route   PUT /api/v1/currency/:id
-========================================================= */
+
+// UPDATE Currency
 exports.updateCurrency = asyncHandler(async (req, res) => {
-  const { code_en, code_vi, name_en, name_vi, symbol_en, symbol_vi, status } =
-    req.body;
+  const { code_en, code_vi, name_en, name_vi, symbol_en, symbol_vi, status } = req.body;
 
   const currency = await Currency.findById(req.params.id);
   if (!currency) throw new ErrorResponse("Currency not found", 404);
 
+  // ❌ Prevent duplicate code on update
+  if (code_en || code_vi) {
+    const duplicateCode = await Currency.findOne({
+      _id: { $ne: currency._id },
+      $or: [
+        { "currencyCode.en": code_en || currency.currencyCode.en },
+        { "currencyCode.vi": code_vi || currency.currencyCode.vi }
+      ]
+    });
+
+    if (duplicateCode) {
+      throw new ErrorResponse("Currency code already exists", 400);
+    }
+  }
+
+  // ❌ Prevent duplicate name on update
+  if (name_en || name_vi) {
+    const duplicateName = await Currency.findOne({
+      _id: { $ne: currency._id },
+      $or: [
+        { "currencyName.en": { $regex: new RegExp(`^${name_en || currency.currencyName.en}$`, "i") } },
+        { "currencyName.vi": { $regex: new RegExp(`^${name_vi || currency.currencyName.vi}$`, "i") } }
+      ]
+    });
+
+    if (duplicateName) {
+      throw new ErrorResponse("Currency with this name already exists", 400);
+    }
+  }
+
+  // Update fields
   currency.currencyCode.en = code_en ?? currency.currencyCode.en;
   currency.currencyCode.vi = code_vi ?? currency.currencyCode.vi;
   currency.currencyName.en = name_en ?? currency.currencyName.en;
@@ -100,14 +130,7 @@ exports.updateCurrency = asyncHandler(async (req, res) => {
   });
 });
 
-/* =========================================================
-   @desc    Delete a currency
-   @route   DELETE /api/v1/currency/:id
-========================================================= */
-/* =========================================================
-   @desc    Delete a currency
-   @route   DELETE /api/v1/currency/:id
-========================================================= */
+// DELETE Currency
 exports.deleteCurrency = asyncHandler(async (req, res) => {
   const currency = await Currency.findById(req.params.id);
   if (!currency) throw new ErrorResponse("Currency not found", 404);

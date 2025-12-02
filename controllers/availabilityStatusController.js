@@ -40,6 +40,18 @@ exports.createAvailabilityStatus = asyncHandler(async (req, res) => {
     throw new ErrorResponse("English and Vietnamese names are required", 400);
   }
 
+  // ❌ Prevent duplicate name
+  const existingStatus = await AvailabilityStatus.findOne({
+    $or: [
+      { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+      { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+    ]
+  });
+
+  if (existingStatus) {
+    throw new ErrorResponse("Availability Status with this name already exists", 400);
+  }
+
   // Fetch all existing statuses
   const all = await AvailabilityStatus.find().lean();
 
@@ -78,6 +90,21 @@ exports.updateAvailabilityStatus = asyncHandler(async (req, res) => {
   const availability = await AvailabilityStatus.findById(req.params.id);
   if (!availability)
     throw new ErrorResponse("Availability Status not found", 404);
+
+  // ❌ Prevent duplicate name on update
+  if (name_en || name_vi) {
+    const duplicateStatus = await AvailabilityStatus.findOne({
+      _id: { $ne: availability._id },
+      $or: [
+        { "name.en": { $regex: new RegExp(`^${name_en || availability.name.en}$`, "i") } },
+        { "name.vi": { $regex: new RegExp(`^${name_vi || availability.name.vi}$`, "i") } }
+      ]
+    });
+
+    if (duplicateStatus) {
+      throw new ErrorResponse("Availability Status with this name already exists", 400);
+    }
+  }
 
   availability.name.en = name_en ?? availability.name.en;
   availability.name.vi = name_vi ?? availability.name.vi;

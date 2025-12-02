@@ -33,6 +33,18 @@ exports.createFurnishing = asyncHandler(async (req, res) => {
         throw new ErrorResponse("English & Vietnamese names are required", 400);
     }
 
+    // ❌ Prevent duplicate name
+    const existingFurnishing = await Furnishing.findOne({
+        $or: [
+            { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+            { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+        ]
+    });
+
+    if (existingFurnishing) {
+        throw new ErrorResponse("Furnishing with this name already exists", 400);
+    }
+
     // Get existing numeric codes
     const existing = await Furnishing.find({}, { "code.en": 1 }).lean();
     const nums = existing
@@ -65,6 +77,21 @@ exports.updateFurnishing = asyncHandler(async (req, res) => {
 
     const furnishing = await Furnishing.findById(req.params.id);
     if (!furnishing) throw new ErrorResponse("Furnishing not found", 404);
+
+    // ❌ Prevent duplicate name on update
+    if (name_en || name_vi) {
+        const duplicateFurnishing = await Furnishing.findOne({
+            _id: { $ne: furnishing._id },
+            $or: [
+                { "name.en": { $regex: new RegExp(`^${name_en || furnishing.name.en}$`, "i") } },
+                { "name.vi": { $regex: new RegExp(`^${name_vi || furnishing.name.vi}$`, "i") } }
+            ]
+        });
+
+        if (duplicateFurnishing) {
+            throw new ErrorResponse("Furnishing with this name already exists", 400);
+        }
+    }
 
     // Update only editable fields
     if (name_en) furnishing.name.en = name_en;

@@ -30,7 +30,19 @@ exports.createDeposit = asyncHandler(async (req, res) => {
     throw new ErrorResponse("Deposit name EN & VI required", 400);
   }
 
-  // Find all codes and compute next number
+  // ❌ Prevent duplicate name
+  const existing = await Deposit.findOne({
+    $or: [
+      { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+      { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+    ]
+  });
+
+  if (existing) {
+    throw new ErrorResponse("Deposit with this name already exists", 400);
+  }
+
+  // Generate auto code
   const allDeposits = await Deposit.find().lean();
 
   const numericCodes = allDeposits
@@ -58,12 +70,26 @@ exports.createDeposit = asyncHandler(async (req, res) => {
 });
 
 // @desc    Update Deposit
-// @route   PUT /api/v1/deposit/:id
 exports.updateDeposit = asyncHandler(async (req, res) => {
   const { code_en, code_vi, name_en, name_vi, status } = req.body;
 
   const deposit = await Deposit.findById(req.params.id);
   if (!deposit) throw new ErrorResponse("Deposit not found", 404);
+
+  // ❌ Prevent duplicate name on update
+  if (name_en || name_vi) {
+    const duplicate = await Deposit.findOne({
+      _id: { $ne: deposit._id },
+      $or: [
+        { "name.en": { $regex: new RegExp(`^${name_en || deposit.name.en}$`, "i") } },
+        { "name.vi": { $regex: new RegExp(`^${name_vi || deposit.name.vi}$`, "i") } }
+      ]
+    });
+
+    if (duplicate) {
+      throw new ErrorResponse("Deposit with this name already exists", 400);
+    }
+  }
 
   deposit.code.en = code_en ?? deposit.code.en;
   deposit.code.vi = code_vi ?? deposit.code.vi;
@@ -81,9 +107,6 @@ exports.updateDeposit = asyncHandler(async (req, res) => {
 });
 
 // @desc    Delete Deposit
-// @route   DELETE /api/v1/deposit/:id
-// @desc    Delete Deposit
-// @route   DELETE /api/v1/deposit/:id
 exports.deleteDeposit = asyncHandler(async (req, res) => {
   const deposit = await Deposit.findById(req.params.id);
   if (!deposit) throw new ErrorResponse("Deposit not found", 404);

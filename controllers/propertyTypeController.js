@@ -26,6 +26,18 @@ exports.createPropertyType = asyncHandler(async (req, res) => {
         throw new ErrorResponse("English & Vietnamese names are required", 400);
     }
 
+    // ❌ Prevent duplicate name
+    const existingType = await PropertyType.findOne({
+        $or: [
+            { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+            { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+        ]
+    });
+
+    if (existingType) {
+        throw new ErrorResponse("Property Type with this name already exists", 400);
+    }
+
     // Get existing numeric codes
     const existing = await PropertyType.find({}, { "code.en": 1 }).lean();
 
@@ -61,6 +73,21 @@ exports.updatePropertyType = asyncHandler(async (req, res) => {
 
     const propertyType = await PropertyType.findById(req.params.id);
     if (!propertyType) throw new ErrorResponse("Property Type not found", 404);
+
+    // ❌ Prevent duplicate name on update
+    if (name_en || name_vi) {
+        const duplicateType = await PropertyType.findOne({
+            _id: { $ne: propertyType._id },
+            $or: [
+                { "name.en": { $regex: new RegExp(`^${name_en || propertyType.name.en}$`, "i") } },
+                { "name.vi": { $regex: new RegExp(`^${name_vi || propertyType.name.vi}$`, "i") } }
+            ]
+        });
+
+        if (duplicateType) {
+            throw new ErrorResponse("Property Type with this name already exists", 400);
+        }
+    }
 
     propertyType.code.en = code_en ?? propertyType.code.en;
     propertyType.code.vi = code_vi ?? propertyType.code.vi;

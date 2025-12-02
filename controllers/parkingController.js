@@ -42,6 +42,18 @@ exports.createParking = asyncHandler(async (req, res) => {
         throw new ErrorResponse("Parking code already exists", 400);
     }
 
+    // ❌ Prevent duplicate name
+    const existingName = await Parking.findOne({
+        $or: [
+            { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+            { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
+        ]
+    });
+
+    if (existingName) {
+        throw new ErrorResponse("Parking Availability with this name already exists", 400);
+    }
+
     const newParking = await Parking.create({
         code: { en: code_en, vi: code_vi },
         name: { en: name_en, vi: name_vi },
@@ -62,6 +74,21 @@ exports.updateParking = asyncHandler(async (req, res) => {
 
     const parking = await Parking.findById(req.params.id);
     if (!parking) throw new ErrorResponse("Parking Availability not found", 404);
+
+    // ❌ Prevent duplicate name on update
+    if (name_en || name_vi) {
+        const duplicateName = await Parking.findOne({
+            _id: { $ne: parking._id },
+            $or: [
+                { "name.en": { $regex: new RegExp(`^${name_en || parking.name.en}$`, "i") } },
+                { "name.vi": { $regex: new RegExp(`^${name_vi || parking.name.vi}$`, "i") } }
+            ]
+        });
+
+        if (duplicateName) {
+            throw new ErrorResponse("Parking Availability with this name already exists", 400);
+        }
+    }
 
     parking.code.en = code_en ?? parking.code.en;
     parking.code.vi = code_vi ?? parking.code.vi;

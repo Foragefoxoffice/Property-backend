@@ -49,8 +49,8 @@ exports.createZoneSubArea = asyncHandler(async (req, res) => {
   const existingZone = await ZoneSubArea.findOne({
     property,
     $or: [
-      { "name.en": name_en },
-      { "name.vi": name_vi }
+      { "name.en": { $regex: new RegExp(`^${name_en}$`, "i") } },
+      { "name.vi": { $regex: new RegExp(`^${name_vi}$`, "i") } }
     ]
   });
 
@@ -101,8 +101,8 @@ exports.updateZoneSubArea = asyncHandler(async (req, res) => {
     _id: { $ne: zone._id },
     property: zone.property,
     $or: [
-      { "name.en": name_en },
-      { "name.vi": name_vi }
+      { "name.en": { $regex: new RegExp(`^${name_en || zone.name.en}$`, "i") } },
+      { "name.vi": { $regex: new RegExp(`^${name_vi || zone.name.vi}$`, "i") } }
     ]
   });
 
