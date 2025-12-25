@@ -16,6 +16,8 @@ const {
   getTrashProperties,
 } = require("../controllers/createPropertyController");
 
+const { bulkUploadProperties } = require("../controllers/bulkUploadController");
+
 const router = express.Router();
 console.log("🔥 createPropertyRoutes.js LOADED");
 
@@ -29,6 +31,10 @@ router.post("/copy/sale/:id", copyPropertyToSale);
 router.post("/copy/lease/:id", copyPropertyToLease);
 router.post("/copy/homestay/:id", copyPropertyToHomeStay);
 router.put("/restore/:id", restoreProperty);
+
+// Bulk Upload Route
+router.post("/bulk-upload", bulkUploadProperties);
+
 // ✅ Main Property Routes
 router.route("/").get(getProperties).post(createProperty);
 
