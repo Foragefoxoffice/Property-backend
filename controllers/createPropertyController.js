@@ -427,11 +427,40 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   // Count AFTER applying correct filters
   const total = await CreateProperty.countDocuments(filter);
 
+  // ⚡ PERFORMANCE OPTIMIZATION: Only fetch essential fields for list view
+  // Exclude: images, videos, descriptions, SEO data, and other heavy fields
   const properties = await CreateProperty.find(filter)
+    .select(
+      '_id ' +
+      'status ' +
+      'createdAt ' +
+      'listingInformation.listingInformationPropertyId ' +
+      'listingInformation.listingInformationPropertyNo ' +
+      'listingInformation.listingInformationTransactionType ' +
+      'listingInformation.listingInformationPropertyType ' +
+      'listingInformation.listingInformationBlockName ' +
+      'listingInformation.listingInformationProjectCommunity ' +
+      'listingInformation.listingInformationZoneSubArea ' +
+      'listingInformation.listingInformationAvailabilityStatus ' +
+      'financialDetails.financialDetailsCurrency ' +
+      'financialDetails.financialDetailsPrice '
+    )
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .lean();
+
+  // 🔍 Debug: Verify optimization is working
+  console.log('📊 Properties fetched:', properties.length);
+  if (properties.length > 0) {
+    console.log('✅ First property has imagesVideos?', 'imagesVideos' in properties[0]);
+    console.log('📦 First property keys:', Object.keys(properties[0]).join(', '));
+  }
+
+  // 🚫 Prevent browser caching to ensure fresh data
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   return res.status(200).json({
     success: true,
@@ -481,6 +510,21 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
   const total = await CreateProperty.countDocuments(filter);
 
   const properties = await CreateProperty.find(filter)
+    .select(
+      '_id ' +
+      'status ' +
+      'createdAt ' +
+      'listingInformation.listingInformationPropertyId ' +
+      'listingInformation.listingInformationPropertyNo ' +
+      'listingInformation.listingInformationTransactionType ' +
+      'listingInformation.listingInformationPropertyType ' +
+      'listingInformation.listingInformationBlockName ' +
+      'listingInformation.listingInformationProjectCommunity ' +
+      'listingInformation.listingInformationZoneSubArea ' +
+      'listingInformation.listingInformationAvailabilityStatus ' +
+      'financialDetails.financialDetailsCurrency ' +
+      'financialDetails.financialDetailsPrice '
+    )
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
