@@ -64,69 +64,110 @@ function normalizeLocalized(val) {
 async function validateMasterFields(row, transactionType) {
   const errors = [];
 
+  // Helper to get value from localized object or string
+  const getValue = (field) => {
+    const val = row[field];
+    if (!val) return "";
+    if (typeof val === "object") {
+      return val.en || val.vi || "";
+    }
+    return val;
+  };
+
+  // Helper to validate both EN and VI values against master data
+  const validateBothLanguages = async (fieldName, modelName, Model) => {
+    const field = row[fieldName];
+    if (!field) return;
+    
+    const enValue = typeof field === "object" ? (field.en || "") : field;
+    const viValue = typeof field === "object" ? (field.vi || "") : field;
+    
+    if (enValue || viValue) {
+      // Validate English value
+      if (enValue) {
+        const foundEn = await Model.findOne({
+          $or: [
+            { "name.en": { $regex: new RegExp(`^${enValue}$`, "i") } },
+            { "name.vi": { $regex: new RegExp(`^${enValue}$`, "i") } },
+          ],
+        });
+        if (!foundEn) {
+          errors.push({
+            field: `${fieldName} (English)`,
+            message: `${modelName} "${enValue}" not found in master data`,
+          });
+        }
+      }
+      
+      // Validate Vietnamese value if different
+      if (viValue && viValue !== enValue) {
+        const foundVi = await Model.findOne({
+          $or: [
+            { "name.en": { $regex: new RegExp(`^${viValue}$`, "i") } },
+            { "name.vi": { $regex: new RegExp(`^${viValue}$`, "i") } },
+          ],
+        });
+        if (!foundVi) {
+          errors.push({
+            field: `${fieldName} (Vietnamese)`,
+            message: `${modelName} "${viValue}" not found in master data`,
+          });
+        }
+      }
+    }
+  };
+
   // Validate Project / Community
-  if (row["Project / Community"]) {
-    const project = await Property.findOne({
-      $or: [
-        { "name.en": { $regex: new RegExp(`^${row["Project / Community"]}$`, "i") } },
-        { "name.vi": { $regex: new RegExp(`^${row["Project / Community"]}$`, "i") } },
-      ],
-    });
-    if (!project) {
-      errors.push({
-        field: "Project / Community",
-        message: `Project/Community "${row["Project / Community"]}" not found in master data`,
-      });
+  const projectField = row["Project / Community"];
+  if (projectField) {
+    // Get both EN and VI values
+    const projectEnValue = typeof projectField === "object" ? (projectField.en || "") : projectField;
+    const projectViValue = typeof projectField === "object" ? (projectField.vi || "") : projectField;
+    
+    // Check if at least one value is provided
+    if (projectEnValue || projectViValue) {
+      // Validate English value if provided
+      if (projectEnValue) {
+        const projectEn = await Property.findOne({
+          $or: [
+            { "name.en": { $regex: new RegExp(`^${projectEnValue}$`, "i") } },
+            { "name.vi": { $regex: new RegExp(`^${projectEnValue}$`, "i") } },
+          ],
+        });
+        if (!projectEn) {
+          errors.push({
+            field: "Project / Community (English)",
+            message: `Project/Community "${projectEnValue}" not found in master data`,
+          });
+        }
+      }
+      
+      // Validate Vietnamese value if provided and different from English
+      if (projectViValue && projectViValue !== projectEnValue) {
+        const projectVi = await Property.findOne({
+          $or: [
+            { "name.en": { $regex: new RegExp(`^${projectViValue}$`, "i") } },
+            { "name.vi": { $regex: new RegExp(`^${projectViValue}$`, "i") } },
+          ],
+        });
+        if (!projectVi) {
+          errors.push({
+            field: "Project / Community (Vietnamese)",
+            message: `Project/Community "${projectViValue}" not found in master data`,
+          });
+        }
+      }
     }
   }
 
   // Validate Area / Zone
-  if (row["Area / Zone"]) {
-    const zone = await ZoneSubArea.findOne({
-      $or: [
-        { "name.en": { $regex: new RegExp(`^${row["Area / Zone"]}$`, "i") } },
-        { "name.vi": { $regex: new RegExp(`^${row["Area / Zone"]}$`, "i") } },
-      ],
-    });
-    if (!zone) {
-      errors.push({
-        field: "Area / Zone",
-        message: `Area/Zone "${row["Area / Zone"]}" not found in master data`,
-      });
-    }
-  }
+  await validateBothLanguages("Area / Zone", "Area/Zone", ZoneSubArea);
 
   // Validate Block Name
-  if (row["Block Name"]) {
-    const block = await Block.findOne({
-      $or: [
-        { "name.en": { $regex: new RegExp(`^${row["Block Name"]}$`, "i") } },
-        { "name.vi": { $regex: new RegExp(`^${row["Block Name"]}$`, "i") } },
-      ],
-    });
-    if (!block) {
-      errors.push({
-        field: "Block Name",
-        message: `Block Name "${row["Block Name"]}" not found in master data`,
-      });
-    }
-  }
+  await validateBothLanguages("Block Name", "Block Name", Block);
 
   // Validate Property Type
-  if (row["Property Type"]) {
-    const propertyType = await PropertyType.findOne({
-      $or: [
-        { "name.en": { $regex: new RegExp(`^${row["Property Type"]}$`, "i") } },
-        { "name.vi": { $regex: new RegExp(`^${row["Property Type"]}$`, "i") } },
-      ],
-    });
-    if (!propertyType) {
-      errors.push({
-        field: "Property Type",
-        message: `Property Type "${row["Property Type"]}" not found in master data`,
-      });
-    }
-  }
+  await validateBothLanguages("Property Type", "Property Type", PropertyType);
 
   // Validate Currency
   if (row["Currency"]) {
@@ -145,73 +186,62 @@ async function validateMasterFields(row, transactionType) {
   }
 
   // Validate Furnishing
-  if (row["Furnishing"]) {
-    const furnishing = await Furnishing.findOne({
-      $or: [
-        { "name.en": { $regex: new RegExp(`^${row["Furnishing"]}$`, "i") } },
-        { "name.vi": { $regex: new RegExp(`^${row["Furnishing"]}$`, "i") } },
-      ],
-    });
-    if (!furnishing) {
-      errors.push({
-        field: "Furnishing",
-        message: `Furnishing "${row["Furnishing"]}" not found in master data`,
-      });
-    }
-  }
+  await validateBothLanguages("Furnishing", "Furnishing", Furnishing);
 
   // Validate Floor Range
-  if (row["Floor Range"]) {
-    const floorRange = await FloorRange.findOne({
-      $or: [
-        { "name.en": { $regex: new RegExp(`^${row["Floor Range"]}$`, "i") } },
-        { "name.vi": { $regex: new RegExp(`^${row["Floor Range"]}$`, "i") } },
-      ],
-    });
-    if (!floorRange) {
-      errors.push({
-        field: "Floor Range",
-        message: `Floor Range "${row["Floor Range"]}" not found in master data`,
+  await validateBothLanguages("Floor Range", "Floor Range", FloorRange);
+
+  // Validate Unit (checks both name and symbol)
+  const unitField = row["Unit"];
+  if (unitField) {
+    const unitEnValue = typeof unitField === "object" ? (unitField.en || "") : unitField;
+    const unitViValue = typeof unitField === "object" ? (unitField.vi || "") : unitField;
+    
+    if (unitEnValue) {
+      const unitEn = await Unit.findOne({
+        $or: [
+          { "name.en": { $regex: new RegExp(`^${unitEnValue}$`, "i") } },
+          { "name.vi": { $regex: new RegExp(`^${unitEnValue}$`, "i") } },
+          { "symbol.en": { $regex: new RegExp(`^${unitEnValue}$`, "i") } },
+          { "symbol.vi": { $regex: new RegExp(`^${unitEnValue}$`, "i") } },
+        ],
       });
+      if (!unitEn) {
+        errors.push({
+          field: "Unit (English)",
+          message: `Unit "${unitEnValue}" not found in master data`,
+        });
+      }
+    }
+    
+    if (unitViValue && unitViValue !== unitEnValue) {
+      const unitVi = await Unit.findOne({
+        $or: [
+          { "name.en": { $regex: new RegExp(`^${unitViValue}$`, "i") } },
+          { "name.vi": { $regex: new RegExp(`^${unitViValue}$`, "i") } },
+          { "symbol.en": { $regex: new RegExp(`^${unitViValue}$`, "i") } },
+          { "symbol.vi": { $regex: new RegExp(`^${unitViValue}$`, "i") } },
+        ],
+      });
+      if (!unitVi) {
+        errors.push({
+          field: "Unit (Vietnamese)",
+          message: `Unit "${unitViValue}" not found in master data`,
+        });
+      }
     }
   }
 
-  // Validate Unit
-  if (row["Unit"]) {
-    const unit = await Unit.findOne({
-      $or: [
-        { "name.en": { $regex: new RegExp(`^${row["Unit"]}$`, "i") } },
-        { "name.vi": { $regex: new RegExp(`^${row["Unit"]}$`, "i") } },
-        { "symbol.en": { $regex: new RegExp(`^${row["Unit"]}$`, "i") } },
-        { "symbol.vi": { $regex: new RegExp(`^${row["Unit"]}$`, "i") } },
-      ],
-    });
-    if (!unit) {
-      errors.push({
-        field: "Unit",
-        message: `Unit "${row["Unit"]}" not found in master data`,
-      });
-    }
-  }
-
-  // Validate required fields based on transaction type
+  // Validate required fields - only Project/Community, Area/Zone, and Block Name are mandatory
   const requiredFields = [
     "Project / Community",
-    "Property Type",
-    "Property Title",
-    "Currency",
+    "Area / Zone",
+    "Block Name",
   ];
 
-  if (transactionType === "Lease") {
-    requiredFields.push("Lease Price");
-  } else if (transactionType === "Sale") {
-    requiredFields.push("Sale Price");
-  } else if (transactionType === "Home Stay") {
-    requiredFields.push("Price Per Night");
-  }
-
   requiredFields.forEach((field) => {
-    if (!row[field] || row[field].trim() === "") {
+    const value = getValue(field);
+    if (!value || value.trim() === "") {
       errors.push({
         field,
         message: `${field} is required`,
@@ -274,10 +304,11 @@ exports.bulkUploadProperties = asyncHandler(async (req, res) => {
       throw new ErrorResponse("Transaction type is required", 400);
     }
 
-    // Parse CSV
+    // Parse CSV with UTF-8 encoding
     const parseResult = Papa.parse(csvData, {
       header: true,
       skipEmptyLines: true,
+      encoding: "UTF-8",
       transformHeader: (header) => header.trim(),
       transform: (value) => value.trim(), // Trim all cell values
     });
@@ -287,8 +318,67 @@ exports.bulkUploadProperties = asyncHandler(async (req, res) => {
     }
 
     const rows = parseResult.data;
+    
+    // Process rows to merge EN/VI columns into localized objects
+    const processedRows = rows.map(row => {
+      const processed = {};
+      const fieldTranslations = {
+        "Dự án / Cộng đồng": "Project / Community",
+        "Khu vực / Vùng": "Area / Zone",
+        "Tên khối": "Block Name",
+        "Số bất động sản": "Property No",
+        "Loại bất động sản": "Property Type",
+        "Có sẵn từ": "Available From",
+        "Đơn vị": "Unit",
+        "Diện tích": "Unit Size",
+        "Phòng ngủ": "Bedrooms",
+        "Phòng tắm": "Bathrooms",
+        "Phạm vi tầng": "Floor Range",
+        "Trang bị nội thất": "Furnishing",
+        "Hướng nhìn": "View",
+        "Tiêu đề bất động sản": "Property Title",
+        "Mô tả": "Description",
+        "Tiền tệ": "Currency",
+        "Giá thuê": "Lease Price",
+        "Giá bán": "Sale Price",
+        "Giá mỗi đêm": "Price Per Night",
+      };
+      
+      // Group EN/VI pairs
+      const enFields = {};
+      const viFields = {};
+      
+      Object.keys(row).forEach(key => {
+        if (fieldTranslations[key]) {
+          // It's a Vietnamese column
+          viFields[fieldTranslations[key]] = row[key];
+        } else {
+          // It's an English column
+          enFields[key] = row[key];
+        }
+      });
+      
+      // Merge into localized objects
+      Object.keys(enFields).forEach(field => {
+        const enValue = enFields[field] || "";
+        const viValue = viFields[field] || "";
+        
+        // For numeric/date/currency/identifier fields, just use English value
+        if (field === "Property No" || field === "Unit Size" || field === "Bedrooms" || 
+            field === "Bathrooms" || field.includes("Price") ||
+            field === "Available From" || field === "Currency") {
+          processed[field] = enValue;
+        } else {
+          // Create localized object
+          processed[field] = enValue || viValue ? { en: enValue, vi: viValue } : "";
+        }
+      });
+      
+      return processed;
+    });
+    
     const results = {
-      total: rows.length,
+      total: processedRows.length,
       successful: 0,
       failed: 0,
       errors: [],
@@ -297,8 +387,8 @@ exports.bulkUploadProperties = asyncHandler(async (req, res) => {
     };
 
     // Process each row
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
+    for (let i = 0; i < processedRows.length; i++) {
+      const row = processedRows[i];
       const rowNumber = i + 2; // +2 because row 1 is header, and we're 0-indexed
 
       try {
@@ -356,24 +446,24 @@ exports.bulkUploadProperties = asyncHandler(async (req, res) => {
             listingInformationPropertyId: propertyId,
             listingInformationPropertyNo: normalizeLocalized(row["Property No"]),
             listingInformationTransactionType: normalizeLocalized(transactionType),
-            listingInformationProjectCommunity: normalizeLocalized(row["Project / Community"]),
-            listingInformationZoneSubArea: normalizeLocalized(row["Area / Zone"]),
-            listingInformationBlockName: normalizeLocalized(row["Block Name"]),
-            listingInformationPropertyType: normalizeLocalized(row["Property Type"]),
-            listingInformationPropertyTitle: normalizeLocalized(row["Property Title"]),
+            listingInformationProjectCommunity: row["Project / Community"] || normalizeLocalized(""),
+            listingInformationZoneSubArea: row["Area / Zone"] || normalizeLocalized(""),
+            listingInformationBlockName: row["Block Name"] || normalizeLocalized(""),
+            listingInformationPropertyType: row["Property Type"] || normalizeLocalized(""),
+            listingInformationPropertyTitle: row["Property Title"] || normalizeLocalized(""),
             listingInformationAvailableFrom: row["Available From"] ? new Date(row["Available From"]) : null,
           },
           propertyInformation: {
-            informationUnit: normalizeLocalized(row["Unit"]),
+            informationUnit: row["Unit"] || normalizeLocalized(""),
             informationUnitSize: row["Unit Size"] ? Number(row["Unit Size"]) : 0,
             informationBedrooms: row["Bedrooms"] ? Number(row["Bedrooms"]) : 0,
             informationBathrooms: row["Bathrooms"] ? Number(row["Bathrooms"]) : 0,
-            informationFloors: row["Floor Range"] || 1,
-            informationFurnishing: normalizeLocalized(row["Furnishing"]),
-            informationView: normalizeLocalized(row["View"]),
+            informationFloors: row["Floor Range"] || normalizeLocalized(""),
+            informationFurnishing: row["Furnishing"] || normalizeLocalized(""),
+            informationView: row["View"] || normalizeLocalized(""),
           },
           whatNearby: {
-            whatNearbyDescription: normalizeLocalized(row["Description"]),
+            whatNearbyDescription: row["Description"] || normalizeLocalized(""),
           },
           financialDetails: {
             financialDetailsCurrency: row["Currency"] || "USD",
