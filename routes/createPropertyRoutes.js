@@ -14,6 +14,7 @@ const {
   restoreProperty,
   getPropertiesByTransactionType,
   getTrashProperties,
+  getListingProperties,
 } = require("../controllers/createPropertyController");
 
 const { bulkUploadProperties } = require("../controllers/bulkUploadController");
@@ -40,6 +41,7 @@ router.route("/").get(getProperties).post(createProperty);
 
 router.get("/transaction", getPropertiesByTransactionType);
 router.get("/trash", getTrashProperties);
+router.get("/listing", getListingProperties); // New optimized listing API
 
 
 router

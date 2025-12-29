@@ -539,3 +539,195 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
     data: properties,
   });
 });
+
+/* =========================================================
+   🏠 OPTIMIZED LISTING PAGE API WITH FILTERS
+========================================================= */
+exports.getListingProperties = asyncHandler(async (req, res) => {
+  let {
+    type,           // Transaction type: Sale / Lease / Home Stay
+    page = 1,
+    limit = 10,
+    search = "",    // Search in title, property ID, location
+    location = "",  // Filter by zone/sub-area
+    bedrooms = "",  // Filter by number of bedrooms
+    bathrooms = "", // Filter by number of bathrooms
+    minPrice = "",  // Minimum price
+    maxPrice = "",  // Maximum price
+    minSize = "",   // Minimum size in sqft
+    maxSize = "",   // Maximum size in sqft
+    propertyType = "", // Filter by property type
+    sortBy = "newest" // Sort: newest, oldest, price-low, price-high
+  } = req.query;
+
+  page = parseInt(page);
+  limit = parseInt(limit);
+  const skip = (page - 1) * limit;
+
+  // Base filter - exclude archived properties
+  const filter = {
+    status: { $ne: "Archived" }
+  };
+
+  // Transaction type filter (required)
+  if (type) {
+    filter.$or = [
+      { "listingInformation.listingInformationTransactionType.en": type },
+      { "listingInformation.listingInformationTransactionType.vi": type },
+    ];
+  }
+
+  // Search filter (search in multiple fields)
+  if (search) {
+    filter.$and = filter.$and || [];
+    filter.$and.push({
+      $or: [
+        { "listingInformation.listingInformationPropertyId": { $regex: search, $options: "i" } },
+        { "listingInformation.listingInformationBlockName.en": { $regex: search, $options: "i" } },
+        { "listingInformation.listingInformationBlockName.vi": { $regex: search, $options: "i" } },
+        { "listingInformation.listingInformationProjectCommunity.en": { $regex: search, $options: "i" } },
+        { "listingInformation.listingInformationProjectCommunity.vi": { $regex: search, $options: "i" } },
+        { "listingInformation.listingInformationZoneSubArea.en": { $regex: search, $options: "i" } },
+        { "listingInformation.listingInformationZoneSubArea.vi": { $regex: search, $options: "i" } },
+      ]
+    });
+  }
+
+  // Location filter
+  if (location) {
+    filter.$and = filter.$and || [];
+    filter.$and.push({
+      $or: [
+        { "listingInformation.listingInformationZoneSubArea.en": { $regex: location, $options: "i" } },
+        { "listingInformation.listingInformationZoneSubArea.vi": { $regex: location, $options: "i" } },
+      ]
+    });
+  }
+
+  // Property type filter
+  if (propertyType) {
+    filter.$and = filter.$and || [];
+    filter.$and.push({
+      $or: [
+        { "listingInformation.listingInformationPropertyType.en": { $regex: propertyType, $options: "i" } },
+        { "listingInformation.listingInformationPropertyType.vi": { $regex: propertyType, $options: "i" } },
+      ]
+    });
+  }
+
+  // Bedrooms filter
+  if (bedrooms) {
+    const bedroomCount = parseInt(bedrooms);
+    if (bedroomCount === 4) {
+      // 4+ bedrooms
+      filter["propertyInformation.informationBedrooms"] = { $gte: 4 };
+    } else {
+      filter["propertyInformation.informationBedrooms"] = bedroomCount;
+    }
+  }
+
+  // Bathrooms filter
+  if (bathrooms) {
+    const bathroomCount = parseInt(bathrooms);
+    if (bathroomCount === 3) {
+      // 3+ bathrooms
+      filter["propertyInformation.informationBathrooms"] = { $gte: 3 };
+    } else {
+      filter["propertyInformation.informationBathrooms"] = bathroomCount;
+    }
+  }
+
+  // Price range filter
+  if (minPrice || maxPrice) {
+    filter["financialDetails.financialDetailsPrice"] = {};
+    if (minPrice) {
+      filter["financialDetails.financialDetailsPrice"].$gte = parseFloat(minPrice);
+    }
+    if (maxPrice) {
+      filter["financialDetails.financialDetailsPrice"].$lte = parseFloat(maxPrice);
+    }
+  }
+
+  // Size range filter
+  if (minSize || maxSize) {
+    filter["propertyInformation.informationUnitSize"] = {};
+    if (minSize) {
+      filter["propertyInformation.informationUnitSize"].$gte = parseFloat(minSize);
+    }
+    if (maxSize) {
+      filter["propertyInformation.informationUnitSize"].$lte = parseFloat(maxSize);
+    }
+  }
+
+  // Sorting
+  let sortOptions = { createdAt: -1 }; // Default: newest first
+  switch (sortBy) {
+    case 'oldest':
+      sortOptions = { createdAt: 1 };
+      break;
+    case 'price-low':
+      sortOptions = { "financialDetails.financialDetailsPrice": 1 };
+      break;
+    case 'price-high':
+      sortOptions = { "financialDetails.financialDetailsPrice": -1 };
+      break;
+    default:
+      sortOptions = { createdAt: -1 };
+  }
+
+  // Count total matching documents
+  const total = await CreateProperty.countDocuments(filter);
+
+  // Fetch properties with only essential fields
+  const properties = await CreateProperty.find(filter)
+    .select(
+      '_id ' +
+      'status ' +
+      'createdAt ' +
+      // Listing Information
+      'listingInformation.listingInformationPropertyId ' +
+      'listingInformation.listingInformationTransactionType ' +
+      'listingInformation.listingInformationPropertyType ' +
+      'listingInformation.listingInformationBlockName ' +
+      'listingInformation.listingInformationProjectCommunity ' +
+      'listingInformation.listingInformationZoneSubArea ' +
+      'listingInformation.listingInformationAvailabilityStatus ' +
+      // Financial Details
+      'financialDetails.financialDetailsCurrency ' +
+      'financialDetails.financialDetailsPrice ' +
+      // Property Information (bedrooms, bathrooms, size)
+      'propertyInformation.informationBedrooms ' +
+      'propertyInformation.informationBathrooms ' +
+      'propertyInformation.informationUnitSize ' +
+      'propertyInformation.informationUnit ' +
+      // Images (only first image for thumbnail)
+      'imagesVideos.propertyImages'
+    )
+    .sort(sortOptions)
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  // Optimize images - only return first image
+  const optimizedProperties = properties.map(prop => {
+    if (prop.imagesVideos?.propertyImages?.length > 0) {
+      prop.imagesVideos.propertyImages = [prop.imagesVideos.propertyImages[0]];
+    }
+    return prop;
+  });
+
+  // Prevent browser caching
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
+  return res.status(200).json({
+    success: true,
+    page,
+    limit,
+    total,
+    totalPages: Math.ceil(total / limit),
+    count: optimizedProperties.length,
+    data: optimizedProperties,
+  });
+});
