@@ -545,69 +545,101 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
 ========================================================= */
 exports.getListingProperties = asyncHandler(async (req, res) => {
   let {
-    type,           // Transaction type: Sale / Lease / Home Stay
+    type,              // Transaction type: Sale / Lease / Home Stay
     page = 1,
     limit = 10,
-    search = "",    // Search in title, property ID, location
-    location = "",  // Filter by zone/sub-area
-    bedrooms = "",  // Filter by number of bedrooms
-    bathrooms = "", // Filter by number of bathrooms
-    minPrice = "",  // Minimum price
-    maxPrice = "",  // Maximum price
-    minSize = "",   // Minimum size in sqft
-    maxSize = "",   // Maximum size in sqft
-    propertyType = "", // Filter by property type
-    sortBy = "newest" // Sort: newest, oldest, price-low, price-high
+    // New comprehensive filters
+    propertyId = "",   // Property ID search
+    keyword = "",      // Keyword search
+    projectId = "",    // Project/Community ID
+    zoneId = "",       // Area/Zone ID
+    blockId = "",      // Block Name ID
+    propertyType = "", // Property Type
+    bedrooms = "",     // Number of bedrooms
+    bathrooms = "",    // Number of bathrooms
+    currency = "",     // Currency filter
+    minPrice = "",     // Minimum price
+    maxPrice = "",     // Maximum price
+    sortBy = "newest"  // Sort: newest, oldest, price-low, price-high
   } = req.query;
 
   page = parseInt(page);
   limit = parseInt(limit);
   const skip = (page - 1) * limit;
 
-  // Base filter - exclude archived properties
-  const filter = {
-    status: { $ne: "Archived" }
+  // Base filter - exclude archived and draft properties (only show published)
+  const matchStage = {
+    status: { $nin: ["Archived", "Draft"] }
   };
 
   // Transaction type filter (required)
   if (type) {
-    filter.$or = [
+    matchStage.$or = [
       { "listingInformation.listingInformationTransactionType.en": type },
       { "listingInformation.listingInformationTransactionType.vi": type },
     ];
   }
 
-  // Search filter (search in multiple fields)
-  if (search) {
-    filter.$and = filter.$and || [];
-    filter.$and.push({
+  // Property ID filter (exact match)
+  if (propertyId) {
+    matchStage["listingInformation.listingInformationPropertyId"] = { $regex: propertyId, $options: "i" };
+  }
+
+  // Keyword search (search in multiple fields)
+  if (keyword) {
+    matchStage.$and = matchStage.$and || [];
+    matchStage.$and.push({
       $or: [
-        { "listingInformation.listingInformationPropertyId": { $regex: search, $options: "i" } },
-        { "listingInformation.listingInformationBlockName.en": { $regex: search, $options: "i" } },
-        { "listingInformation.listingInformationBlockName.vi": { $regex: search, $options: "i" } },
-        { "listingInformation.listingInformationProjectCommunity.en": { $regex: search, $options: "i" } },
-        { "listingInformation.listingInformationProjectCommunity.vi": { $regex: search, $options: "i" } },
-        { "listingInformation.listingInformationZoneSubArea.en": { $regex: search, $options: "i" } },
-        { "listingInformation.listingInformationZoneSubArea.vi": { $regex: search, $options: "i" } },
+        { "listingInformation.listingInformationPropertyId": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationPropertyTitle.en": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationPropertyTitle.vi": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationBlockName.en": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationBlockName.vi": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationProjectCommunity.en": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationProjectCommunity.vi": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationZoneSubArea.en": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationZoneSubArea.vi": { $regex: keyword, $options: "i" } },
       ]
     });
   }
 
-  // Location filter
-  if (location) {
-    filter.$and = filter.$and || [];
-    filter.$and.push({
+  // Project/Community filter (ID match)
+  if (projectId) {
+    matchStage.$and = matchStage.$and || [];
+    matchStage.$and.push({
       $or: [
-        { "listingInformation.listingInformationZoneSubArea.en": { $regex: location, $options: "i" } },
-        { "listingInformation.listingInformationZoneSubArea.vi": { $regex: location, $options: "i" } },
+        { "listingInformation.listingInformationProjectCommunity.en": { $regex: projectId, $options: "i" } },
+        { "listingInformation.listingInformationProjectCommunity.vi": { $regex: projectId, $options: "i" } },
+      ]
+    });
+  }
+
+  // Area/Zone filter (ID match)
+  if (zoneId) {
+    matchStage.$and = matchStage.$and || [];
+    matchStage.$and.push({
+      $or: [
+        { "listingInformation.listingInformationZoneSubArea.en": { $regex: zoneId, $options: "i" } },
+        { "listingInformation.listingInformationZoneSubArea.vi": { $regex: zoneId, $options: "i" } },
+      ]
+    });
+  }
+
+  // Block Name filter (ID match)
+  if (blockId) {
+    matchStage.$and = matchStage.$and || [];
+    matchStage.$and.push({
+      $or: [
+        { "listingInformation.listingInformationBlockName.en": { $regex: blockId, $options: "i" } },
+        { "listingInformation.listingInformationBlockName.vi": { $regex: blockId, $options: "i" } },
       ]
     });
   }
 
   // Property type filter
   if (propertyType) {
-    filter.$and = filter.$and || [];
-    filter.$and.push({
+    matchStage.$and = matchStage.$and || [];
+    matchStage.$and.push({
       $or: [
         { "listingInformation.listingInformationPropertyType.en": { $regex: propertyType, $options: "i" } },
         { "listingInformation.listingInformationPropertyType.vi": { $regex: propertyType, $options: "i" } },
@@ -620,9 +652,9 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     const bedroomCount = parseInt(bedrooms);
     if (bedroomCount === 4) {
       // 4+ bedrooms
-      filter["propertyInformation.informationBedrooms"] = { $gte: 4 };
+      matchStage["propertyInformation.informationBedrooms"] = { $gte: 4 };
     } else {
-      filter["propertyInformation.informationBedrooms"] = bedroomCount;
+      matchStage["propertyInformation.informationBedrooms"] = bedroomCount;
     }
   }
 
@@ -631,90 +663,136 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     const bathroomCount = parseInt(bathrooms);
     if (bathroomCount === 3) {
       // 3+ bathrooms
-      filter["propertyInformation.informationBathrooms"] = { $gte: 3 };
+      matchStage["propertyInformation.informationBathrooms"] = { $gte: 3 };
     } else {
-      filter["propertyInformation.informationBathrooms"] = bathroomCount;
+      matchStage["propertyInformation.informationBathrooms"] = bathroomCount;
     }
+  }
+
+  // Currency filter
+  if (currency) {
+    matchStage["financialDetails.financialDetailsCurrency"] = currency;
   }
 
   // Price range filter
   if (minPrice || maxPrice) {
-    filter["financialDetails.financialDetailsPrice"] = {};
+    matchStage["financialDetails.financialDetailsPrice"] = {};
     if (minPrice) {
-      filter["financialDetails.financialDetailsPrice"].$gte = parseFloat(minPrice);
+      matchStage["financialDetails.financialDetailsPrice"].$gte = parseFloat(minPrice);
     }
     if (maxPrice) {
-      filter["financialDetails.financialDetailsPrice"].$lte = parseFloat(maxPrice);
+      matchStage["financialDetails.financialDetailsPrice"].$lte = parseFloat(maxPrice);
     }
   }
 
-  // Size range filter
-  if (minSize || maxSize) {
-    filter["propertyInformation.informationUnitSize"] = {};
-    if (minSize) {
-      filter["propertyInformation.informationUnitSize"].$gte = parseFloat(minSize);
-    }
-    if (maxSize) {
-      filter["propertyInformation.informationUnitSize"].$lte = parseFloat(maxSize);
-    }
+  // Remove old Size range filter
+  // if (minSize || maxSize) {
+  //   matchStage["propertyInformation.informationUnitSize"] = {};
+  //   if (minSize) {
+  //     matchStage["propertyInformation.informationUnitSize"].$gte = parseFloat(minSize);
+  //   }
+  //   if (maxSize) {
+  //     matchStage["propertyInformation.informationUnitSize"].$lte = parseFloat(maxSize);
+  //   }
+  // }
+
+  // Sorting - Handle different price fields based on transaction type
+  let sortStage = { createdAt: -1 }; // Default: newest first
+
+  // Determine which price field to use based on transaction type
+  let priceField = "financialDetails.financialDetailsPrice";
+  if (type === 'Lease') {
+    priceField = "financialDetails.financialDetailsLeasePrice";
+  } else if (type === 'Home Stay') {
+    priceField = "financialDetails.financialDetailsPricePerNight";
   }
 
-  // Sorting
-  let sortOptions = { createdAt: -1 }; // Default: newest first
   switch (sortBy) {
+    case 'newest':
+      sortStage = { createdAt: -1 };
+      break;
     case 'oldest':
-      sortOptions = { createdAt: 1 };
+      sortStage = { createdAt: 1 };
       break;
     case 'price-low':
-      sortOptions = { "financialDetails.financialDetailsPrice": 1 };
+      sortStage = { [priceField]: 1 };
       break;
     case 'price-high':
-      sortOptions = { "financialDetails.financialDetailsPrice": -1 };
+      sortStage = { [priceField]: -1 };
       break;
+    case 'default':
     default:
-      sortOptions = { createdAt: -1 };
+      sortStage = { createdAt: -1 };
   }
 
-  // Count total matching documents
-  const total = await CreateProperty.countDocuments(filter);
+  console.log(`🔄 Sorting by: ${sortBy}, Sort Stage:`, sortStage);
 
-  // Fetch properties with only essential fields
-  const properties = await CreateProperty.find(filter)
-    .select(
-      '_id ' +
-      'status ' +
-      'createdAt ' +
-      // Listing Information
-      'listingInformation.listingInformationPropertyId ' +
-      'listingInformation.listingInformationTransactionType ' +
-      'listingInformation.listingInformationPropertyType ' +
-      'listingInformation.listingInformationBlockName ' +
-      'listingInformation.listingInformationProjectCommunity ' +
-      'listingInformation.listingInformationZoneSubArea ' +
-      'listingInformation.listingInformationAvailabilityStatus ' +
-      // Financial Details
-      'financialDetails.financialDetailsCurrency ' +
-      'financialDetails.financialDetailsPrice ' +
-      // Property Information (bedrooms, bathrooms, size)
-      'propertyInformation.informationBedrooms ' +
-      'propertyInformation.informationBathrooms ' +
-      'propertyInformation.informationUnitSize ' +
-      'propertyInformation.informationUnit ' +
-      // Images (only first image for thumbnail)
-      'imagesVideos.propertyImages'
-    )
-    .sort(sortOptions)
-    .skip(skip)
-    .limit(limit)
-    .lean();
+  // ⚡ USE AGGREGATION PIPELINE FOR MAXIMUM PERFORMANCE
+  // This slices the images array at the database level, not in Node.js
+  const aggregationPipeline = [
+    // Stage 1: Match/Filter
+    { $match: matchStage },
 
-  // Optimize images - only return first image
-  const optimizedProperties = properties.map(prop => {
-    if (prop.imagesVideos?.propertyImages?.length > 0) {
-      prop.imagesVideos.propertyImages = [prop.imagesVideos.propertyImages[0]];
+    // Stage 2: Sort
+    { $sort: sortStage },
+
+    // Stage 3: Facet for count and data
+    {
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [
+          { $skip: skip },
+          { $limit: limit },
+          // Stage 4: Project only needed fields and slice images
+          {
+            $project: {
+              _id: 1,
+              status: 1,
+              createdAt: 1,
+              // Listing Information
+              'listingInformation.listingInformationPropertyId': 1,
+              'listingInformation.listingInformationTransactionType': 1,
+              'listingInformation.listingInformationPropertyType': 1,
+              'listingInformation.listingInformationPropertyTitle': 1,
+              'listingInformation.listingInformationBlockName': 1,
+              'listingInformation.listingInformationProjectCommunity': 1,
+              'listingInformation.listingInformationZoneSubArea': 1,
+              'listingInformation.listingInformationAvailabilityStatus': 1,
+              // Financial Details
+              'financialDetails.financialDetailsCurrency': 1,
+              'financialDetails.financialDetailsPrice': 1,
+              'financialDetails.financialDetailsLeasePrice': 1,
+              'financialDetails.financialDetailsPricePerNight': 1,
+              // Property Information
+              'propertyInformation.informationBedrooms': 1,
+              'propertyInformation.informationBathrooms': 1,
+              'propertyInformation.informationUnitSize': 1,
+              'propertyInformation.informationUnit': 1,
+              // Description
+              'whatNearby.whatNearbyDescription': 1,
+              // ⚡ CRITICAL: Only get first image at DB level
+              'imagesVideos.propertyImages': { $slice: ['$imagesVideos.propertyImages', 1] }
+            }
+          }
+        ]
+      }
     }
-    return prop;
-  });
+  ];
+
+  console.time('⚡ Listing Query Time');
+  const result = await CreateProperty.aggregate(aggregationPipeline).allowDiskUse(true);
+  console.timeEnd('⚡ Listing Query Time');
+
+  const total = result[0]?.metadata[0]?.total || 0;
+  const properties = result[0]?.data || [];
+
+  // Log performance metrics
+  console.log(`📊 Fetched ${properties.length} properties (Page ${page}/${Math.ceil(total / limit)})`);
+  if (properties.length > 0) {
+    const firstProp = properties[0];
+    const imageCount = firstProp.imagesVideos?.propertyImages?.length || 0;
+    console.log(`✅ Images per property: ${imageCount} (optimized)`);
+  }
 
   // Prevent browser caching
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -727,7 +805,7 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     limit,
     total,
     totalPages: Math.ceil(total / limit),
-    count: optimizedProperties.length,
-    data: optimizedProperties,
+    count: properties.length,
+    data: properties,
   });
 });

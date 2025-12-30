@@ -40,6 +40,7 @@ const legalDocumentRoutes = require("./routes/legalDocumentRoutes");
 const floorRangeRoutes = require("./routes/floorRangeRoutes");
 const propertyListingRoutes = require("./routes/propertyListingRoutes");
 const propertyRoutes = require("./routes/property");
+const homeBannerRoutes = require("./routes/homeBannerRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -161,6 +162,7 @@ app.use("/api/v1/feetax", feeTaxRoutes);
 app.use("/api/v1/legaldocument", legalDocumentRoutes);
 app.use("/api/v1/floorRange", floorRangeRoutes);
 app.use("/api/v1/propertyListing", propertyListingRoutes);
+app.use("/api/v1/home-banner", homeBannerRoutes);
 
 /* =========================================================
    ⚠️ Error Handler

@@ -197,4 +197,21 @@ CreatePropertySchema.index({
   createdAt: -1
 });
 
+// ⚡ Additional indexes for listing page filters
+CreatePropertySchema.index({ "propertyInformation.informationBedrooms": 1 });
+CreatePropertySchema.index({ "propertyInformation.informationBathrooms": 1 });
+CreatePropertySchema.index({ "financialDetails.financialDetailsPrice": 1 });
+CreatePropertySchema.index({ "financialDetails.financialDetailsLeasePrice": 1 });
+CreatePropertySchema.index({ "propertyInformation.informationUnitSize": 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationZoneSubArea.en": 1 });
+CreatePropertySchema.index({ "listingInformation.listingInformationZoneSubArea.vi": 1 });
+
+// 🚀 Compound index for common listing page query pattern
+CreatePropertySchema.index({
+  status: 1,
+  "listingInformation.listingInformationTransactionType.en": 1,
+  "financialDetails.financialDetailsPrice": 1,
+  createdAt: -1
+});
+
 module.exports = mongoose.model("CreateProperty", CreatePropertySchema);
