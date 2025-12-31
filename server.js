@@ -40,7 +40,7 @@ const legalDocumentRoutes = require("./routes/legalDocumentRoutes");
 const floorRangeRoutes = require("./routes/floorRangeRoutes");
 const propertyListingRoutes = require("./routes/propertyListingRoutes");
 const propertyRoutes = require("./routes/property");
-const homeBannerRoutes = require("./routes/homeBannerRoutes");
+const homePageRoutes = require("./routes/homePageRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -137,6 +137,11 @@ app.use((req, res, next) => {
 });
 
 /* =========================================================
+   📁 Serve Static Files (Uploads)
+========================================================= */
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+/* =========================================================
    🛣️ API Routes
 ========================================================= */
 app.use("/api/v1/auth", authRoutes);
@@ -162,7 +167,7 @@ app.use("/api/v1/feetax", feeTaxRoutes);
 app.use("/api/v1/legaldocument", legalDocumentRoutes);
 app.use("/api/v1/floorRange", floorRangeRoutes);
 app.use("/api/v1/propertyListing", propertyListingRoutes);
-app.use("/api/v1/home-banner", homeBannerRoutes);
+app.use("/api/v1/home-page", homePageRoutes);
 
 /* =========================================================
    ⚠️ Error Handler

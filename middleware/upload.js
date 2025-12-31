@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
     }
 
     // If uploading banner, put in /uploads/banner
-    else if (file.fieldname === "banner") {
+    else if (file.fieldname === "banner" || file.fieldname === "backgroundImage") {
       uploadPath = path.join(uploadPath, "banner");
     }
 
