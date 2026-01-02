@@ -268,6 +268,133 @@ const aboutPageSchema = new mongoose.Schema(
             trim: true,
             maxlength: 1000,
         },
+
+        // Find Property Section
+        aboutFindTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutFindTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutFindDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        aboutFindDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        aboutFindBg: {
+            type: String,
+            required: false,
+        },
+
+        // SEO Section
+        aboutSeoMetaTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutSeoMetaTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutSeoMetaDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        aboutSeoMetaDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        aboutSeoMetaKeywords_en: {
+            type: [String],
+            required: false,
+        },
+        aboutSeoMetaKeywords_vn: {
+            type: [String],
+            required: false,
+        },
+        aboutSeoSlugUrl_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutSeoSlugUrl_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutSeoCanonicalUrl_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutSeoCanonicalUrl_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutSeoSchemaType_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutSeoSchemaType_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutSeoOgTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutSeoOgTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutSeoOgDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        aboutSeoOgDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        aboutSeoAllowIndexing: {
+            type: Boolean,
+            required: false,
+            default: true,
+        },
+        aboutSeoOgImages: {
+            type: [String],
+            required: false,
+        },
     },
     {
         timestamps: true,

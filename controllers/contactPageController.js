@@ -1,56 +1,56 @@
-const AboutPage = require("../models/AboutPage");
+const ContactPage = require("../models/ContactPage");
 
-// Get About Page
-const getAboutPage = async (req, res) => {
+// Get Contact Page
+const getContactPage = async (req, res) => {
     try {
-        const aboutPage = await AboutPage.findOne();
+        const contactPage = await ContactPage.findOne();
 
-        if (!aboutPage) {
+        if (!contactPage) {
             return res.status(404).json({
                 success: false,
-                message: "About page not found",
+                message: "Contact page not found",
             });
         }
 
         res.status(200).json({
             success: true,
-            data: aboutPage,
+            data: contactPage,
         });
     } catch (error) {
-        console.error("Error fetching about page:", error);
+        console.error("Error fetching contact page:", error);
         res.status(500).json({
             success: false,
-            message: "Failed to fetch about page",
+            message: "Failed to fetch contact page",
             error: error.message,
         });
     }
 };
 
-// Create About Page
-const createAboutPage = async (req, res) => {
+// Create Contact Page
+const createContactPage = async (req, res) => {
     try {
-        // Check if about page already exists
-        const existingPage = await AboutPage.findOne();
+        // Check if contact page already exists
+        const existingPage = await ContactPage.findOne();
 
         if (existingPage) {
             return res.status(400).json({
                 success: false,
-                message: "About page already exists. Use update instead.",
+                message: "Contact page already exists. Use update instead.",
             });
         }
 
-        const aboutPage = await AboutPage.create(req.body);
+        const contactPage = await ContactPage.create(req.body);
 
         res.status(201).json({
             success: true,
-            message: "About page created successfully",
-            data: aboutPage,
+            message: "Contact page created successfully",
+            data: contactPage,
         });
     } catch (error) {
-        console.error("Error creating about page:", error);
+        console.error("Error creating contact page:", error);
         
         // Provide more specific error messages
-        let errorMessage = "Failed to create about page";
+        let errorMessage = "Failed to create contact page";
         if (error.name === 'ValidationError') {
             errorMessage = `Validation error: ${error.message}`;
         }
@@ -63,12 +63,12 @@ const createAboutPage = async (req, res) => {
     }
 };
 
-// Update About Page
-const updateAboutPage = async (req, res) => {
+// Update Contact Page
+const updateContactPage = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const aboutPage = await AboutPage.findByIdAndUpdate(
+        const contactPage = await ContactPage.findByIdAndUpdate(
             id,
             req.body,
             {
@@ -77,23 +77,23 @@ const updateAboutPage = async (req, res) => {
             }
         );
 
-        if (!aboutPage) {
+        if (!contactPage) {
             return res.status(404).json({
                 success: false,
-                message: "About page not found",
+                message: "Contact page not found",
             });
         }
 
         res.status(200).json({
             success: true,
-            message: "About page updated successfully",
-            data: aboutPage,
+            message: "Contact page updated successfully",
+            data: contactPage,
         });
     } catch (error) {
-        console.error("Error updating about page:", error);
+        console.error("Error updating contact page:", error);
         
         // Provide more specific error messages
-        let errorMessage = "Failed to update about page";
+        let errorMessage = "Failed to update contact page";
         if (error.name === 'ValidationError') {
             errorMessage = `Validation error: ${error.message}`;
         }
@@ -106,8 +106,8 @@ const updateAboutPage = async (req, res) => {
     }
 };
 
-// Upload About Page Image
-const uploadAboutPageImage = async (req, res) => {
+// Upload Contact Page Image
+const uploadContactPageImage = async (req, res) => {
     try {
         if (!req.files || !req.files.image) {
             return res.status(400).json({
@@ -138,7 +138,7 @@ const uploadAboutPageImage = async (req, res) => {
 
         const path = require("path");
         const fs = require("fs");
-        const uploadDir = path.join(__dirname, "..", "uploads", "aboutpage");
+        const uploadDir = path.join(__dirname, "..", "uploads", "contactpage");
 
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
@@ -149,7 +149,7 @@ const uploadAboutPageImage = async (req, res) => {
 
         await file.mv(filePath);
 
-        const fileUrl = `/uploads/aboutpage/${fileName}`;
+        const fileUrl = `/uploads/contactpage/${fileName}`;
 
         res.status(200).json({
             success: true,
@@ -170,8 +170,8 @@ const uploadAboutPageImage = async (req, res) => {
 };
 
 module.exports = {
-    getAboutPage,
-    createAboutPage,
-    updateAboutPage,
-    uploadAboutPageImage,
+    getContactPage,
+    createContactPage,
+    updateContactPage,
+    uploadContactPageImage,
 };

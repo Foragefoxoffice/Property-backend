@@ -308,6 +308,9 @@ exports.copyPropertyToSale = asyncHandler(async (req, res) => {
   const nextId = await generateNextPropertyId("Sale");
   newData.listingInformation.listingInformationPropertyId = nextId;
 
+  // ✅ Always save copied properties as Draft
+  newData.status = "Draft";
+
   const newProperty = await CreateProperty.create(newData);
 
   return res.status(200).json({
@@ -340,6 +343,9 @@ exports.copyPropertyToLease = asyncHandler(async (req, res) => {
   const nextId = await generateNextPropertyId("Lease");
   newData.listingInformation.listingInformationPropertyId = nextId;
 
+  // ✅ Always save copied properties as Draft
+  newData.status = "Draft";
+
   const newProperty = await CreateProperty.create(newData);
 
   return res.status(200).json({
@@ -371,6 +377,9 @@ exports.copyPropertyToHomeStay = asyncHandler(async (req, res) => {
 
   const nextId = await generateNextPropertyId("Home Stay");
   newData.listingInformation.listingInformationPropertyId = nextId;
+
+  // ✅ Always save copied properties as Draft
+  newData.status = "Draft";
 
   const newProperty = await CreateProperty.create(newData);
 

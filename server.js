@@ -42,6 +42,7 @@ const propertyListingRoutes = require("./routes/propertyListingRoutes");
 const propertyRoutes = require("./routes/property");
 const homePageRoutes = require("./routes/homePageRoutes");
 const aboutPageRoutes = require("./routes/aboutPageRoutes");
+const contactPageRoutes = require("./routes/contactPageRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -170,6 +171,7 @@ app.use("/api/v1/floorRange", floorRangeRoutes);
 app.use("/api/v1/propertyListing", propertyListingRoutes);
 app.use("/api/v1/home-page", homePageRoutes);
 app.use("/api/v1/about-page", aboutPageRoutes);
+app.use("/api/v1/contact-page", contactPageRoutes);
 
 /* =========================================================
    ⚠️ Error Handler
