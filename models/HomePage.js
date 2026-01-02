@@ -337,6 +337,106 @@ const homePageSchema = new mongoose.Schema(
             trim: true,
             maxlength: 500,
         },
+
+        // SEO Section
+        homeSeoMetaTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeSeoMetaTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeSeoMetaDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        homeSeoMetaDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        homeSeoMetaKeywords_en: {
+            type: [String],
+            required: false,
+            default: [],
+        },
+        homeSeoMetaKeywords_vn: {
+            type: [String],
+            required: false,
+            default: [],
+        },
+        homeSeoSlugUrl_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        homeSeoSlugUrl_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        homeSeoCanonicalUrl_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        homeSeoCanonicalUrl_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        homeSeoSchemaType_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        homeSeoSchemaType_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        homeSeoOgTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeSeoOgTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeSeoOgDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        homeSeoOgDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        homeSeoAllowIndexing: {
+            type: Boolean,
+            required: false,
+            default: true,
+        },
+        homeSeoOgImages: {
+            type: [String],
+            required: false,
+            default: [],
+        },
     },
     {
         timestamps: true,
