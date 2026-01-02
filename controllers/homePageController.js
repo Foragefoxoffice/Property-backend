@@ -62,6 +62,10 @@ exports.createHomePage = async (req, res) => {
             homeAboutStep3Title_vn,
             homeAboutStep3Des_en,
             homeAboutStep3Des_vn,
+            homeFeatureTitle_en,
+            homeFeatureTitle_vn,
+            homeFeatureDescription_en,
+            homeFeatureDescription_vn,
         } = req.body;
 
         // Validation
@@ -151,7 +155,7 @@ exports.uploadHomePageImage = async (req, res) => {
         }
 
         const file = req.files.image;
-        
+
         // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.mimetype)) {
@@ -173,7 +177,7 @@ exports.uploadHomePageImage = async (req, res) => {
         const path = require("path");
         const fs = require("fs");
         const uploadDir = path.join(__dirname, "..", "uploads", "homepage");
-        
+
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }

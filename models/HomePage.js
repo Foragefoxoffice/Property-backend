@@ -152,6 +152,191 @@ const homePageSchema = new mongoose.Schema(
             trim: true,
             maxlength: 500,
         },
+
+        // Features Section
+        homeFeatureTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeFeatureTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeFeatureDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 1000,
+        },
+        homeFeatureDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 1000,
+        },
+
+        // FAQ Section - Image Part
+        homeFaqImageTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeFaqImageTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeFaqImageDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        homeFaqImageDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        homeFaqImageButtonText_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 50,
+        },
+        homeFaqImageButtonText_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 50,
+        },
+        homeFaqImageButtonLink: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        homeFaqBg: {
+            type: String,
+            required: false,
+        },
+
+        // FAQ Section - Content Part
+        homeFaqTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeFaqTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeFaqDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        homeFaqDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+
+        // FAQ Items (Dynamic Array)
+        faqs: [
+            {
+                header_en: {
+                    type: String,
+                    required: false,
+                    trim: true,
+                    maxlength: 200,
+                },
+                header_vn: {
+                    type: String,
+                    required: false,
+                    trim: true,
+                    maxlength: 200,
+                },
+                content_en: {
+                    type: String,
+                    required: false,
+                    trim: true,
+                    maxlength: 1000,
+                },
+                content_vn: {
+                    type: String,
+                    required: false,
+                    trim: true,
+                    maxlength: 1000,
+                },
+            },
+        ],
+
+        // Find Property Section
+        homeFindTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeFindTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeFindDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        homeFindDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        homeFindBg: {
+            type: String,
+            required: false,
+        },
+
+        // Blog Section
+        homeBlogTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeBlogTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeBlogDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        homeBlogDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
     },
     {
         timestamps: true,
