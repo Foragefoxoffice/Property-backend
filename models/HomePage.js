@@ -178,6 +178,23 @@ const homePageSchema = new mongoose.Schema(
             trim: true,
             maxlength: 1000,
         },
+        homeFeatureButtonText_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 50,
+        },
+        homeFeatureButtonText_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 50,
+        },
+        homeFeatureButtonLink: {
+            type: String,
+            required: false,
+            trim: true,
+        },
 
         // FAQ Section - Image Part
         homeFaqImageTitle_en: {

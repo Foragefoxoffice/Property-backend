@@ -66,6 +66,9 @@ exports.createHomePage = async (req, res) => {
             homeFeatureTitle_vn,
             homeFeatureDescription_en,
             homeFeatureDescription_vn,
+            homeFeatureButtonText_en,
+            homeFeatureButtonText_vn,
+            homeFeatureButtonLink,
         } = req.body;
 
         // Validation

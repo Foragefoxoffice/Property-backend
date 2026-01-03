@@ -20,6 +20,36 @@ const aboutPageSchema = new mongoose.Schema(
             required: false,
         },
 
+        // Overview Section
+        aboutOverviewTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutOverviewTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutOverviewDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 1000,
+        },
+        aboutOverviewDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 1000,
+        },
+        aboutOverviewBg: {
+            type: String,
+            required: false,
+        },
+
         // History Section
         aboutHistoryTitle_en: {
             type: String,
@@ -267,6 +297,73 @@ const aboutPageSchema = new mongoose.Schema(
             required: false,
             trim: true,
             maxlength: 1000,
+        },
+
+        // Agent Section
+        aboutAgentTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutAgentTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutAgentSubTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutAgentSubTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        aboutAgentDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutAgentDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutAgentContent_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutAgentContent_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutAgentButtonText_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 50,
+        },
+        aboutAgentButtonText_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 50,
+        },
+        aboutAgentButtonLink: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        aboutAgentImage: {
+            type: String,
+            required: false,
         },
 
         // Find Property Section
