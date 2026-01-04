@@ -43,6 +43,8 @@ const propertyRoutes = require("./routes/property");
 const homePageRoutes = require("./routes/homePageRoutes");
 const aboutPageRoutes = require("./routes/aboutPageRoutes");
 const contactPageRoutes = require("./routes/contactPageRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
+const blogRoutes = require("./routes/blogRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -67,7 +69,7 @@ app.use(
   fileUpload({
     createParentPath: true,
     useTempFiles: false,
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB (videos stored as files, not in MongoDB)
   })
 );
 
@@ -172,6 +174,8 @@ app.use("/api/v1/propertyListing", propertyListingRoutes);
 app.use("/api/v1/home-page", homePageRoutes);
 app.use("/api/v1/about-page", aboutPageRoutes);
 app.use("/api/v1/contact-page", contactPageRoutes);
+app.use("/api/v1/categories", categoryRoutes);
+app.use("/api/v1/blogs", blogRoutes);
 
 /* =========================================================
    ⚠️ Error Handler

@@ -164,6 +164,102 @@ const contactPageSchema = new mongoose.Schema(
             type: String,
             required: false,
         },
+
+        // SEO Section
+        contactSeoMetaTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        contactSeoMetaTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        contactSeoMetaDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        contactSeoMetaDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 500,
+        },
+        contactSeoMetaKeywords_en: {
+            type: [String],
+            required: false,
+            default: [],
+        },
+        contactSeoMetaKeywords_vn: {
+            type: [String],
+            required: false,
+            default: [],
+        },
+        contactSeoSlugUrl_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        contactSeoSlugUrl_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        contactSeoCanonicalUrl_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        contactSeoCanonicalUrl_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        contactSeoSchemaType_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        contactSeoSchemaType_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        contactSeoOgTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        contactSeoOgTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        contactSeoOgDescription_en: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        contactSeoOgDescription_vn: {
+            type: String,
+            required: false,
+            trim: true,
+        },
+        contactSeoAllowIndexing: {
+            type: Boolean,
+            required: false,
+            default: true,
+        },
+        contactSeoOgImages: {
+            type: [String],
+            required: false,
+            default: [],
+        },
     },
     {
         timestamps: true,
