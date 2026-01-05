@@ -745,44 +745,51 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     // Stage 2: Sort
     { $sort: sortStage },
 
-    // Stage 3: Facet for count and data
+    // Stage 3: Project (Optimization: Reduce document size BEFORE facet)
+    {
+      $project: {
+        _id: 1,
+        status: 1,
+        createdAt: 1,
+        // Listing Information
+        'listingInformation.listingInformationPropertyId': 1,
+        'listingInformation.listingInformationTransactionType': 1,
+        'listingInformation.listingInformationPropertyType': 1,
+        'listingInformation.listingInformationPropertyTitle': 1,
+        'listingInformation.listingInformationBlockName': 1,
+        'listingInformation.listingInformationProjectCommunity': 1,
+        'listingInformation.listingInformationZoneSubArea': 1,
+        'listingInformation.listingInformationAvailabilityStatus': 1,
+        'listingInformation.listingInformationDateListed': 1,
+        'listingInformation.listingInformationAvailableFrom': 1,
+        'listingInformation.listingInformationPropertyNo': 1,
+        // Financial Details
+        'financialDetails.financialDetailsCurrency': 1,
+        'financialDetails.financialDetailsPrice': 1,
+        'financialDetails.financialDetailsLeasePrice': 1,
+        'financialDetails.financialDetailsPricePerNight': 1,
+        // Property Information
+        'propertyInformation.informationBedrooms': 1,
+        'propertyInformation.informationBathrooms': 1,
+        'propertyInformation.informationUnitSize': 1,
+        'propertyInformation.informationUnit': 1,
+        'propertyInformation.informationFloors': 1,
+        'propertyInformation.informationFurnishing': 1,
+        'propertyInformation.informationView': 1,
+        // Description
+        'whatNearby.whatNearbyDescription': 1,
+        // ⚡ CRITICAL: Only get first image at DB level
+        'imagesVideos.propertyImages': { $slice: ['$imagesVideos.propertyImages', 1] }
+      }
+    },
+
+    // Stage 4: Facet for count and data
     {
       $facet: {
         metadata: [{ $count: "total" }],
         data: [
           { $skip: skip },
-          { $limit: limit },
-          // Stage 4: Project only needed fields and slice images
-          {
-            $project: {
-              _id: 1,
-              status: 1,
-              createdAt: 1,
-              // Listing Information
-              'listingInformation.listingInformationPropertyId': 1,
-              'listingInformation.listingInformationTransactionType': 1,
-              'listingInformation.listingInformationPropertyType': 1,
-              'listingInformation.listingInformationPropertyTitle': 1,
-              'listingInformation.listingInformationBlockName': 1,
-              'listingInformation.listingInformationProjectCommunity': 1,
-              'listingInformation.listingInformationZoneSubArea': 1,
-              'listingInformation.listingInformationAvailabilityStatus': 1,
-              // Financial Details
-              'financialDetails.financialDetailsCurrency': 1,
-              'financialDetails.financialDetailsPrice': 1,
-              'financialDetails.financialDetailsLeasePrice': 1,
-              'financialDetails.financialDetailsPricePerNight': 1,
-              // Property Information
-              'propertyInformation.informationBedrooms': 1,
-              'propertyInformation.informationBathrooms': 1,
-              'propertyInformation.informationUnitSize': 1,
-              'propertyInformation.informationUnit': 1,
-              // Description
-              'whatNearby.whatNearbyDescription': 1,
-              // ⚡ CRITICAL: Only get first image at DB level
-              'imagesVideos.propertyImages': { $slice: ['$imagesVideos.propertyImages', 1] }
-            }
-          }
+          { $limit: limit }
         ]
       }
     }
