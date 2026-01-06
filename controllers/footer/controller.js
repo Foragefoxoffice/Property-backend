@@ -96,7 +96,7 @@ const uploadFooterImage = async (req, res) => {
         // Generate unique filename
         const timestamp = Date.now();
         const ext = path.extname(imageFile.name);
-        const filename = `footer-logo-${timestamp}${ext}`;
+        const filename = `footer-image-${timestamp}${ext}`;
         const uploadPath = path.join(uploadDir, filename);
 
         // Move file to uploads directory

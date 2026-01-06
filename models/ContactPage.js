@@ -82,10 +82,9 @@ const contactPageSchema = new mongoose.Schema(
             maxlength: 100,
         },
         contactReachOutNumberContent: {
-            type: String,
+            type: [String],
             required: false,
-            trim: true,
-            maxlength: 100,
+            default: [],
         },
         contactReachOutEmailHead_en: {
             type: String,
@@ -100,10 +99,9 @@ const contactPageSchema = new mongoose.Schema(
             maxlength: 100,
         },
         contactReachOutEmailContent: {
-            type: String,
+            type: [String],
             required: false,
-            trim: true,
-            maxlength: 100,
+            default: [],
         },
         contactReachOutFollowTitle_en: {
             type: String,

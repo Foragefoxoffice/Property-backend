@@ -45,6 +45,7 @@ const aboutPageRoutes = require("./routes/aboutPageRoutes");
 const contactPageRoutes = require("./routes/contactPageRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const blogRoutes = require("./routes/blogRoutes");
+const blogPageRoutes = require("./routes/blogPageRoutes");
 const headerRoutes = require("./routes/headerRoutes");
 const footerRoutes = require("./routes/footerRoutes");
 
@@ -178,6 +179,7 @@ app.use("/api/v1/about-page", aboutPageRoutes);
 app.use("/api/v1/contact-page", contactPageRoutes);
 app.use("/api/v1/categories", categoryRoutes);
 app.use("/api/v1/blogs", blogRoutes);
+app.use("/api/v1/blog-page", blogPageRoutes);
 app.use("/api/v1/header", headerRoutes);
 app.use("/api/v1/footer", footerRoutes);
 

@@ -8,9 +8,8 @@ const footerSchema = new mongoose.Schema(
             default: ''
         },
         footerEmail: {
-            type: String,
-            trim: true,
-            default: ''
+            type: [String],
+            default: []
         },
         footerNumber: {
             type: [String],
@@ -30,7 +29,9 @@ const footerSchema = new mongoose.Schema(
         footerOurCompanyLable_en: { type: String, default: '' },
         footerQuickLinksLable_en: { type: String, default: '' },
         footerJoinOurNewsTitle_en: { type: String, default: '' },
+        footerJoinOurNewsTitle_en: { type: String, default: '' },
         footerJoinOurNewsDescription_en: { type: String, default: '' },
+        footerCopyRight_en: { type: String, default: '' },
 
         // Vietnamese Fields
         footerAddressLable_vn: { type: String, default: '' },
@@ -40,7 +41,8 @@ const footerSchema = new mongoose.Schema(
         footerOurCompanyLable_vn: { type: String, default: '' },
         footerQuickLinksLable_vn: { type: String, default: '' },
         footerJoinOurNewsTitle_vn: { type: String, default: '' },
-        footerJoinOurNewsDescription_vn: { type: String, default: '' }
+        footerJoinOurNewsDescription_vn: { type: String, default: '' },
+        footerCopyRight_vn: { type: String, default: '' }
     },
     {
         timestamps: true,
