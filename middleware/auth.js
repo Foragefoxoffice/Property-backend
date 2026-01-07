@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const ErrorResponse = require('../utils/errorResponse');
 const User = require('../models/User');
+const Staff = require('../models/Staff');
 
 // Protect routes
 exports.protect = async (req, res, next) => {
@@ -21,25 +22,32 @@ exports.protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
+    
+    // Check User collection first
+    let user = await User.findById(decoded.id);
+
+    // If not found, check Staff collection
+    if (!user) {
+      const staff = await Staff.findById(decoded.id);
+      if (staff) {
+        user = staff;
+        // Normalize role for authorization middleware
+        user.role = staff.staffsRole?.en || 'staff'; 
+        // Normalize name/email for convenience if needed elsewhere
+        user.name = staff.staffsName?.en || "Staff";
+        user.email = staff.staffsEmail;
+      }
+    }
 
     if (!user) {
       return next(new ErrorResponse('No user found with this ID', 404));
     }
 
-    // Check if email is verified (except for certain routes)
-    // Check if email is verified (except for certain routes)
-    // const allowedUnverifiedRoutes = [
-    //   '/api/v1/auth/resend-verification',
-    //   '/api/v1/auth/verify-email',
-    //   '/api/v1/auth/logout'
-    // ];
+    // Check if account is Inactive (specifically for Staff)
+    if (user.status === 'Inactive') {
+      return next(new ErrorResponse('Your account is Inactive. Please contact admin.', 401));
+    }
 
-    // if (!user.isVerified && !allowedUnverifiedRoutes.includes(req.path)) {
-    //   return next(
-    //     new ErrorResponse('Please verify your email to access this route', 403)
-    //   );
-    // }
 
     req.user = user;
     next();

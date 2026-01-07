@@ -50,9 +50,8 @@ exports.createStaff = asyncHandler(async (req, res) => {
   const existingEmail = await Staff.findOne({ staffsEmail });
   if (existingEmail) throw new ErrorResponse("Email already exists", 400);
 
-  // Generate random password for Staff
-  const firstName = staffsName_en.split(" ")[0].toLowerCase();
-  const rawPassword = `${firstName}@1234`; // Simple default password for staff
+  // Generate default password for Staff
+  const rawPassword = "Admin@123";
 
   console.log(`Creating Staff ${staffsName_en} with password: ${rawPassword}`);
 

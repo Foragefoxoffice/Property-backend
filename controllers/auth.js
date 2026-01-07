@@ -144,6 +144,7 @@ const Staff = require("../models/Staff");
 exports.login = asyncHandler(async (req, res, next) => {
   const { email, employeeId, password } = req.body;
 
+
   if ((!email && !employeeId) || !password) {
     return next(
       new ErrorResponse("Please provide email or employee ID and password", 400)
@@ -157,31 +158,50 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   let isStaff = false;
 
+
   // 2️⃣ If not found in User, try STAFF Collection
   if (!user) {
-    // Note: Staff collection uses 'staffsEmail' and 'staffsId'
-    // We map the input 'email' or 'employeeId' to these fields
+
     user = await Staff.findOne({
       $or: [{ staffsEmail: email }, { staffsId: employeeId }],
     }).select("+password");
-    isStaff = true;
+    
+    if (user) {
+      isStaff = true;
+      console.log(`✅ Staff found: ${user.staffsName?.en || user._id}`);
+    } else {
+      console.log("❌ Staff not found");
+    }
   }
 
   // If still not found
   if (!user) {
+    console.log("🚫 No user or staff record found.");
     return next(new ErrorResponse("Invalid credentials", 401));
   }
 
   // 3️⃣ Check Verification
   if (!user.isVerified) {
+    console.log("⚠️ Account not verified.");
     return next(
       new ErrorResponse("Your account is not verified. Please contact admin.", 401)
     );
   }
 
+  // 3.5 Check Status (for Staff)
+  if (isStaff && user.status === 'Inactive') {
+    console.log("⚠️ Account is Inactive.");
+    return next(
+      new ErrorResponse("Your account is Inactive. Please contact admin.", 401)
+    );
+  }
+
   // 4️⃣ Match Password
   const isMatch = await user.matchPassword(password);
+  console.log(`🔐 Password match: ${isMatch}`);
+  
   if (!isMatch) {
+    console.log("❌ Password mismatch");
     return next(new ErrorResponse("Invalid credentials", 401));
   }
 
@@ -197,7 +217,7 @@ exports.login = asyncHandler(async (req, res, next) => {
       employeeId: user.staffsId,
       name: user.staffsName?.en || "Staff Member", // Use English name or fallback
       email: user.staffsEmail,
-      role: 'staff', // Force role to staff or use user.staffsRole.en
+      role: user.staffsRole?.en || 'staff',
       // Add other fields if needed
     };
   } else {
@@ -210,6 +230,8 @@ exports.login = asyncHandler(async (req, res, next) => {
     };
   }
 
+  console.log("🚀 Login successful for:", userData.email);
+
   res.status(200).json({
     success: true,
     token,
@@ -221,8 +243,8 @@ exports.login = asyncHandler(async (req, res, next) => {
    ME (Current User)
 ========================================================= */
 exports.getMe = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.id);
-  res.status(200).json({ success: true, data: user });
+  // User is already fetched by the protect middleware
+  res.status(200).json({ success: true, data: req.user });
 });
 
 /* =========================================================
