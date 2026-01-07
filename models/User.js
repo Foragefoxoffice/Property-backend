@@ -10,25 +10,20 @@ const userSchema = new mongoose.Schema(
       required: [true, "Please provide an Employee ID"],
       trim: true,
     },
-    // Split names as requested
+    // Bilingual name fields
     firstName: {
-      type: String,
-      required: [true, "Please add a first name"],
-      trim: true,
+      en: { type: String, required: true, trim: true },
+      vi: { type: String, required: true, trim: true },
     },
     middleName: {
-      type: String,
-      trim: true,
-      default: ""
+      en: { type: String, trim: true, default: "" },
+      vi: { type: String, trim: true, default: "" },
     },
     lastName: {
-      type: String,
-      trim: true,
-      default: ""
+      en: { type: String, trim: true, default: "" },
+      vi: { type: String, trim: true, default: "" },
     },
-    // Keep name for backward compatibility or virtual? 
-    // Existing code uses 'name'. I will make 'name' a secondary field or derived.
-    // Ideally, I should just populate 'name' on save if it's missing.
+    // Keep name for backward compatibility
     name: {
       type: String,
       trim: true,
@@ -62,14 +57,14 @@ const userSchema = new mongoose.Schema(
       // Removed enum to allow dynamic roles from Role collection
       default: 'user',
     },
-    // New Fields
+    // Bilingual department and designation fields
     department: {
-      type: String,
-      default: ""
+      en: { type: String, trim: true, default: "" },
+      vi: { type: String, trim: true, default: "" },
     },
     designation: {
-      type: String,
-      default: ""
+      en: { type: String, trim: true, default: "" },
+      vi: { type: String, trim: true, default: "" },
     },
     dob: {
       type: Date,
@@ -94,8 +89,8 @@ const userSchema = new mongoose.Schema(
 
 /* Pre-save hook to populate 'name' from parts if missing */
 userSchema.pre("save", async function (next) {
-  if (!this.name && this.firstName) {
-    this.name = `${this.firstName} ${this.middleName || ''} ${this.lastName || ''}`.replace(/\s+/g, ' ').trim();
+  if (!this.name && this.firstName?.en) {
+    this.name = `${this.firstName.en} ${this.middleName?.en || ''} ${this.lastName?.en || ''}`.replace(/\s+/g, ' ').trim();
   }
 
   if (!this.isModified("password")) return next();

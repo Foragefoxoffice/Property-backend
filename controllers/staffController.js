@@ -24,6 +24,14 @@ exports.createStaff = asyncHandler(async (req, res) => {
     staffsNotes_en,
     staffsNotes_vi,
     staffsEmail,
+    // New fields
+    staffsDepartment_en,
+    staffsDepartment_vi,
+    staffsDesignation_en,
+    staffsDesignation_vi,
+    staffsDob,
+    staffsJoiningDate,
+    status
   } = req.body;
 
   if (
@@ -38,8 +46,15 @@ exports.createStaff = asyncHandler(async (req, res) => {
     throw new ErrorResponse("All fields are required", 400);
   }
 
+  // Check in Staff collection
   const existingEmail = await Staff.findOne({ staffsEmail });
   if (existingEmail) throw new ErrorResponse("Email already exists", 400);
+
+  // Generate random password for Staff
+  const firstName = staffsName_en.split(" ")[0].toLowerCase();
+  const rawPassword = `${firstName}@1234`; // Simple default password for staff
+
+  console.log(`Creating Staff ${staffsName_en} with password: ${rawPassword}`);
 
   const staff = await Staff.create({
     staffsImage: staffsImage || null,
@@ -50,6 +65,15 @@ exports.createStaff = asyncHandler(async (req, res) => {
     staffsNumbers: staffsNumbers || [],
     staffsGender,
     staffsNotes: { en: staffsNotes_en, vi: staffsNotes_vi },
+    // New mappings
+    staffsDepartment: { en: staffsDepartment_en || "", vi: staffsDepartment_vi || "" },
+    staffsDesignation: { en: staffsDesignation_en || "", vi: staffsDesignation_vi || "" },
+    staffsDob,
+    staffsJoiningDate,
+    status: status || "Active",
+    // Auth
+    password: rawPassword,
+    isVerified: true,
   });
 
   res.status(201).json({
@@ -58,6 +82,7 @@ exports.createStaff = asyncHandler(async (req, res) => {
     data: staff,
   });
 });
+
 
 
 // ✅ Update staff

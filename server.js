@@ -50,6 +50,7 @@ const headerRoutes = require("./routes/headerRoutes");
 const footerRoutes = require("./routes/footerRoutes");
 const agentRoutes = require("./routes/agentRoutes");
 const roleRoutes = require("./routes/roleRoutes");
+const contactEnquiryRoutes = require("./routes/contactEnquiryRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -186,6 +187,7 @@ app.use("/api/v1/header", headerRoutes);
 app.use("/api/v1/footer", footerRoutes);
 app.use("/api/v1/agent", agentRoutes);
 app.use("/api/v1/roles", roleRoutes);
+app.use("/api/v1/contact-enquiry", contactEnquiryRoutes);
 
 /* =========================================================
    ⚠️ Error Handler

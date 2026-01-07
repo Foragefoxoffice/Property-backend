@@ -136,6 +136,11 @@ exports.userRegister = asyncHandler(async (req, res, next) => {
 /* =========================================================
    LOGIN (Email or Employee ID)
 ========================================================= */
+const Staff = require("../models/Staff");
+
+/* =========================================================
+   LOGIN (Email/EmpID + Password) -> Checks User OR Staff
+========================================================= */
 exports.login = asyncHandler(async (req, res, next) => {
   const { email, employeeId, password } = req.body;
 
@@ -145,31 +150,70 @@ exports.login = asyncHandler(async (req, res, next) => {
     );
   }
 
-  const user = await User.findOne({
+  // 1️⃣ Try Finding in USER Collection
+  let user = await User.findOne({
     $or: [{ email }, { employeeId }],
   }).select("+password");
 
+  let isStaff = false;
+
+  // 2️⃣ If not found in User, try STAFF Collection
+  if (!user) {
+    // Note: Staff collection uses 'staffsEmail' and 'staffsId'
+    // We map the input 'email' or 'employeeId' to these fields
+    user = await Staff.findOne({
+      $or: [{ staffsEmail: email }, { staffsId: employeeId }],
+    }).select("+password");
+    isStaff = true;
+  }
+
+  // If still not found
   if (!user) {
     return next(new ErrorResponse("Invalid credentials", 401));
   }
 
+  // 3️⃣ Check Verification
+  if (!user.isVerified) {
+    return next(
+      new ErrorResponse("Your account is not verified. Please contact admin.", 401)
+    );
+  }
+
+  // 4️⃣ Match Password
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
     return next(new ErrorResponse("Invalid credentials", 401));
   }
 
+  // 5️⃣ Generate Token
   const token = user.getSignedJwtToken();
 
-  res.status(200).json({
-    success: true,
-    token,
-    user: {
+  // 6️⃣ Prepare Response Data
+  // If it's a staff member, we normalize the fields to match the 'User' structure expected by frontend
+  let userData = {};
+  if (isStaff) {
+    userData = {
+      id: user._id,
+      employeeId: user.staffsId,
+      name: user.staffsName?.en || "Staff Member", // Use English name or fallback
+      email: user.staffsEmail,
+      role: 'staff', // Force role to staff or use user.staffsRole.en
+      // Add other fields if needed
+    };
+  } else {
+    userData = {
       id: user._id,
       employeeId: user.employeeId,
       name: user.name,
       email: user.email,
       role: user.role,
-    },
+    };
+  }
+
+  res.status(200).json({
+    success: true,
+    token,
+    user: userData,
   });
 });
 
