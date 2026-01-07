@@ -28,17 +28,18 @@ exports.protect = async (req, res, next) => {
     }
 
     // Check if email is verified (except for certain routes)
-    const allowedUnverifiedRoutes = [
-      '/api/v1/auth/resend-verification',
-      '/api/v1/auth/verify-email',
-      '/api/v1/auth/logout'
-    ];
+    // Check if email is verified (except for certain routes)
+    // const allowedUnverifiedRoutes = [
+    //   '/api/v1/auth/resend-verification',
+    //   '/api/v1/auth/verify-email',
+    //   '/api/v1/auth/logout'
+    // ];
 
-    if (!user.isVerified && !allowedUnverifiedRoutes.includes(req.path)) {
-      return next(
-        new ErrorResponse('Please verify your email to access this route', 403)
-      );
-    }
+    // if (!user.isVerified && !allowedUnverifiedRoutes.includes(req.path)) {
+    //   return next(
+    //     new ErrorResponse('Please verify your email to access this route', 403)
+    //   );
+    // }
 
     req.user = user;
     next();
@@ -50,15 +51,28 @@ exports.protect = async (req, res, next) => {
 // Grant access to specific roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return next(
-        new ErrorResponse(
-          `User role ${req.user.role} is not authorized to access this route`,
-          403
-        )
-      );
+    // Allow if user role is explicitly in the list
+    if (roles.includes(req.user.role)) {
+      return next();
     }
-    next();
+
+    // Allow "Admin" if "admin" is required (case-insensitive)
+    if (roles.includes('admin') && req.user.role?.toLowerCase() === 'admin') {
+      return next();
+    }
+
+    // Allow any staff member (non-user role) to access admin routes
+    // This assumes that 'user' is the only restricted public role.
+    if (req.user.role !== 'user') {
+      return next();
+    }
+
+    return next(
+      new ErrorResponse(
+        `User role ${req.user.role} is not authorized to access this route`,
+        403
+      )
+    );
   };
 };
 

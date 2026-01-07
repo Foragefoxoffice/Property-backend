@@ -10,9 +10,27 @@ const userSchema = new mongoose.Schema(
       required: [true, "Please provide an Employee ID"],
       trim: true,
     },
+    // Split names as requested
+    firstName: {
+      type: String,
+      required: [true, "Please add a first name"],
+      trim: true,
+    },
+    middleName: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    lastName: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    // Keep name for backward compatibility or virtual? 
+    // Existing code uses 'name'. I will make 'name' a secondary field or derived.
+    // Ideally, I should just populate 'name' on save if it's missing.
     name: {
       type: String,
-      required: [true, "Please add a name"],
       trim: true,
     },
     email: {
@@ -29,7 +47,7 @@ const userSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: [true, "Please add a phone number"],
+      default: "",
     },
     profileImage: {
       type: String,
@@ -39,15 +57,49 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    role: {
+      type: String,
+      // Removed enum to allow dynamic roles from Role collection
+      default: 'user',
+    },
+    // New Fields
+    department: {
+      type: String,
+      default: ""
+    },
+    designation: {
+      type: String,
+      default: ""
+    },
+    dob: {
+      type: Date,
+    },
+    gender: {
+      type: String,
+      enum: ["Male", "Female", "Other"],
+    },
+    joiningDate: {
+      type: Date
+    },
+    status: {
+      type: String,
+      enum: ["Active", "Inactive"],
+      default: "Active"
+    },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },
   { timestamps: true }
 );
 
-/* Hash password */
+/* Pre-save hook to populate 'name' from parts if missing */
 userSchema.pre("save", async function (next) {
+  if (!this.name && this.firstName) {
+    this.name = `${this.firstName} ${this.middleName || ''} ${this.lastName || ''}`.replace(/\s+/g, ' ').trim();
+  }
+
   if (!this.isModified("password")) return next();
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();

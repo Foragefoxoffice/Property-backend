@@ -81,6 +81,59 @@ exports.register = asyncHandler(async (req, res, next) => {
 });
 
 /* =========================================================
+   PUBLIC USER REGISTRATION
+========================================================= */
+// @desc    Register public user (not admin)
+// @route   POST /api/v1/auth/user-register
+// @access  Public
+exports.userRegister = asyncHandler(async (req, res, next) => {
+  const { name, email, password, confirmPassword, mobile } = req.body;
+
+  // Validate required fields
+  if (!name || !email || !password || !confirmPassword) {
+    return next(new ErrorResponse("Please provide all required fields", 400));
+  }
+
+  // Check if passwords match
+  if (password !== confirmPassword) {
+    return next(new ErrorResponse("Passwords do not match", 400));
+  }
+
+  // Check if user already exists
+  if (await User.findOne({ email })) {
+    return next(new ErrorResponse("User already exists with this email", 400));
+  }
+
+  // Create user with role 'user' and auto-generated employeeId
+  const employeeId = `USER-${Date.now()}`;
+
+  const user = await User.create({
+    employeeId,
+    name,
+    email,
+    password,
+    phone: mobile || "", // Store mobile number in phone field
+    isVerified: true, // Auto-verify public users
+    role: 'user',
+  });
+
+  // Generate token
+  const token = user.getSignedJwtToken();
+
+  res.status(201).json({
+    success: true,
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+    },
+  });
+});
+
+/* =========================================================
    LOGIN (Email or Employee ID)
 ========================================================= */
 exports.login = asyncHandler(async (req, res, next) => {
@@ -115,6 +168,7 @@ exports.login = asyncHandler(async (req, res, next) => {
       employeeId: user.employeeId,
       name: user.name,
       email: user.email,
+      role: user.role,
     },
   });
 });

@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   register,
+  userRegister,
   login,
   getMe,
   updateDetails,
@@ -21,6 +22,9 @@ const router = express.Router();
 
 // Register a new user (admin assigns role)
 router.post("/register", register);
+
+// Public user registration
+router.post("/user-register", userRegister);
 
 // Login user
 router.post("/login", login);

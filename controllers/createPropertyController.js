@@ -734,8 +734,6 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
       sortStage = { createdAt: -1 };
   }
 
-  console.log(`🔄 Sorting by: ${sortBy}, Sort Stage:`, sortStage);
-
   // ⚡ USE AGGREGATION PIPELINE FOR MAXIMUM PERFORMANCE
   // This slices the images array at the database level, not in Node.js
   const aggregationPipeline = [
@@ -795,19 +793,15 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     }
   ];
 
-  console.time('⚡ Listing Query Time');
   const result = await CreateProperty.aggregate(aggregationPipeline).allowDiskUse(true);
-  console.timeEnd('⚡ Listing Query Time');
 
   const total = result[0]?.metadata[0]?.total || 0;
   const properties = result[0]?.data || [];
 
   // Log performance metrics
-  console.log(`📊 Fetched ${properties.length} properties (Page ${page}/${Math.ceil(total / limit)})`);
   if (properties.length > 0) {
     const firstProp = properties[0];
     const imageCount = firstProp.imagesVideos?.propertyImages?.length || 0;
-    console.log(`✅ Images per property: ${imageCount} (optimized)`);
   }
 
   // Prevent browser caching

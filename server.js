@@ -48,6 +48,8 @@ const blogRoutes = require("./routes/blogRoutes");
 const blogPageRoutes = require("./routes/blogPageRoutes");
 const headerRoutes = require("./routes/headerRoutes");
 const footerRoutes = require("./routes/footerRoutes");
+const agentRoutes = require("./routes/agentRoutes");
+const roleRoutes = require("./routes/roleRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -182,6 +184,8 @@ app.use("/api/v1/blogs", blogRoutes);
 app.use("/api/v1/blog-page", blogPageRoutes);
 app.use("/api/v1/header", headerRoutes);
 app.use("/api/v1/footer", footerRoutes);
+app.use("/api/v1/agent", agentRoutes);
+app.use("/api/v1/roles", roleRoutes);
 
 /* =========================================================
    ⚠️ Error Handler
