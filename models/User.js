@@ -12,8 +12,8 @@ const userSchema = new mongoose.Schema(
     },
     // Bilingual name fields
     firstName: {
-      en: { type: String, required: true, trim: true },
-      vi: { type: String, required: true, trim: true },
+      en: { type: String, trim: true, default: "" },
+      vi: { type: String, trim: true, default: "" },
     },
     middleName: {
       en: { type: String, trim: true, default: "" },

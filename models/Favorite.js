@@ -11,6 +11,19 @@ const favoriteSchema = new mongoose.Schema({
         ref: 'CreateProperty',
         required: true
     },
+    // Captured snapshot of user details
+    userName: { type: String },
+    userEmail: { type: String },
+    userPhone: { type: String },
+
+    // Staff details (owner of the property)
+    staffName: { type: String },
+
+    // Read status for Admin
+    isRead: {
+        type: Boolean,
+        default: false
+    },
     createdAt: {
         type: Date,
         default: Date.now

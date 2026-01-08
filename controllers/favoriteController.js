@@ -1,21 +1,39 @@
 const Favorite = require('../models/Favorite');
 const CreateProperty = require('../models/CreateProperty');
+const User = require('../models/User');
 
 exports.addFavorite = async (req, res) => {
     try {
         const { propertyId } = req.body;
         const userId = req.user.id; // Assuming auth middleware adds user to req
 
-        // Check if property exists
-        const property = await CreateProperty.findOne({ "listingInformation.listingInformationPropertyId": propertyId });
+        // 1. Fetch User Details
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+        const userName = user.name || (user.firstName?.en ? `${user.firstName.en} ${user.lastName?.en || ''}` : 'Unknown');
+        const userEmail = user.email;
+        const userPhone = user.phone;
+
+        // 2. Fetch Property and Staff Details
+        let property = await CreateProperty.findOne({ "listingInformation.listingInformationPropertyId": propertyId }).populate('createdBy');
+        let propRefId = property ? property._id : propertyId;
+
         if (!property) {
             // Fallback: try by _id if propertyId is not the custom ID
-            const propById = await CreateProperty.findById(propertyId);
-            if (!propById) return res.status(404).json({ success: false, error: 'Property not found' });
+            property = await CreateProperty.findById(propertyId).populate('createdBy');
+            propRefId = propertyId;
+            if (!property) return res.status(404).json({ success: false, error: 'Property not found' });
         }
 
-        // We need the _id for the ref
-        const propRefId = property ? property._id : propertyId;
+        // Determine Staff Name
+        // Priority: contactManagementConsultant (en) -> createdBy.name
+        let staffName = property.contactManagement?.contactManagementConsultant?.en || property.contactManagement?.contactManagementConsultant?.vi;
+
+        if (!staffName && property.createdBy) {
+            const creator = property.createdBy;
+            staffName = creator.name || (creator.firstName?.en ? `${creator.firstName.en} ${creator.lastName?.en || ''}` : 'Unknown');
+        }
 
         const existingFavorite = await Favorite.findOne({ user: userId, property: propRefId });
         if (existingFavorite) {
@@ -24,7 +42,12 @@ exports.addFavorite = async (req, res) => {
 
         const favorite = await Favorite.create({
             user: userId,
-            property: propRefId
+            property: propRefId,
+            userName,
+            userEmail,
+            userPhone,
+            staffName: staffName || 'Admin',
+            isRead: false
         });
 
         res.status(201).json({ success: true, data: favorite });
@@ -77,6 +100,44 @@ exports.getFavorites = async (req, res) => {
         res.status(200).json({ success: true, data: favorites });
     } catch (error) {
         console.error('Error fetching favorites:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
+// Admin: Get All Enquiries (Favorites from all users)
+exports.getAllEnquiries = async (req, res) => {
+    try {
+        // Optional: Check if req.user is admin
+        // if (req.user.role !== 'admin') ...
+
+        const favorites = await Favorite.find({})
+            .populate({
+                path: 'property',
+                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea propertyInformation.informationBedrooms propertyInformation.informationBathrooms propertyInformation.informationUnitSize'
+            })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ success: true, data: favorites });
+    } catch (error) {
+        console.error('Error fetching all enquiries:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
+// Admin: Mark as Read/Unread
+exports.markAsRead = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isRead } = req.body; // Expect boolean
+
+        const favorite = await Favorite.findByIdAndUpdate(id, { isRead }, { new: true });
+        if (!favorite) {
+            return res.status(404).json({ success: false, error: 'Enquiry not found' });
+        }
+
+        res.status(200).json({ success: true, data: favorite });
+    } catch (error) {
+        console.error('Error marking enquiry as read:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 };

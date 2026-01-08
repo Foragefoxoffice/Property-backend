@@ -129,6 +129,7 @@ exports.userRegister = asyncHandler(async (req, res, next) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      employeeId: user.employeeId,
     },
   });
 });
@@ -165,7 +166,7 @@ exports.login = asyncHandler(async (req, res, next) => {
     user = await Staff.findOne({
       $or: [{ staffsEmail: email }, { staffsId: employeeId }],
     }).select("+password");
-    
+
     if (user) {
       isStaff = true;
       console.log(`✅ Staff found: ${user.staffsName?.en || user._id}`);
@@ -199,7 +200,7 @@ exports.login = asyncHandler(async (req, res, next) => {
   // 4️⃣ Match Password
   const isMatch = await user.matchPassword(password);
   console.log(`🔐 Password match: ${isMatch}`);
-  
+
   if (!isMatch) {
     console.log("❌ Password mismatch");
     return next(new ErrorResponse("Invalid credentials", 401));
