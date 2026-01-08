@@ -68,7 +68,10 @@ exports.getFavorites = async (req, res) => {
     try {
         const userId = req.user.id;
         const favorites = await Favorite.find({ user: userId })
-            .populate('property')
+            .populate({
+                path: 'property',
+                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea'
+            })
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, data: favorites });
