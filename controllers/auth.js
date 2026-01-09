@@ -275,8 +275,12 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("User not found", 404));
   }
 
+  if (req.body.currentPassword === req.body.newPassword) {
+    return next(new ErrorResponse("New password cannot be the same as the current password", 400));
+  }
+
   if (!(await user.matchPassword(req.body.currentPassword))) {
-    return next(new ErrorResponse("Password incorrect", 401));
+    return next(new ErrorResponse("The current password you entered is incorrect", 400));
   }
   user.password = req.body.newPassword;
   await user.save();

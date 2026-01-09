@@ -6,11 +6,10 @@ const favoriteSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    property: {
+    properties: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'CreateProperty',
-        required: true
-    },
+        ref: 'CreateProperty'
+    }],
     // Captured snapshot of user details
     userName: { type: String },
     userEmail: { type: String },
@@ -30,7 +29,7 @@ const favoriteSchema = new mongoose.Schema({
     }
 });
 
-// Compound index to ensure a user can favor a property only once
-favoriteSchema.index({ user: 1, property: 1 }, { unique: true });
+// Index modification: we no longer enforce unique user-property pair here as it is an enquiry log
+// favoriteSchema.index({ user: 1, property: 1 }, { unique: true });
 
 module.exports = mongoose.model('Favorite', favoriteSchema);

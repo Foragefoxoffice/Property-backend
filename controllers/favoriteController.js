@@ -4,102 +4,67 @@ const User = require('../models/User');
 
 exports.addFavorite = async (req, res) => {
     try {
-        const { propertyId } = req.body;
-        const userId = req.user.id; // Assuming auth middleware adds user to req
-
-        // 1. Fetch User Details
-        const user = await User.findById(userId);
+        const { propertyIds } = req.body; // Expecting an array of Ids
+        const user = req.user;
         if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-        const userName = user.name || (user.firstName?.en ? `${user.firstName.en} ${user.lastName?.en || ''}` : 'Unknown');
+        const userId = user.id;
+        const userName = user.name || (user.firstName?.en ? `${user.firstName.en} ${user.lastName?.en || ''}`.trim() : 'Unknown');
         const userEmail = user.email;
-        const userPhone = user.phone;
 
-        // 2. Fetch Property and Staff Details
-        let property = await CreateProperty.findOne({ "listingInformation.listingInformationPropertyId": propertyId }).populate('createdBy');
-        let propRefId = property ? property._id : propertyId;
-
-        if (!property) {
-            // Fallback: try by _id if propertyId is not the custom ID
-            property = await CreateProperty.findById(propertyId).populate('createdBy');
-            propRefId = propertyId;
-            if (!property) return res.status(404).json({ success: false, error: 'Property not found' });
+        // Handle phone (User has 'phone', Staff has 'staffsNumbers')
+        let userPhone = user.phone;
+        if (!userPhone && user.staffsNumbers && user.staffsNumbers.length > 0) {
+            userPhone = user.staffsNumbers[0];
         }
 
-        // Determine Staff Name
-        // Priority: contactManagementConsultant (en) -> createdBy.name
-        let staffName = property.contactManagement?.contactManagementConsultant?.en || property.contactManagement?.contactManagementConsultant?.vi;
+        // We could look up staff names from properties, but if it's a mixed bag, it's ambiguous.
+        // We'll leave staffName empty or generic for now, or pick the first one.
 
-        if (!staffName && property.createdBy) {
-            const creator = property.createdBy;
-            staffName = creator.name || (creator.firstName?.en ? `${creator.firstName.en} ${creator.lastName?.en || ''}` : 'Unknown');
+        let staffName = 'System';
+        if (propertyIds && propertyIds.length > 0) {
+            // Optional: Fetch first property to get representative staff?
+            // Skipping for performance unless needed.
         }
 
-        const existingFavorite = await Favorite.findOne({ user: userId, property: propRefId });
-        if (existingFavorite) {
-            return res.status(400).json({ success: false, error: 'Property already in favorites' });
-        }
-
+        // Create a single Enquiry record for these properties
         const favorite = await Favorite.create({
             user: userId,
-            property: propRefId,
+            properties: propertyIds, // Storing array
             userName,
             userEmail,
             userPhone,
-            staffName: staffName || 'Admin',
+            staffName,
             isRead: false
         });
 
         res.status(201).json({ success: true, data: favorite });
     } catch (error) {
-        console.error('Error adding favorite:', error);
+        console.error('Error adding enquiry:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
 exports.removeFavorite = async (req, res) => {
-    try {
-        const { propertyId } = req.params;
-        const userId = req.user.id;
-
-        // propertyId in params might be the _id of the Property OR the Favorite ID. 
-        // Usually, removing from a list by Property ID is easier for the 'Heart' toggle.
-
-        // Let's resolve the Property _id first if the frontend sends the custom ID or _id
-        let propRefId = propertyId;
-        const property = await CreateProperty.findOne({ "listingInformation.listingInformationPropertyId": propertyId });
-        if (property) {
-            propRefId = property._id;
-        }
-
-        const deleted = await Favorite.findOneAndDelete({ user: userId, property: propRefId });
-
-        if (!deleted) {
-            // Maybe the user sent the FAVORITE _id? (From the Favorites list page)
-            const deletedByFavId = await Favorite.findOneAndDelete({ _id: propertyId, user: userId });
-            if (!deletedByFavId) return res.status(404).json({ success: false, error: 'Favorite not found' });
-        }
-
-        res.status(200).json({ success: true, data: {} });
-    } catch (error) {
-        console.error('Error removing favorite:', error);
-        res.status(500).json({ success: false, error: 'Server Error' });
-    }
+    // This function might be deprecated if we are only doing "Send Enquiry"
+    // But keeping it valid just in case.
+    res.status(200).json({ success: true, message: "Use local removal" });
 };
 
 exports.getFavorites = async (req, res) => {
+    // User side: now mostly ignores this, but we can return the list of all ENQUIRIES user made
     try {
         const userId = req.user.id;
         const favorites = await Favorite.find({ user: userId })
             .populate({
-                path: 'property',
+                path: 'properties',
                 select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea'
             })
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, data: favorites });
     } catch (error) {
-        console.error('Error fetching favorites:', error);
+        console.error('Error fetching user enquiries:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
@@ -107,12 +72,9 @@ exports.getFavorites = async (req, res) => {
 // Admin: Get All Enquiries (Favorites from all users)
 exports.getAllEnquiries = async (req, res) => {
     try {
-        // Optional: Check if req.user is admin
-        // if (req.user.role !== 'admin') ...
-
         const favorites = await Favorite.find({})
             .populate({
-                path: 'property',
+                path: 'properties',
                 select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea propertyInformation.informationBedrooms propertyInformation.informationBathrooms propertyInformation.informationUnitSize'
             })
             .sort({ createdAt: -1 });
