@@ -4,7 +4,7 @@ const User = require('../models/User');
 
 exports.addFavorite = async (req, res) => {
     try {
-        const { propertyIds } = req.body; // Expecting an array of Ids
+        const { propertyIds, message } = req.body; // Expecting an array of Ids and optional message
         const user = req.user;
         if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
@@ -35,6 +35,7 @@ exports.addFavorite = async (req, res) => {
             userEmail,
             userPhone,
             staffName,
+            message,
             isRead: false
         });
 

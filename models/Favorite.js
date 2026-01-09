@@ -18,6 +18,9 @@ const favoriteSchema = new mongoose.Schema({
     // Staff details (owner of the property)
     staffName: { type: String },
 
+    // Message from user
+    message: { type: String },
+
     // Read status for Admin
     isRead: {
         type: Boolean,
