@@ -41,7 +41,7 @@ exports.addFavorite = async (req, res) => {
         res.status(201).json({ success: true, data: favorite });
     } catch (error) {
         console.error('Error adding enquiry:', error);
-        res.status(500).json({ success: false, error: 'Server Error' });
+        res.status(500).json({ success: false, error: error.message || 'Server Error' });
     }
 };
 

@@ -203,11 +203,19 @@ app.use(errorHandler);
 ========================================================= */
 const PORT = process.env.PORT || 5000;
 
-mongoose.connection.once("open", () => {
+mongoose.connection.once("open", async () => {
   console.log(
     `✅ MongoDB Connected: ${mongoose.connection.host}:${mongoose.connection.port}`
       .green.bold
   );
+
+  // FIX: Drop stale index for favorites/enquiries if it exists (caused by schema change)
+  try {
+    await mongoose.connection.db.collection('favorites').dropIndex('user_1_property_1');
+    console.log('✅ Dropped stale index: user_1_property_1'.yellow);
+  } catch (e) {
+    // Index might not exist, ignore
+  }
 
   app.listen(PORT, () => {
     console.log(`🚀 Server running at http://localhost:${PORT}`.cyan.bold);
