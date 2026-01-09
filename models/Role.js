@@ -6,7 +6,8 @@ const permissionSchema = {
     edit: { type: Boolean, default: false },
     delete: { type: Boolean, default: false },
     add: { type: Boolean, default: false },
-    copy: { type: Boolean, default: false }
+    copy: { type: Boolean, default: false },
+    bulkUpload: { type: Boolean, default: false }
 };
 
 const roleSchema = new mongoose.Schema({
@@ -37,7 +38,8 @@ const roleSchema = new mongoose.Schema({
         },
         blogs: {
             category: permissionSchema,
-            blogCms: permissionSchema
+            blogCms: permissionSchema,
+            subscription: permissionSchema
         },
         userManagement: {
             userDetails: permissionSchema,
@@ -46,6 +48,9 @@ const roleSchema = new mongoose.Schema({
         menuStaffs: { // Renamed to menuStaffs to avoid conflict with 'staffs' sub-module
             roles: permissionSchema,
             staffs: permissionSchema
+        },
+        otherEnquiry: {
+            contactEnquiry: permissionSchema
         },
         landlords: permissionSchema
     }

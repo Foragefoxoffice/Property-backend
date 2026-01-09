@@ -74,6 +74,11 @@ exports.deleteRole = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse(`Role not found with id of ${req.params.id}`, 404));
     }
 
+    // Prevent deletion of Super Admin Role
+    if (role.name === "Super Admin") {
+        return next(new ErrorResponse("Cannot delete Super Admin role", 403));
+    }
+
     await role.deleteOne();
 
     res.status(200).json({
