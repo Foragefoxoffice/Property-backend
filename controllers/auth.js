@@ -265,7 +265,16 @@ exports.updateDetails = asyncHandler(async (req, res) => {
    UPDATE PASSWORD (Logged-in user)
 ========================================================= */
 exports.updatePassword = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.user.id).select("+password");
+  let user = await User.findById(req.user.id).select("+password");
+
+  if (!user) {
+    user = await Staff.findById(req.user.id).select("+password");
+  }
+
+  if (!user) {
+    return next(new ErrorResponse("User not found", 404));
+  }
+
   if (!(await user.matchPassword(req.body.currentPassword))) {
     return next(new ErrorResponse("Password incorrect", 401));
   }
