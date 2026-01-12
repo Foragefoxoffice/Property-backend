@@ -139,6 +139,12 @@ exports.createProperty = asyncHandler(async (req, res) => {
     // ✅ Enforce Approval: Non-approvers cannot Publish directly
     if (req.user && req.user.role) {
       const userRole = await Role.findOne({ name: req.user.role });
+
+      // If user is approver and setting status to Published, record who approved it (auto-approval)
+      if (userRole && userRole.isApprover && body.status === "Published") {
+        body.approvedBy = req.user.id;
+      }
+
       // If user is Non-Approver and tries to Publish, force it to Pending
       if (userRole && !userRole.isApprover && (body.status === "Published" || body.status === "Complete")) {
         body.status = "Pending";
@@ -149,6 +155,7 @@ exports.createProperty = asyncHandler(async (req, res) => {
       ...body,
       seoInformation: body.seoInformation || {},
       createdBy: req.user?.id || null,
+      createdByName: req.user?.name || "",
     });
 
     res.status(201).json({
@@ -205,9 +212,17 @@ exports.updateProperty = asyncHandler(async (req, res) => {
   const id = req.params.id;
   const body = deepNormalizeLocalized(req.body);
 
-  // ✅ Enforce Approval for Updates: Non-approvers cannot set status to Published
+  // ✅ Enforce Approval for Updates
   if (req.user && req.user.role) {
     const userRole = await Role.findOne({ name: req.user.role });
+
+    // If user is approver and setting status to Published, record who approved it
+    if (userRole && userRole.isApprover && body.status === "Published") {
+      body.approvedBy = req.user.id;
+      body.approvedByName = req.user.name;
+    }
+
+    // Non-approvers cannot set status to Published
     if (userRole && !userRole.isApprover && (body.status === "Published" || body.status === "Complete")) {
       body.status = "Pending";
     }
@@ -471,6 +486,10 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       '_id ' +
       'status ' +
       'createdAt ' +
+      'createdBy ' +
+      'approvedBy ' +
+      'createdByName ' +
+      'approvedByName ' +
       'listingInformation.listingInformationPropertyId ' +
       'listingInformation.listingInformationPropertyNo ' +
       'listingInformation.listingInformationTransactionType ' +
@@ -482,6 +501,8 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'financialDetails.financialDetailsCurrency ' +
       'financialDetails.financialDetailsPrice '
     )
+    .populate("createdBy", "name email")
+    .populate("approvedBy", "name email")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)

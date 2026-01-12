@@ -33,6 +33,18 @@ const homePageSchema = new mongoose.Schema(
         },
 
         // About Us Section
+        homeAboutSubTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 100,
+        },
+        homeAboutSubTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 100,
+        },
         homeAboutTitle_en: {
             type: String,
             required: true,

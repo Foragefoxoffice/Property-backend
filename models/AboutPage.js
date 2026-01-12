@@ -79,10 +79,17 @@ const aboutPageSchema = new mongoose.Schema(
         // History Timeline (Dynamic Array)
         aboutHistoryTimeline: [
             {
-                date: {
+                date_en: {
                     type: String,
                     required: false,
                     trim: true,
+                    maxlength: 50,
+                },
+                date_vn: {
+                    type: String,
+                    required: false,
+                    trim: true,
+                    maxlength: 50,
                 },
                 title_en: {
                     type: String,

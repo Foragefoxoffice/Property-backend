@@ -166,6 +166,9 @@ const CreatePropertySchema = new mongoose.Schema(
 
     /* 🧩 Meta */
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    createdByName: { type: String, default: "" }, // Stores snapshot of creator name
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    approvedByName: { type: String, default: "" }, // Stores snapshot of approver name
     status: {
       type: String,
       enum: ["Draft", "Published", "Archived", "Pending"],
