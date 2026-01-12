@@ -22,6 +22,10 @@ const roleSchema = new mongoose.Schema({
         enum: ['Active', 'Inactive'],
         default: 'Active'
     },
+    isApprover: {
+        type: Boolean,
+        default: false
+    },
     permissions: {
         properties: {
             lease: permissionSchema,

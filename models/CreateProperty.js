@@ -168,7 +168,7 @@ const CreatePropertySchema = new mongoose.Schema(
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     status: {
       type: String,
-      enum: ["Draft", "Published", "Archived"],
+      enum: ["Draft", "Published", "Archived", "Pending"],
       default: "Draft",
     },
   },

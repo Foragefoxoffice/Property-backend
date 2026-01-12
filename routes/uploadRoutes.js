@@ -88,10 +88,15 @@ router.post(
     // Create upload directory structure
     const uploadDir = path.join(__dirname, "..", "uploads", "properties");
     let subfolder = type === 'video' ? 'videos' : type === 'floor' ? 'floorplans' : 'images';
-    
+
     const folderPath = path.join(uploadDir, subfolder);
     if (!fs.existsSync(folderPath)) {
-      fs.mkdirSync(folderPath, { recursive: true });
+      try {
+        fs.mkdirSync(folderPath, { recursive: true });
+      } catch (err) {
+        console.error("❌ FS Error (mkdir):", err);
+        throw new ErrorResponse(`Server FS Error: ${err.message}`, 500);
+      }
     }
 
     // Generate unique filename
@@ -101,15 +106,20 @@ router.post(
     const filePath = path.join(folderPath, fileName);
 
     // Save file
-    await file.mv(filePath);
+    try {
+      await file.mv(filePath);
+    } catch (err) {
+      console.error("❌ FS Error (write):", err);
+      throw new ErrorResponse(`Upload Failed: ${err.message}`, 500);
+    }
 
     // Generate URL
     const fileUrl = `${req.protocol}://${req.get("host")}/uploads/properties/${subfolder}/${fileName}`;
 
     console.log(`✅ Uploaded ${type}: ${fileName} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       url: fileUrl,
       fileName: fileName,
       size: file.size,

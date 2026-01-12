@@ -2,6 +2,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const CreateProperty = require("../models/CreateProperty");
 const ZoneSubArea = require("../models/ZoneSubArea");
+const Role = require("../models/Role");
 const mongoose = require("mongoose");
 
 /* =========================================================
@@ -135,6 +136,15 @@ exports.createProperty = asyncHandler(async (req, res) => {
       body.listingInformation.listingInformationPropertyId = propertyId;
     }
 
+    // ✅ Enforce Approval: Non-approvers cannot Publish directly
+    if (req.user && req.user.role) {
+      const userRole = await Role.findOne({ name: req.user.role });
+      // If user is Non-Approver and tries to Publish, force it to Pending
+      if (userRole && !userRole.isApprover && (body.status === "Published" || body.status === "Complete")) {
+        body.status = "Pending";
+      }
+    }
+
     const newProperty = await CreateProperty.create({
       ...body,
       seoInformation: body.seoInformation || {},
@@ -194,6 +204,14 @@ exports.getProperty = asyncHandler(async (req, res) => {
 exports.updateProperty = asyncHandler(async (req, res) => {
   const id = req.params.id;
   const body = deepNormalizeLocalized(req.body);
+
+  // ✅ Enforce Approval for Updates: Non-approvers cannot set status to Published
+  if (req.user && req.user.role) {
+    const userRole = await Role.findOne({ name: req.user.role });
+    if (userRole && !userRole.isApprover && (body.status === "Published" || body.status === "Complete")) {
+      body.status = "Pending";
+    }
+  }
 
   const property = await CreateProperty.findByIdAndUpdate(
     id,
@@ -430,7 +448,17 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   if (trashMode === "true") {
     filter.status = "Archived";         // only archived items
   } else {
-    filter.status = { $ne: "Archived" }; // all except archived
+    // Handling status filter from query (e.g. status=Pending)
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+    // Handling excludeStatus from query (e.g. excludeStatus=Pending)
+    else if (req.query.excludeStatus) {
+      filter.status = { $ne: req.query.excludeStatus, $nin: ["Archived"] };
+    }
+    else {
+      filter.status = { $ne: "Archived" }; // all except archived
+    }
   }
 
   // Count AFTER applying correct filters
@@ -576,9 +604,9 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
   limit = parseInt(limit);
   const skip = (page - 1) * limit;
 
-  // Base filter - exclude archived and draft properties (only show published)
+  // Base filter - show ONLY Published properties
   const matchStage = {
-    status: { $nin: ["Archived", "Draft"] }
+    status: "Published"
   };
 
   // Transaction type filter (required)
