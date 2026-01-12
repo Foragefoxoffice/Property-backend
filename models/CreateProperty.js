@@ -133,6 +133,7 @@ const CreatePropertySchema = new mongoose.Schema(
 
     titleVisibility: { type: Boolean, default: false },
     descriptionVisibility: { type: Boolean, default: false },
+    whatNearbyVisibility: { type: Boolean, default: false },
     propertyUtilityVisibility: { type: Boolean, default: false },
     videoVisibility: { type: Boolean, default: false },
     floorImageVisibility: { type: Boolean, default: false },

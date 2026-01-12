@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const permissionSchema = {
     hide: { type: Boolean, default: false },
     view: { type: Boolean, default: false },
+    preview: { type: Boolean, default: false },
     edit: { type: Boolean, default: false },
     delete: { type: Boolean, default: false },
     add: { type: Boolean, default: false },
