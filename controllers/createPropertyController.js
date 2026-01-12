@@ -140,9 +140,11 @@ exports.createProperty = asyncHandler(async (req, res) => {
     if (req.user && req.user.role) {
       const userRole = await Role.findOne({ name: req.user.role });
 
-      // If user is approver and setting status to Published, record who approved it (auto-approval)
-      if (userRole && userRole.isApprover && body.status === "Published") {
+      // If user is approver, auto-approve and publish if not explicitly saving as Draft or Archived
+      if (userRole && userRole.isApprover && body.status && body.status !== "Draft" && body.status !== "Archived") {
+        body.status = "Published";
         body.approvedBy = req.user.id;
+        body.approvedByName = req.user.name;
       }
 
       // If user is Non-Approver and tries to Publish, force it to Pending
@@ -216,8 +218,9 @@ exports.updateProperty = asyncHandler(async (req, res) => {
   if (req.user && req.user.role) {
     const userRole = await Role.findOne({ name: req.user.role });
 
-    // If user is approver and setting status to Published, record who approved it
-    if (userRole && userRole.isApprover && body.status === "Published") {
+    // If user is approver, auto-approve and publish if not explicitly saving as Draft or Archived
+    if (userRole && userRole.isApprover && body.status && body.status !== "Draft" && body.status !== "Archived") {
+      body.status = "Published";
       body.approvedBy = req.user.id;
       body.approvedByName = req.user.name;
     }
