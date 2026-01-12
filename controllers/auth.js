@@ -244,8 +244,22 @@ exports.login = asyncHandler(async (req, res, next) => {
    ME (Current User)
 ========================================================= */
 exports.getMe = asyncHandler(async (req, res) => {
-  // User is already fetched by the protect middleware
-  res.status(200).json({ success: true, data: req.user });
+  const user = req.user;
+
+  // Convert Mongoose document to plain object if possible
+  const userObj = user.toObject ? user.toObject() : { ...user };
+
+  // Explicitly ensure normalized fields (set by protect middleware) are in the response
+  // Mongoose .toJSON()/.toObject() often strips ad-hoc properties not in schema
+  const responseData = {
+    ...userObj,
+    id: user._id,
+    role: user.role || userObj.role,   // Middleware sets user.role for Staff
+    email: user.email || userObj.email, // Middleware sets user.email for Staff
+    name: user.name || userObj.name,   // Middleware sets user.name for Staff
+  };
+
+  res.status(200).json({ success: true, data: responseData });
 });
 
 /* =========================================================
