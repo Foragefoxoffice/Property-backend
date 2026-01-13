@@ -59,7 +59,7 @@ exports.getFavorites = async (req, res) => {
         const favorites = await Favorite.find({ user: userId })
             .populate({
                 path: 'properties',
-                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea'
+                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight financialDetails.financialDetailsCurrency listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea whatNearby.whatNearbyDescription'
             })
             .sort({ createdAt: -1 });
 
@@ -76,7 +76,7 @@ exports.getAllEnquiries = async (req, res) => {
         const favorites = await Favorite.find({})
             .populate({
                 path: 'properties',
-                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea propertyInformation.informationBedrooms propertyInformation.informationBathrooms propertyInformation.informationUnitSize'
+                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight financialDetails.financialDetailsCurrency listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea propertyInformation.informationBedrooms propertyInformation.informationBathrooms propertyInformation.informationUnitSize whatNearby.whatNearbyDescription'
             })
             .sort({ createdAt: -1 });
 
