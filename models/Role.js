@@ -53,14 +53,15 @@ const roleSchema = new mongoose.Schema({
             userDetails: permissionSchema,
             enquires: permissionSchema
         },
-        menuStaffs: { // Renamed to menuStaffs to avoid conflict with 'staffs' sub-module
+        menuStaffs: {
             roles: permissionSchema,
             staffs: permissionSchema
         },
         otherEnquiry: {
             contactEnquiry: permissionSchema
         },
-        landlords: permissionSchema
+        landlords: permissionSchema,
+        masters: permissionSchema,
     }
 }, { timestamps: true });
 
