@@ -48,13 +48,13 @@ const createAboutPage = async (req, res) => {
         });
     } catch (error) {
         console.error("Error creating about page:", error);
-        
+
         // Provide more specific error messages
         let errorMessage = "Failed to create about page";
         if (error.name === 'ValidationError') {
             errorMessage = `Validation error: ${error.message}`;
         }
-        
+
         res.status(500).json({
             success: false,
             message: errorMessage,
@@ -91,13 +91,13 @@ const updateAboutPage = async (req, res) => {
         });
     } catch (error) {
         console.error("Error updating about page:", error);
-        
+
         // Provide more specific error messages
         let errorMessage = "Failed to update about page";
         if (error.name === 'ValidationError') {
             errorMessage = `Validation error: ${error.message}`;
         }
-        
+
         res.status(500).json({
             success: false,
             message: errorMessage,
@@ -119,11 +119,11 @@ const uploadAboutPageImage = async (req, res) => {
         const file = req.files.image;
 
         // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
         if (!allowedTypes.includes(file.mimetype)) {
             return res.status(400).json({
                 success: false,
-                message: "Only image files are allowed (JPEG, PNG, GIF, WebP)",
+                message: "Only image files are allowed (JPEG, PNG, GIF, WebP, SVG)",
             });
         }
 
