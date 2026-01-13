@@ -41,6 +41,7 @@ const roleSchema = new mongoose.Schema({
             footer: permissionSchema,
             agent: permissionSchema, // Property Consultet
             termsConditions: permissionSchema,
+            privacyPolicy: permissionSchema,
             blogBanner: permissionSchema
         },
         blogs: {

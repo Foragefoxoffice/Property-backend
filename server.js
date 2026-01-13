@@ -54,6 +54,7 @@ const contactEnquiryRoutes = require("./routes/contactEnquiryRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
 const favoriteRoutes = require("./routes/favoriteRoute");
 const termsConditionsPageRoutes = require("./routes/termsConditionsPageRoutes");
+const privacyPolicyPageRoutes = require("./routes/privacyPolicyPageRoutes");
 
 
 // ===== Connect to MongoDB =====
@@ -195,6 +196,7 @@ app.use("/api/v1/contact-enquiry", contactEnquiryRoutes);
 app.use("/api/v1/subscription", subscriptionRoutes);
 app.use("/api/v1/favorites", favoriteRoutes);
 app.use("/api/v1/terms-conditions-page", termsConditionsPageRoutes);
+app.use("/api/v1/privacy-policy-page", privacyPolicyPageRoutes);
 
 
 /* =========================================================
