@@ -252,7 +252,7 @@ async function metaTagMiddleware(req, res, next) {
     const protocol = req.protocol || 'https';
     const host = req.get('host');
     const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
-    const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+    const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:5002';
     
     // Fetch SEO data for this route
     const seoData = await fetchSEOData(req.path, apiBaseUrl);
