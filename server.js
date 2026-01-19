@@ -210,11 +210,11 @@ if (process.env.NODE_ENV === 'production' || process.env.SERVE_FRONTEND === 'tru
   
   console.log('🎯 Serving frontend with dynamic meta tag injection'.cyan.bold);
   
+  // Meta tag injection for crawlers (must be before static files to intercept root /)
+  app.use(metaTagMiddleware);
+
   // Serve static files from React build
   app.use(express.static(path.join(__dirname, '../Property-frontend/dist')));
-  
-  // Meta tag injection for crawlers (must be before catch-all route)
-  app.use(metaTagMiddleware);
   
   // Catch-all route - serve index.html for any non-API route
   // Use regex to match all routes except /api

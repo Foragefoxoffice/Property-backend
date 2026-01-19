@@ -186,8 +186,16 @@ function injectMetaTags(html, seoData, baseUrl) {
     <meta name="twitter:image" content="${imageUrl}" />
   `;
   
-  // Replace existing meta tags in head
-  return html.replace('</head>', `${metaTags}\n  </head>`);
+  // Remove existing tags to avoid duplicates
+  let cleanedHtml = html
+    .replace(/<title>[\s\S]*?<\/title>/gi, '')
+    .replace(/<meta[^>]*?name=["']title["'][^>]*?>/gi, '')
+    .replace(/<meta[^>]*?name=["']description["'][^>]*?>/gi, '')
+    .replace(/<meta[^>]*?property=["']og:.*?["'][^>]*?>/gi, '')
+    .replace(/<meta[^>]*?name=["']twitter:.*?["'][^>]*?>/gi, '');
+
+  // Inject into head
+  return cleanedHtml.replace('</head>', `${metaTags}\n  </head>`);
 }
 
 // Main middleware function
