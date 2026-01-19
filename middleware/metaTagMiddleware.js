@@ -153,9 +153,12 @@ function injectMetaTags(html, seoData, baseUrl) {
       imageUrl = '/images/favicon.png';
     } else {
       // It's a likely valid path/URL
-      imageUrl = seoData.image.startsWith('http') 
-        ? seoData.image 
-        : `${baseUrl}${seoData.image.startsWith('/') ? '' : '/'}${seoData.image}`;
+      if (seoData.image.startsWith('http')) {
+         // Fix Mixed Content: Force HTTPS for absolute URLs
+         imageUrl = seoData.image.replace(/^http:\/\//i, 'https://');
+      } else {
+         imageUrl = `${baseUrl}${seoData.image.startsWith('/') ? '' : '/'}${seoData.image}`;
+      }
     }
   }
   
