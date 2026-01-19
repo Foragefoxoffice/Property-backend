@@ -829,7 +829,9 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
         // Description
         'whatNearby.whatNearbyDescription': 1,
         // ⚡ CRITICAL: Only get first image at DB level
-        'imagesVideos.propertyImages': { $slice: ['$imagesVideos.propertyImages', 1] }
+        'imagesVideos.propertyImages': { $slice: ['$imagesVideos.propertyImages', 1] },
+        // SEO Info for URL Construction
+        'seoInformation.slugUrl': 1
       }
     },
 

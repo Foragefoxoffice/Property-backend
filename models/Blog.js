@@ -73,6 +73,19 @@ const BlogSchema = new mongoose.Schema(
         en: { type: Boolean, default: true },
         vi: { type: Boolean, default: true },
       },
+      schemaType: {
+        en: String,
+        vi: String,
+      },
+      ogTitle: {
+        en: String,
+        vi: String,
+      },
+      ogDescription: {
+        en: String,
+        vi: String,
+      },
+      ogImages: [String],
     },
     views: {
       type: Number,

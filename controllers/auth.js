@@ -199,7 +199,6 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   // 4️⃣ Match Password
   const isMatch = await user.matchPassword(password);
-  console.log(`🔐 Password match: ${isMatch}`);
 
   if (!isMatch) {
     console.log("❌ Password mismatch");
@@ -209,17 +208,14 @@ exports.login = asyncHandler(async (req, res, next) => {
   // 5️⃣ Generate Token
   const token = user.getSignedJwtToken();
 
-  // 6️⃣ Prepare Response Data
-  // If it's a staff member, we normalize the fields to match the 'User' structure expected by frontend
   let userData = {};
   if (isStaff) {
     userData = {
       id: user._id,
       employeeId: user.staffsId,
-      name: user.staffsName?.en || "Staff Member", // Use English name or fallback
+      name: user.staffsName?.en || "Staff Member",
       email: user.staffsEmail,
       role: user.staffsRole?.en || 'staff',
-      // Add other fields if needed
     };
   } else {
     userData = {
@@ -230,8 +226,6 @@ exports.login = asyncHandler(async (req, res, next) => {
       role: user.role,
     };
   }
-
-  console.log("🚀 Login successful for:", userData.email);
 
   res.status(200).json({
     success: true,
