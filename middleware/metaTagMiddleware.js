@@ -140,10 +140,27 @@ async function fetchSEOData(path, apiBaseUrl) {
 function injectMetaTags(html, seoData, baseUrl) {
   if (!seoData) return html;
   
-  // Ensure absolute URLs for images
-  const imageUrl = seoData.image.startsWith('http') 
-    ? seoData.image 
-    : `${baseUrl}${seoData.image.startsWith('/') ? '' : '/'}${seoData.image}`;
+  // LOGIC FIX: Handle Image URLs
+  let imageUrl = '/images/favicon.png'; // Default fallback
+  
+  if (seoData.image) {
+    // Check if it's a Base64 string (starts with data: or is very long)
+    if (seoData.image.length > 500 || seoData.image.startsWith('data:') || !seoData.image.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
+      console.log('⚠️ Ignoring Base64/Invalid image for SEO:', seoData.image.substring(0, 20) + '...');
+      // fallback to default
+      imageUrl = '/images/favicon.png';
+    } else {
+      // It's a likely valid path/URL
+      imageUrl = seoData.image.startsWith('http') 
+        ? seoData.image 
+        : `${baseUrl}${seoData.image.startsWith('/') ? '' : '/'}${seoData.image}`;
+    }
+  }
+  
+  // Ensure we have a full URL for the default fallback too
+  if (!imageUrl.startsWith('http')) {
+     imageUrl = `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+  }
   
   const fullUrl = `${baseUrl}${seoData.url}`;
   
