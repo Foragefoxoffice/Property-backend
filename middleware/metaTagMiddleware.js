@@ -38,9 +38,9 @@ async function fetchSEOData(path, apiBaseUrl) {
       const response = await axios.get(`${apiBaseUrl}/api/v1/home-page`);
       const data = response.data?.data || response.data;
       seoData = {
-        title: data.homeSeoMetaTitle_en || 'Property Frontend',
-        description: data.homeSeoMetaDescription_en || 'Find and manage properties easily with our platform.',
-        image: data.homeSeoOgImages?.[0] || '/images/favicon.png',
+        title: data.homeSeoOgTitle_en || 'Property Frontend',
+        description: data.homeSeoOgDescription_en || 'Find and manage properties easily with our platform.',
+        image: data.homeSeoOgImages?.[0] || 'https://dev.placetest.in/uploads/homepage/1768851780416-823577686.jpg',
         url: path,
         type: 'website'
       };
