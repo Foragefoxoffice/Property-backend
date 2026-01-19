@@ -2,6 +2,8 @@
 // This middleware intercepts requests from social media bots and injects dynamic meta tags
 
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 // List of user agents that are social media crawlers
 const CRAWLER_USER_AGENTS = [
@@ -146,7 +148,7 @@ function injectMetaTags(html, seoData, baseUrl) {
   if (seoData.image) {
     // Check if it's a Base64 string (starts with data: or is very long)
     if (seoData.image.length > 500 || seoData.image.startsWith('data:') || !seoData.image.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
-      console.log('⚠️ Ignoring Base64/Invalid image for SEO:', seoData.image.substring(0, 20) + '...');
+      // console.log('⚠️ Ignoring Base64/Invalid image for SEO');
       // fallback to default
       imageUrl = '/images/favicon.png';
     } else {
@@ -186,13 +188,19 @@ function injectMetaTags(html, seoData, baseUrl) {
     <meta name="twitter:image" content="${imageUrl}" />
   `;
   
-  // Remove existing tags to avoid duplicates
-  let cleanedHtml = html
-    .replace(/<title>[\s\S]*?<\/title>/gi, '')
-    .replace(/<meta[^>]*?name=["']title["'][^>]*?>/gi, '')
-    .replace(/<meta[^>]*?name=["']description["'][^>]*?>/gi, '')
-    .replace(/<meta[^>]*?property=["']og:.*?["'][^>]*?>/gi, '')
-    .replace(/<meta[^>]*?name=["']twitter:.*?["'][^>]*?>/gi, '');
+  // ROBUST REMOVAL OF EXISTING TAGS
+  // Matches <title>...</title> with any attributes
+  let cleanedHtml = html.replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '');
+  
+  // Matches <meta name="title" ...> allowing for different attribute orders/spacing
+  cleanedHtml = cleanedHtml.replace(/<meta[^>]*name\s*=\s*["']title["'][^>]*>/gi, '');
+  cleanedHtml = cleanedHtml.replace(/<meta[^>]*name\s*=\s*["']description["'][^>]*>/gi, '');
+  
+  // Matches <meta property="og:..." ...>
+  cleanedHtml = cleanedHtml.replace(/<meta[^>]*property\s*=\s*["']og:[^"']*["'][^>]*>/gi, '');
+  
+  // Matches <meta name="twitter:..." ...>
+  cleanedHtml = cleanedHtml.replace(/<meta[^>]*name\s*=\s*["']twitter:[^"']*["'][^>]*>/gi, '');
 
   // Inject into head
   return cleanedHtml.replace('</head>', `${metaTags}\n  </head>`);
@@ -201,16 +209,20 @@ function injectMetaTags(html, seoData, baseUrl) {
 // Main middleware function
 async function metaTagMiddleware(req, res, next) {
   const userAgent = req.headers['user-agent'] || '';
+  const debugMode = req.query.debug_seo === 'true'; // Allow debugging
   
-  // Only process for crawlers
-  if (!isCrawler(userAgent)) {
+  // Only process for crawlers OR debug mode
+  if (!isCrawler(userAgent) && !debugMode) {
     return next();
   }
   
-  console.log(`🤖 Crawler detected: ${userAgent.substring(0, 50)}... for path: ${req.path}`);
+  if (debugMode) {
+    console.log(`🔍 Debug SEO Mode enabled for: ${req.path}`);
+  } else {
+    console.log(`🤖 Crawler detected: ${userAgent.substring(0, 50)}... for path: ${req.path}`);
+  }
   
   try {
-    // Get the base URL (use environment variable or construct from request)
     const protocol = req.protocol || 'https';
     const host = req.get('host');
     const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
@@ -220,14 +232,24 @@ async function metaTagMiddleware(req, res, next) {
     const seoData = await fetchSEOData(req.path, apiBaseUrl);
     
     if (!seoData) {
+      if (debugMode) {
+        return res.status(404).json({ error: 'No SEO data found for this route', path: req.path });
+      }
       return next();
     }
     
-    // Read the index.html file from dist folder
-    const fs = require('fs');
-    const path = require('path');
+    if (debugMode) {
+      // return raw JSON in debug mode
+      return res.json({ 
+        message: 'Debug SEO Data', 
+        seoData, 
+        userAgent,
+        baseUrl,
+        apiBaseUrl 
+      });
+    }
     
-    // Try multiple possible paths for index.html
+    // Define Index Paths
     const possiblePaths = [
       path.join(__dirname, '../../Property-frontend/dist/index.html'),
       path.join(__dirname, '../dist/index.html'),
@@ -250,13 +272,13 @@ async function metaTagMiddleware(req, res, next) {
       return next();
     }
     
-    console.log(`✅ Using index.html from: ${indexPath}`);
-    
     // Inject meta tags
     html = injectMetaTags(html, seoData, baseUrl);
     
     // Send the modified HTML
     res.setHeader('Content-Type', 'text/html');
+    // Prevent caching for dynamic meta tags to ensure updates are seen especially by debuggers
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); 
     res.send(html);
   } catch (error) {
     console.error('Error in meta tag middleware:', error);
