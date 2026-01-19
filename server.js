@@ -200,6 +200,30 @@ app.use("/api/v1/privacy-policy-page", privacyPolicyPageRoutes);
 
 
 /* =========================================================
+   🎯 Serve Frontend with Dynamic Meta Tags
+   
+   This serves the built React app and injects dynamic meta
+   tags for social media crawlers (WhatsApp, Facebook, etc.)
+========================================================= */
+if (process.env.NODE_ENV === 'production' || process.env.SERVE_FRONTEND === 'true') {
+  const metaTagMiddleware = require('./middleware/metaTagMiddleware');
+  
+  console.log('🎯 Serving frontend with dynamic meta tag injection'.cyan.bold);
+  
+  // Serve static files from React build
+  app.use(express.static(path.join(__dirname, '../Property-frontend/dist')));
+  
+  // Meta tag injection for crawlers (must be before catch-all route)
+  app.use(metaTagMiddleware);
+  
+  // Catch-all route - serve index.html for any non-API route
+  // Use regex to match all routes except /api
+  app.get(/^(?!\/api).*$/, (req, res) => {
+    res.sendFile(path.join(__dirname, '../Property-frontend/dist/index.html'));
+  });
+}
+
+/* =========================================================
    ⚠️ Error Handler
 ========================================================= */
 app.use(errorHandler);
