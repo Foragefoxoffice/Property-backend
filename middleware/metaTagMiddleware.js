@@ -147,27 +147,50 @@ function injectMetaTags(html, seoData, baseUrl) {
   
   if (seoData.image) {
     // Check if it's a Base64 string (starts with data: or is very long)
-    if (seoData.image.length > 500 || seoData.image.startsWith('data:') || !seoData.image.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
-      // console.log('⚠️ Ignoring Base64/Invalid image for SEO');
-      // fallback to default
-      imageUrl = '/images/favicon.png';
+    if (seoData.image.length > 500 && !seoData.image.startsWith('http') && !seoData.image.startsWith('/')) {
+       // Likely base64 or invalid long string - ignore
+       imageUrl = '/images/favicon.png';
     } else {
-      // It's a likely valid path/URL
-      if (seoData.image.startsWith('http')) {
+      // It's a likely valid path/URL or legacy filename
+      let rawImage = seoData.image;
+
+      // HARD FIX: If image is just a filename (no slashes), try to guess the folder based on page type
+      // This fixes the issue where DB has "image.jpg" but file is in "/uploads/aboutpage/image.jpg"
+      if (!rawImage.includes('/') && !rawImage.startsWith('http')) {
+         if (seoData.url.includes('about')) rawImage = `/uploads/aboutpage/${rawImage}`;
+         else if (seoData.url.includes('contact')) rawImage = `/uploads/contactpage/${rawImage}`;
+         else if (seoData.url === '/' || seoData.url === '') rawImage = `/uploads/homepage/${rawImage}`;
+         else if (seoData.url.includes('terms')) rawImage = `/uploads/termsconditionspage/${rawImage}`;
+         else if (seoData.url.includes('privacy')) rawImage = `/uploads/privacypolicypage/${rawImage}`;
+         // Blog images usually come with full path from their API, but just in case
+         else if (seoData.url.includes('blog')) rawImage = `/uploads/misc/${rawImage}`;
+      }
+
+      if (rawImage.startsWith('http')) {
          // Fix Mixed Content: Force HTTPS for absolute URLs
-         imageUrl = seoData.image.replace(/^http:\/\//i, 'https://');
+         imageUrl = rawImage.replace(/^http:\/\//i, 'https://');
       } else {
-         imageUrl = `${baseUrl}${seoData.image.startsWith('/') ? '' : '/'}${seoData.image}`;
+         // Ensure baseUrl doesn't have a trailing slash before appending
+         const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+         const cleanPath = rawImage.startsWith('/') ? rawImage : `/${rawImage}`;
+         imageUrl = `${cleanBaseUrl}${cleanPath}`;
       }
     }
   }
   
   // Ensure we have a full URL for the default fallback too
   if (!imageUrl.startsWith('http')) {
-     imageUrl = `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+     const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+     const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+     imageUrl = `${cleanBaseUrl}${cleanPath}`;
   }
   
-  const fullUrl = `${baseUrl}${seoData.url}`;
+  // Ensure baseUrl doesn't have a trailing slash
+  const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  // Ensure seoData.url starts with a slash
+  const cleanUrlPath = seoData.url.startsWith('/') ? seoData.url : `/${seoData.url}`;
+  
+  const fullUrl = `${cleanBaseUrl}${cleanUrlPath}`;
   
   // Create meta tags
   const metaTags = `
