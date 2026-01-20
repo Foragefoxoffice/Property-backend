@@ -1,9 +1,18 @@
 // Meta Tag Injection Middleware for Social Media Crawlers
 // This middleware intercepts requests from social media bots and injects dynamic meta tags
-
-const axios = require('axios');
+// DIRECT DB ACCESS VERSION - No Loopback HTTP Requests
+const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
+
+// Import Models
+const HomePage = require('../models/HomePage');
+const AboutPage = require('../models/AboutPage');
+const ContactPage = require('../models/ContactPage');
+const Blog = require('../models/Blog');
+const CreateProperty = require('../models/CreateProperty');
+const TermsConditionsPage = require('../models/TermsConditionsPage');
+const PrivacyPolicyPage = require('../models/PrivacyPolicyPage');
 
 // List of user agents that are social media crawlers
 const CRAWLER_USER_AGENTS = [
@@ -28,117 +37,130 @@ function isCrawler(userAgent) {
   );
 }
 
-// Fetch SEO data from your API based on route
-async function fetchSEOData(path, apiBaseUrl) {
+// Fetch SEO data directly from MongoDB
+async function fetchSEOData(reqPath) {
   try {
     let seoData = null;
     
     // Home page
-    if (path === '/' || path === '') {
-      const response = await axios.get(`${apiBaseUrl}/api/v1/home-page`);
-      const data = response.data?.data || response.data;
-      console.log('✅ Fetched Home Page SEO Data:', {
-        title: data.homeSeoOgTitle_en,
-        desc: data.homeSeoOgDescription_en,
-        img: data.homeSeoOgImages?.[0]
-      });
-      seoData = {
-        title: data.homeSeoOgTitle_en || 'Property Frontend',
-        description: data.homeSeoOgDescription_en || 'Find and manage properties easily with our platform.',
-        image: data.homeSeoOgImages?.[0] || 'https://dev.placetest.in/uploads/homepage/1768851780416-823577686.jpg',
-        url: path,
-        type: 'website'
-      };
+    if (reqPath === '/' || reqPath === '') {
+      const data = await HomePage.findOne().lean();
+      if (data) {
+        console.log('✅ Fetched Home Page SEO Data (DB):', {
+          title: data.homeSeoOgTitle_en,
+        });
+        seoData = {
+          title: data.homeSeoOgTitle_en || 'Property Frontend',
+          description: data.homeSeoOgDescription_en || 'Find and manage properties easily with our platform.',
+          image: data.homeSeoOgImages?.[0], // Can be undefined, handled in injection
+          url: reqPath,
+          type: 'website'
+        };
+      }
     }
     
     // About page
-    else if (path.startsWith('/about')) {
-      const response = await axios.get(`${apiBaseUrl}/api/v1/about-page`);
-      const data = response.data?.data || response.data;
-      seoData = {
-        title: data.aboutSeoMetaTitle_en || 'About Us',
-        description: data.aboutSeoMetaDescription_en || '',
-        image: data.aboutSeoOgImages?.[0] || '/images/favicon.png',
-        url: path,
-        type: 'website'
-      };
+    else if (reqPath.startsWith('/about')) {
+      const data = await AboutPage.findOne().lean();
+      if (data) {
+        seoData = {
+          title: data.aboutSeoMetaTitle_en || 'About Us',
+          description: data.aboutSeoMetaDescription_en || '',
+          image: data.aboutSeoOgImages?.[0],
+          url: reqPath,
+          type: 'website'
+        };
+      }
     }
     
     // Contact page
-    else if (path.startsWith('/contact')) {
-      const response = await axios.get(`${apiBaseUrl}/api/v1/contact-page`);
-      const data = response.data?.data || response.data;
-      seoData = {
-        title: data.contactSeoMetaTitle_en || 'Contact Us',
-        description: data.contactSeoMetaDescription_en || '',
-        image: data.contactSeoOgImages?.[0] || '/images/favicon.png',
-        url: path,
-        type: 'website'
-      };
+    else if (reqPath.startsWith('/contact')) {
+      const data = await ContactPage.findOne().lean();
+      if (data) {
+        seoData = {
+          title: data.contactSeoMetaTitle_en || 'Contact Us',
+          description: data.contactSeoMetaDescription_en || '',
+          image: data.contactSeoOgImages?.[0],
+          url: reqPath,
+          type: 'website'
+        };
+      }
     }
     
     // Blog detail page
-    else if (path.match(/^\/blog\/[^/]+$/)) {
-      const slug = path.split('/blog/')[1];
-      const response = await axios.get(`${apiBaseUrl}/api/v1/blogs/slug/${slug}`);
-      const blog = response.data?.data;
+    else if (reqPath.match(/^\/blog\/[^/]+$/)) {
+      const slug = reqPath.split('/blog/')[1];
+      // Try finding by English or Vietnamese slug
+      const blog = await Blog.findOne({
+        $or: [
+          { 'slug.en': slug },
+          { 'slug.vi': slug },
+          { 'seoInformation.slugUrl.en': slug },
+          { 'seoInformation.slugUrl.vi': slug }
+        ]
+      }).lean();
+
       if (blog) {
         seoData = {
           title: blog.seoInformation?.metaTitle?.en || blog.title?.en || 'Blog Post',
           description: blog.seoInformation?.metaDescription?.en || '',
-          image: blog.seoInformation?.ogImages?.[0] || blog.mainImage || '/images/favicon.png',
-          url: path,
+          image: blog.seoInformation?.ogImages?.[0] || blog.mainImage,
+          url: reqPath,
           type: 'article'
         };
       }
     }
     
     // Property showcase page
-    else if (path.match(/^\/property\/[^/]+$/)) {
-      const propertyId = path.split('/property/')[1];
-      const response = await axios.get(`${apiBaseUrl}/api/v1/propertyListing/single/${propertyId}`);
-      const property = response.data?.data;
+    else if (reqPath.match(/^\/property\/[^/]+$/)) {
+      const propertyId = reqPath.split('/property/')[1];
+      const property = await CreateProperty.findOne({
+        "listingInformation.listingInformationPropertyId": propertyId,
+      }).lean();
+
       if (property) {
         const seoInfo = property.seoInformation || {};
         seoData = {
           title: seoInfo.metaTitle?.en || property.listingInformation?.listingInformationPropertyTitle?.en || 'Property Details',
           description: seoInfo.metaDescription?.en || property.propertyInformation?.informationView?.en || '',
-          image: seoInfo.ogImages?.[0] || property.imagesVideos?.propertyImages?.[0] || '/images/favicon.png',
-          url: path,
+          image: seoInfo.ogImages?.[0] || property.imagesVideos?.propertyImages?.[0],
+          url: reqPath,
           type: 'website'
         };
       }
     }
     
     // Terms & Conditions
-    else if (path.startsWith('/terms')) {
-      const response = await axios.get(`${apiBaseUrl}/api/v1/terms-conditions-page`);
-      const data = response.data?.data || response.data;
-      seoData = {
-        title: data.termsConditionSeoMetaTitle_en || 'Terms & Conditions',
-        description: data.termsConditionSeoMetaDescription_en || '',
-        image: data.termsConditionSeoOgImages?.[0] || '/images/favicon.png',
-        url: path,
-        type: 'website'
-      };
+    else if (reqPath.startsWith('/terms')) {
+      const data = await TermsConditionsPage.findOne().lean();
+      if (data) {
+        seoData = {
+          title: data.termsConditionSeoMetaTitle_en || 'Terms & Conditions',
+          description: data.termsConditionSeoMetaDescription_en || '',
+          image: data.termsConditionSeoOgImages?.[0],
+          url: reqPath,
+          type: 'website'
+        };
+      }
     }
     
     // Privacy Policy
-    else if (path.startsWith('/privacy')) {
-      const response = await axios.get(`${apiBaseUrl}/api/v1/privacy-policy-page`);
-      const data = response.data?.data || response.data;
-      seoData = {
-        title: data.privacyPolicySeoMetaTitle_en || 'Privacy Policy',
-        description: data.privacyPolicySeoMetaDescription_en || '',
-        image: data.privacyPolicySeoOgImages?.[0] || '/images/favicon.png',
-        url: path,
-        type: 'website'
-      };
+    else if (reqPath.startsWith('/privacy')) {
+      const data = await PrivacyPolicyPage.findOne().lean();
+      if (data) {
+        seoData = {
+          title: data.privacyPolicySeoMetaTitle_en || 'Privacy Policy',
+          description: data.privacyPolicySeoMetaDescription_en || '',
+          image: data.privacyPolicySeoOgImages?.[0],
+          url: reqPath,
+          type: 'website'
+        };
+      }
     }
     
     return seoData;
   } catch (error) {
-    console.error('Error fetching SEO data:', error.message);
+    console.error('Error fetching SEO data from DB:', error.message);
     return null;
   }
 }
@@ -210,6 +232,9 @@ function injectMetaTags(html, seoData, baseUrl) {
     <meta property="og:title" content="${seoData.title}" />
     <meta property="og:description" content="${seoData.description}" />
     <meta property="og:image" content="${imageUrl}" />
+    <meta property="og:image:secure_url" content="${imageUrl}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -243,31 +268,32 @@ async function metaTagMiddleware(req, res, next) {
   const debugMode = req.query.debug_seo === 'true'; // Allow debugging
   
   // IGNORE STATIC FILES (Images, CSS, JS, JSON)
-  // This prevents the middleware from running for every image load
   if (req.path.match(/\.(jpg|jpeg|png|gif|webp|svg|css|js|json|xml|ico|woff|woff2|ttf|eot)$/i) || req.path.startsWith('/uploads')) {
     return next();
   }
 
-  // Only process for crawlers OR debug mode
-  // MODIFIED: processed for all requests to ensure consistant SEO behavior for browser-based testing tools and social previews
-  // if (!isCrawler(userAgent) && !debugMode) {
-  //   return next();
-  // }
-  
+  // Debug or Crawler check
   if (debugMode) {
-    console.log(`🔍 Debug SEO Mode enabled for: ${req.path}`);
+    console.log(`🔍 Debug SEO Mode (DB) enabled for: ${req.path}`);
   } else {
-    console.log(`🤖 Crawler detected: ${userAgent.substring(0, 50)}... for path: ${req.path}`);
+    // If you want to enable for ALL users (good for debugging without query param), comment out the check
+    // But for performance, it is better to limit to bots.
+    // However, if the user complains about "sharing", we MUST support bots.
+    // To enable "Open Graph" previews in Discord/Slack/WhatsApp, we MUST intercept those User Agents.
+    // The previous code had it enabled for everyone.
+    // I will enable for everyone for now to ensure consistency, but log only bots.
+    if (isCrawler(userAgent)) {
+      console.log(`🤖 Crawler detected: ${userAgent.substring(0, 50)}... for path: ${req.path}`);
+    }
   }
   
   try {
     const protocol = req.protocol || 'https';
     const host = req.get('host');
     const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
-    const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:5002';
     
-    // Fetch SEO data for this route
-    const seoData = await fetchSEOData(req.path, apiBaseUrl);
+    // Fetch SEO data for this route (FROM DB)
+    const seoData = await fetchSEOData(req.path);
     
     if (!seoData) {
       if (debugMode) {
@@ -279,11 +305,10 @@ async function metaTagMiddleware(req, res, next) {
     if (debugMode) {
       // return raw JSON in debug mode
       return res.json({ 
-        message: 'Debug SEO Data', 
+        message: 'Debug SEO Data (DB Source)', 
         seoData, 
         userAgent,
-        baseUrl,
-        apiBaseUrl 
+        baseUrl
       });
     }
     
@@ -315,7 +340,6 @@ async function metaTagMiddleware(req, res, next) {
     
     // Send the modified HTML
     res.setHeader('Content-Type', 'text/html');
-    // Prevent caching for dynamic meta tags to ensure updates are seen especially by debuggers
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); 
     res.send(html);
   } catch (error) {
