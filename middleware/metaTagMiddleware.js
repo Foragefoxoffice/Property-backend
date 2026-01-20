@@ -242,6 +242,12 @@ async function metaTagMiddleware(req, res, next) {
   const userAgent = req.headers['user-agent'] || '';
   const debugMode = req.query.debug_seo === 'true'; // Allow debugging
   
+  // IGNORE STATIC FILES (Images, CSS, JS, JSON)
+  // This prevents the middleware from running for every image load
+  if (req.path.match(/\.(jpg|jpeg|png|gif|webp|svg|css|js|json|xml|ico|woff|woff2|ttf|eot)$/i) || req.path.startsWith('/uploads')) {
+    return next();
+  }
+
   // Only process for crawlers OR debug mode
   // MODIFIED: processed for all requests to ensure consistant SEO behavior for browser-based testing tools and social previews
   // if (!isCrawler(userAgent) && !debugMode) {
