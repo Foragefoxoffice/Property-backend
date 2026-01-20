@@ -317,6 +317,7 @@ async function metaTagMiddleware(req, res, next) {
       path.join(__dirname, '../../Property-frontend/dist/index.html'),
       path.join(__dirname, '../dist/index.html'),
       path.join(__dirname, '../public/index.html'),
+      path.join(__dirname, '../crawler_template.html'), // Fallback for specialized deployments
     ];
     
     let html = null;
