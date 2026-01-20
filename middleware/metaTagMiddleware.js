@@ -37,6 +37,11 @@ async function fetchSEOData(path, apiBaseUrl) {
     if (path === '/' || path === '') {
       const response = await axios.get(`${apiBaseUrl}/api/v1/home-page`);
       const data = response.data?.data || response.data;
+      console.log('✅ Fetched Home Page SEO Data:', {
+        title: data.homeSeoOgTitle_en,
+        desc: data.homeSeoOgDescription_en,
+        img: data.homeSeoOgImages?.[0]
+      });
       seoData = {
         title: data.homeSeoOgTitle_en || 'Property Frontend',
         description: data.homeSeoOgDescription_en || 'Find and manage properties easily with our platform.',
@@ -238,9 +243,10 @@ async function metaTagMiddleware(req, res, next) {
   const debugMode = req.query.debug_seo === 'true'; // Allow debugging
   
   // Only process for crawlers OR debug mode
-  if (!isCrawler(userAgent) && !debugMode) {
-    return next();
-  }
+  // MODIFIED: processed for all requests to ensure consistant SEO behavior for browser-based testing tools and social previews
+  // if (!isCrawler(userAgent) && !debugMode) {
+  //   return next();
+  // }
   
   if (debugMode) {
     console.log(`🔍 Debug SEO Mode enabled for: ${req.path}`);
