@@ -53,6 +53,11 @@ exports.updateRole = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse(`Role not found with id of ${req.params.id}`, 404));
     }
 
+    // Prevent update of Super Admin Role
+    if (role.name === "Super Admin") {
+        return next(new ErrorResponse("Cannot update Super Admin role", 403));
+    }
+
     role = await Role.findByIdAndUpdate(req.params.id, req.body, {
         new: true,
         runValidators: true
