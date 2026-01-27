@@ -39,7 +39,6 @@ exports.createStaff = asyncHandler(async (req, res) => {
     !staffsName_vi ||
     !staffsRole_en ||
     !staffsRole_vi ||
-    !staffsId ||
     !staffsEmail ||
     !staffsGender
   ) {

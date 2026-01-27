@@ -1,6 +1,8 @@
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../utils/asyncHandler');
 const Role = require('../models/Role');
+const User = require('../models/User');
+const Staff = require('../models/Staff');
 
 // @desc    Get all roles
 // @route   GET /api/v1/roles
@@ -82,6 +84,19 @@ exports.deleteRole = asyncHandler(async (req, res, next) => {
     // Prevent deletion of Super Admin Role
     if (role.name === "Super Admin") {
         return next(new ErrorResponse("Cannot delete Super Admin role", 403));
+    }
+
+    // Check if any users are assigned to this role
+    const usersWithRole = await User.countDocuments({ role: role.name });
+    const staffsWithRole = await Staff.countDocuments({
+        $or: [
+            { 'staffsRole.en': role.name },
+            { 'staffsRole.vi': role.name }
+        ]
+    });
+
+    if (usersWithRole > 0 || staffsWithRole > 0) {
+        return next(new ErrorResponse(`Cannot delete role: There are ${usersWithRole + staffsWithRole} user(s) assigned to this role. Please reassign the users before deleting.`, 403));
     }
 
     await role.deleteOne();

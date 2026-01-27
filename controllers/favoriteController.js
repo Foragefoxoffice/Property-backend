@@ -39,6 +39,24 @@ exports.addFavorite = async (req, res) => {
             isRead: false
         });
 
+        // Populate the properties for the socket event
+        const populatedFavorite = await Favorite.findById(favorite._id)
+            .populate({
+                path: 'properties',
+                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight financialDetails.financialDetailsCurrency listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea propertyInformation.informationBedrooms propertyInformation.informationBathrooms propertyInformation.informationUnitSize whatNearby.whatNearbyDescription'
+            });
+
+        // Emit Socket.IO event for real-time notification
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('newEnquiry', {
+                enquiry: populatedFavorite,
+                message: `New enquiry from ${userName}`,
+                timestamp: new Date()
+            });
+            console.log(`🔔 New enquiry notification sent via Socket.IO`.green);
+        }
+
         res.status(201).json({ success: true, data: favorite });
     } catch (error) {
         console.error('Error adding enquiry:', error);

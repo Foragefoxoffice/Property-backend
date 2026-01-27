@@ -1,4 +1,5 @@
 const Category = require("../models/Category");
+const Blog = require("../models/Blog");
 const ErrorResponse = require("../utils/errorResponse");
 const asyncHandler = require("../utils/asyncHandler");
 
@@ -77,6 +78,18 @@ exports.deleteCategory = asyncHandler(async (req, res, next) => {
   if (!category) {
     return next(
       new ErrorResponse(`Category not found with id ${req.params.id}`, 404)
+    );
+  }
+
+  // Check if there are posts assigned to this category
+  const postCount = await Blog.countDocuments({ category: req.params.id });
+
+  if (postCount > 0) {
+    return next(
+      new ErrorResponse(
+        "Cannot delete category because it has posts assigned to it.",
+        400
+      )
     );
   }
 

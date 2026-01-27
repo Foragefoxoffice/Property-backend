@@ -8,6 +8,17 @@ const asyncHandler = require("../utils/asyncHandler");
 exports.createEnquiry = asyncHandler(async (req, res, next) => {
     const enquiry = await ContactEnquiry.create(req.body);
 
+    // Emit Socket.IO event for real-time notification
+    const io = req.app.get('io');
+    if (io) {
+        io.emit('newContactEnquiry', {
+            enquiry,
+            message: `New contact enquiry from ${enquiry.firstName} ${enquiry.lastName}`,
+            timestamp: new Date()
+        });
+        console.log(`🔔 New contact enquiry notification sent via Socket.IO`.green);
+    }
+
     res.status(201).json({
         success: true,
         data: enquiry,

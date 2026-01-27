@@ -7,7 +7,6 @@ const userSchema = new mongoose.Schema(
     employeeId: {
       type: String,
       unique: true,
-      required: [true, "Please provide an Employee ID"],
       trim: true,
     },
     // Bilingual name fields
@@ -89,6 +88,13 @@ const userSchema = new mongoose.Schema(
 
 /* Pre-save hook to populate 'name' from parts if missing */
 userSchema.pre("save", async function (next) {
+  // Auto-generate employeeId if not provided
+  if (!this.employeeId) {
+    const count = await mongoose.model('User').countDocuments();
+    const nextNumber = (count + 1).toString().padStart(6, '0');
+    this.employeeId = `EMP-${nextNumber}`;
+  }
+
   if (!this.name && this.firstName?.en) {
     this.name = `${this.firstName.en} ${this.middleName?.en || ''} ${this.lastName?.en || ''}`.replace(/\s+/g, ' ').trim();
   }

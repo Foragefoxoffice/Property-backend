@@ -65,6 +65,35 @@ connectDB();
 // ===== Initialize App =====
 const app = express();
 
+// ===== Setup HTTP Server for Socket.IO =====
+const http = require("http");
+const { Server } = require("socket.io");
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:9002",
+      "https://183-housingsolutions.vercel.app",
+    ],
+    credentials: true,
+  },
+});
+
+// ===== Socket.IO Connection Handler =====
+io.on("connection", (socket) => {
+  console.log(`✅ Client connected: ${socket.id}`.cyan);
+
+  socket.on("disconnect", () => {
+    console.log(`❌ Client disconnected: ${socket.id}`.yellow);
+  });
+});
+
+// Make io accessible to routes
+app.set("io", io);
+
 /* =========================================================
    🌐 FIX: Allow direct browser open of http://localhost:5000/
 ========================================================= */
@@ -249,8 +278,9 @@ mongoose.connection.once("open", async () => {
     // Index might not exist, ignore
   }
 
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`🚀 Server running at http://localhost:${PORT}`.cyan.bold);
+    console.log(`🔌 Socket.IO ready for real-time notifications`.green.bold);
   });
 });
 

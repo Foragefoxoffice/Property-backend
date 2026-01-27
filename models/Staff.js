@@ -24,9 +24,8 @@ const StaffSchema = new mongoose.Schema(
 
     staffsId: {
       type: String,
-      required: true,
-      trim: true,
       unique: true,
+      trim: true,
     },
 
     staffsRole: {
@@ -89,13 +88,21 @@ const StaffSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Encrypt password using bcrypt
+// Encrypt password using bcrypt and auto-generate staffsId
 StaffSchema.pre("save", async function (next) {
+  // Auto-generate staffsId if not provided
+  if (!this.staffsId) {
+    const count = await mongoose.model('Staff').countDocuments();
+    const nextNumber = (count + 1).toString().padStart(6, '0');
+    this.staffsId = `STF-${nextNumber}`;
+  }
+
   if (!this.isModified("password")) {
-    next();
+    return next();
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 // Match user entered password to hashed password in database
