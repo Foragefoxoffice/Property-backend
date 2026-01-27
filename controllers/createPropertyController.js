@@ -153,6 +153,12 @@ exports.createProperty = asyncHandler(async (req, res) => {
       }
     }
 
+    // ✅ Set 'Sent By' if status is Pending
+    if (body.status === "Pending" && req.user) {
+      body.sentBy = req.user.id;
+      body.sentByName = req.user.name;
+    }
+
     const newProperty = await CreateProperty.create({
       ...body,
       seoInformation: body.seoInformation || {},
@@ -229,6 +235,12 @@ exports.updateProperty = asyncHandler(async (req, res) => {
     if (userRole && !userRole.isApprover && (body.status === "Published" || body.status === "Complete")) {
       body.status = "Pending";
     }
+  }
+
+  // ✅ Set 'Sent By' if status is Pending (Updated by latest editor)
+  if (body.status === "Pending" && req.user) {
+    body.sentBy = req.user.id;
+    body.sentByName = req.user.name;
   }
 
   const property = await CreateProperty.findByIdAndUpdate(
@@ -454,37 +466,140 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
 
   const skip = (page - 1) * limit;
 
-  // base filter for filtering by type
-  const filter = {
-    $or: [
-      { "listingInformation.listingInformationTransactionType.en": type },
-      { "listingInformation.listingInformationTransactionType.vi": type },
+  // Construct the query
+  const query = {
+    $and: [
+      {
+        $or: [
+          { "listingInformation.listingInformationTransactionType.en": type },
+          { "listingInformation.listingInformationTransactionType.vi": type },
+        ],
+      },
     ],
   };
 
-  // ⭐ ADD STATUS FILTER (important!)
+  // Status Filter
   if (trashMode === "true") {
-    filter.status = "Archived";         // only archived items
+    query.status = "Archived";
   } else {
-    // Handling status filter from query (e.g. status=Pending)
     if (req.query.status) {
-      filter.status = req.query.status;
-    }
-    // Handling excludeStatus from query (e.g. excludeStatus=Pending)
-    else if (req.query.excludeStatus) {
-      filter.status = { $ne: req.query.excludeStatus, $nin: ["Archived"] };
-    }
-    else {
-      filter.status = { $ne: "Archived" }; // all except archived
+      query.status = req.query.status;
+    } else if (req.query.excludeStatus) {
+      query.status = { $ne: req.query.excludeStatus, $nin: ["Archived"] };
+    } else {
+      query.status = { $ne: "Archived" };
     }
   }
 
+  // --- NEW FILTERS ---
+  const { project, zone, block, propertyType, propertyNo, floor, currency, priceFrom, priceTo, keyword } = req.query;
+
+  if (keyword) {
+    query.$and.push({
+      $or: [
+        { "listingInformation.listingInformationPropertyId": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationPropertyNo.en": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationPropertyNo.vi": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationPropertyType.en": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationPropertyType.vi": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationBlockName.en": { $regex: keyword, $options: "i" } },
+        { "listingInformation.listingInformationBlockName.vi": { $regex: keyword, $options: "i" } },
+        { status: { $regex: keyword, $options: "i" } }
+      ],
+    });
+  }
+
+  if (project) {
+    query.$and.push({
+      $or: [
+        { "listingInformation.listingInformationProjectCommunity.en": { $regex: project, $options: "i" } },
+        { "listingInformation.listingInformationProjectCommunity.vi": { $regex: project, $options: "i" } },
+      ],
+    });
+  }
+
+  if (zone) {
+    query.$and.push({
+      $or: [
+        { "listingInformation.listingInformationZoneSubArea.en": { $regex: zone, $options: "i" } },
+        { "listingInformation.listingInformationZoneSubArea.vi": { $regex: zone, $options: "i" } },
+      ],
+    });
+  }
+
+  if (block) {
+    query.$and.push({
+      $or: [
+        { "listingInformation.listingInformationBlockName.en": { $regex: block, $options: "i" } },
+        { "listingInformation.listingInformationBlockName.vi": { $regex: block, $options: "i" } },
+      ],
+    });
+  }
+
+  if (propertyType) {
+    query.$and.push({
+      $or: [
+        { "listingInformation.listingInformationPropertyType.en": { $regex: propertyType, $options: "i" } },
+        { "listingInformation.listingInformationPropertyType.vi": { $regex: propertyType, $options: "i" } },
+      ],
+    });
+  }
+
+  if (propertyNo) {
+    query.$and.push({
+      $or: [
+        { "listingInformation.listingInformationPropertyNo.en": { $regex: propertyNo, $options: "i" } },
+        { "listingInformation.listingInformationPropertyNo.vi": { $regex: propertyNo, $options: "i" } },
+      ],
+    });
+  }
+
+  if (floor) {
+    query.$and.push({
+      $or: [
+        { "propertyInformation.informationFloors.en": { $regex: floor, $options: "i" } },
+        { "propertyInformation.informationFloors.vi": { $regex: floor, $options: "i" } },
+        { "propertyInformation.informationFloors": { $regex: floor, $options: "i" } }, // in case it's a string
+      ],
+    });
+  }
+
+  if (currency) {
+    query["financialDetails.financialDetailsCurrency"] = { $regex: currency, $options: "i" };
+  }
+
+  // Price Range
+  let priceField = "financialDetails.financialDetailsPrice";
+  if (type === "Lease" || type === "Cho Thuê") {
+    priceField = "financialDetails.financialDetailsLeasePrice";
+  } else if (type === "Home Stay" || type === "Nhà Trọ") {
+    priceField = "financialDetails.financialDetailsPricePerNight";
+  }
+
+  // Helper to clean and parse number strings with commas
+  const parsePrice = (val) => {
+      if (!val) return undefined;
+      const cleanVal = String(val).replace(/,/g, '');
+      const num = Number(cleanVal);
+      return isNaN(num) ? undefined : num;
+  };
+
+  const minP = parsePrice(priceFrom);
+  const maxP = parsePrice(priceTo);
+
+  if (minP !== undefined || maxP !== undefined) {
+    query[priceField] = {};
+    if (minP !== undefined) query[priceField].$gte = minP;
+    if (maxP !== undefined) query[priceField].$lte = maxP;
+  }
+
   // Count AFTER applying correct filters
-  const total = await CreateProperty.countDocuments(filter);
+  // Count AFTER applying correct filters
+  const total = await CreateProperty.countDocuments(query);
 
   // ⚡ PERFORMANCE OPTIMIZATION: Only fetch essential fields for list view
   // Exclude: images, videos, descriptions, SEO data, and other heavy fields
-  const properties = await CreateProperty.find(filter)
+  const properties = await CreateProperty.find(query)
     .select(
       '_id ' +
       'status ' +
@@ -493,6 +608,8 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'approvedBy ' +
       'createdByName ' +
       'approvedByName ' +
+      'sentBy ' +
+      'sentByName ' +
       'listingInformation.listingInformationPropertyId ' +
       'listingInformation.listingInformationPropertyNo ' +
       'listingInformation.listingInformationTransactionType ' +
@@ -502,10 +619,13 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'listingInformation.listingInformationZoneSubArea ' +
       'listingInformation.listingInformationAvailabilityStatus ' +
       'financialDetails.financialDetailsCurrency ' +
-      'financialDetails.financialDetailsPrice '
+      'financialDetails.financialDetailsPrice ' +
+      'financialDetails.financialDetailsLeasePrice ' +
+      'financialDetails.financialDetailsPricePerNight '
     )
     .populate("createdBy", "name email")
     .populate("approvedBy", "name email")
+    .populate("sentBy", "name email")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
@@ -584,7 +704,9 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
       'listingInformation.listingInformationZoneSubArea ' +
       'listingInformation.listingInformationAvailabilityStatus ' +
       'financialDetails.financialDetailsCurrency ' +
-      'financialDetails.financialDetailsPrice '
+      'financialDetails.financialDetailsPrice ' +
+      'financialDetails.financialDetailsLeasePrice ' +
+      'financialDetails.financialDetailsPricePerNight '
     )
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -735,14 +857,22 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     matchStage["financialDetails.financialDetailsCurrency"] = currency;
   }
 
+  // Determine price field based on transaction type
+  let filterPriceField = "financialDetails.financialDetailsPrice";
+  if (type === 'Lease') {
+    filterPriceField = "financialDetails.financialDetailsLeasePrice";
+  } else if (type === 'Home Stay') {
+    filterPriceField = "financialDetails.financialDetailsPricePerNight";
+  }
+
   // Price range filter
   if (minPrice || maxPrice) {
-    matchStage["financialDetails.financialDetailsPrice"] = {};
+    matchStage[filterPriceField] = {};
     if (minPrice) {
-      matchStage["financialDetails.financialDetailsPrice"].$gte = parseFloat(minPrice);
+      matchStage[filterPriceField].$gte = parseFloat(minPrice);
     }
     if (maxPrice) {
-      matchStage["financialDetails.financialDetailsPrice"].$lte = parseFloat(maxPrice);
+      matchStage[filterPriceField].$lte = parseFloat(maxPrice);
     }
   }
 

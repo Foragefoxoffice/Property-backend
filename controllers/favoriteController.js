@@ -121,3 +121,25 @@ exports.deleteEnquiry = async (req, res) => {
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
+
+// Admin: Bulk Delete Enquiries
+exports.bulkDeleteEnquiries = async (req, res) => {
+    try {
+        const { ids } = req.body;
+
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ success: false, error: 'Please provide an array of IDs to delete' });
+        }
+
+        const result = await Favorite.deleteMany({ _id: { $in: ids } });
+
+        res.status(200).json({
+            success: true,
+            message: `${result.deletedCount} enquiries deleted successfully`,
+            deletedCount: result.deletedCount,
+        });
+    } catch (error) {
+        console.error('Error bulk deleting enquiries:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};

@@ -48,6 +48,30 @@ exports.createOwner = asyncHandler(async (req, res) => {
     throw new ErrorResponse("Required fields missing", 400);
   }
 
+  // Check if any phone number already exists
+  if (phoneNumbers && Array.isArray(phoneNumbers) && phoneNumbers.length > 0) {
+    const validPhones = phoneNumbers.filter((p) => p && p.trim() !== "");
+
+    for (const phone of validPhones) {
+      const normalizedPhone = phone.trim().replace(/[\s\-\(\)]/g, "");
+      
+      // Find all owners and check their phone numbers
+      const allOwners = await Owner.find({});
+      for (const owner of allOwners) {
+        if (owner.phoneNumbers && Array.isArray(owner.phoneNumbers)) {
+          for (const existingPhone of owner.phoneNumbers) {
+            const normalizedExisting = existingPhone.trim().replace(/[\s\-\(\)]/g, "");
+            if (normalizedExisting === normalizedPhone) {
+              throw new ErrorResponse(
+                `Phone number ${phone} already exists for landlord: ${owner.ownerName.en}`,
+                400
+              );
+            }
+          }
+        }
+      }
+    }
+  }
 
   const newOwner = await Owner.create({
     ownerName: {
@@ -86,8 +110,30 @@ exports.updateOwner = asyncHandler(async (req, res) => {
 
   owner.gender = d.gender ?? owner.gender;
 
-  if (Array.isArray(d.phoneNumbers))
+  if (Array.isArray(d.phoneNumbers)) {
+    const validPhones = d.phoneNumbers.filter((p) => p && p.trim() !== "");
+    
+    for (const phone of validPhones) {
+      const normalizedPhone = phone.trim().replace(/[\s\-\(\)]/g, "");
+      
+      // Find all owners except current one and check their phone numbers
+      const allOwners = await Owner.find({ _id: { $ne: owner._id } });
+      for (const existingOwner of allOwners) {
+        if (existingOwner.phoneNumbers && Array.isArray(existingOwner.phoneNumbers)) {
+          for (const existingPhone of existingOwner.phoneNumbers) {
+            const normalizedExisting = existingPhone.trim().replace(/[\s\-\(\)]/g, "");
+            if (normalizedExisting === normalizedPhone) {
+              throw new ErrorResponse(
+                `Phone number ${phone} already exists for landlord: ${existingOwner.ownerName.en}`,
+                400
+              );
+            }
+          }
+        }
+      }
+    }
     owner.phoneNumbers = d.phoneNumbers;
+  }
 
   if (Array.isArray(d.emailAddresses))
     owner.emailAddresses = d.emailAddresses;

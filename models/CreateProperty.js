@@ -47,6 +47,7 @@ const CreatePropertySchema = new mongoose.Schema(
       listingInformationDateListed: { type: Date, default: Date.now },
       listingInformationAvailabilityStatus: LocalizedString,
       listingInformationAvailableFrom: { type: Date },
+      listingInformationGoogleMapsIframe: LocalizedString, // ✅ Added
     },
 
     /* 🧱 2. Property Information */
@@ -119,6 +120,7 @@ const CreatePropertySchema = new mongoose.Schema(
       dateListed: { type: Boolean, default: false },
       availableFrom: { type: Boolean, default: false },
       availabilityStatus: { type: Boolean, default: false },
+      googleMap: { type: Boolean, default: false }, // ✅ Added for map
     },
 
     propertyInformationVisibility: {
@@ -170,6 +172,8 @@ const CreatePropertySchema = new mongoose.Schema(
     createdByName: { type: String, default: "" }, // Stores snapshot of creator name
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     approvedByName: { type: String, default: "" }, // Stores snapshot of approver name
+    sentBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    sentByName: { type: String, default: "" },
     status: {
       type: String,
       enum: ["Draft", "Published", "Archived", "Pending"],
