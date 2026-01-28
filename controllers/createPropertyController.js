@@ -2,6 +2,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const CreateProperty = require("../models/CreateProperty");
 const ZoneSubArea = require("../models/ZoneSubArea");
+const Owner = require("../models/Owner");
 const Role = require("../models/Role");
 const mongoose = require("mongoose");
 
@@ -546,7 +547,7 @@ exports.restoreProperty = asyncHandler(async (req, res) => {
 exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   let { type, page = 1, limit = 10, trashMode } = req.query;
 
-  if (!type) {
+  if (!type && trashMode !== "true") {
     throw new ErrorResponse("Transaction type (type) is required", 400);
   }
 
@@ -556,16 +557,17 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   // Construct the query
-  const query = {
-    $and: [
-      {
-        $or: [
-          { "listingInformation.listingInformationTransactionType.en": type },
-          { "listingInformation.listingInformationTransactionType.vi": type },
-        ],
-      },
-    ],
-  };
+  const query = {};
+  const andConditions = [];
+
+  if (type) {
+    andConditions.push({
+      $or: [
+        { "listingInformation.listingInformationTransactionType.en": type },
+        { "listingInformation.listingInformationTransactionType.vi": type },
+      ],
+    });
+  }
 
   // Status Filter
   if (trashMode === "true") {
@@ -584,7 +586,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   const { project, zone, block, propertyType, propertyNo, floor, currency, priceFrom, priceTo, keyword } = req.query;
 
   if (keyword) {
-    query.$and.push({
+    andConditions.push({
       $or: [
         { "listingInformation.listingInformationPropertyId": { $regex: keyword, $options: "i" } },
         { "listingInformation.listingInformationPropertyNo.en": { $regex: keyword, $options: "i" } },
@@ -599,7 +601,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   if (project) {
-    query.$and.push({
+    andConditions.push({
       $or: [
         { "listingInformation.listingInformationProjectCommunity.en": { $regex: project, $options: "i" } },
         { "listingInformation.listingInformationProjectCommunity.vi": { $regex: project, $options: "i" } },
@@ -608,7 +610,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   if (zone) {
-    query.$and.push({
+    andConditions.push({
       $or: [
         { "listingInformation.listingInformationZoneSubArea.en": { $regex: zone, $options: "i" } },
         { "listingInformation.listingInformationZoneSubArea.vi": { $regex: zone, $options: "i" } },
@@ -617,7 +619,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   if (block) {
-    query.$and.push({
+    andConditions.push({
       $or: [
         { "listingInformation.listingInformationBlockName.en": { $regex: block, $options: "i" } },
         { "listingInformation.listingInformationBlockName.vi": { $regex: block, $options: "i" } },
@@ -626,7 +628,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   if (propertyType) {
-    query.$and.push({
+    andConditions.push({
       $or: [
         { "listingInformation.listingInformationPropertyType.en": { $regex: propertyType, $options: "i" } },
         { "listingInformation.listingInformationPropertyType.vi": { $regex: propertyType, $options: "i" } },
@@ -635,7 +637,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   if (propertyNo) {
-    query.$and.push({
+    andConditions.push({
       $or: [
         { "listingInformation.listingInformationPropertyNo.en": { $regex: propertyNo, $options: "i" } },
         { "listingInformation.listingInformationPropertyNo.vi": { $regex: propertyNo, $options: "i" } },
@@ -645,7 +647,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
 
   const { owner } = req.query;
   if (owner) {
-    query.$and.push({
+    andConditions.push({
       $or: [
         { "contactManagement.contactManagementOwner.en": { $regex: owner, $options: "i" } },
         { "contactManagement.contactManagementOwner.vi": { $regex: owner, $options: "i" } },
@@ -654,7 +656,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   if (floor) {
-    query.$and.push({
+    andConditions.push({
       $or: [
         { "propertyInformation.informationFloors.en": { $regex: floor, $options: "i" } },
         { "propertyInformation.informationFloors.vi": { $regex: floor, $options: "i" } },
@@ -692,12 +694,15 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
     if (maxP !== undefined) query[priceField].$lte = maxP;
   }
 
-  // Count AFTER applying correct filters
+  // Finalize query with $and if conditions exist
+  if (andConditions.length > 0) {
+    query.$and = andConditions;
+  }
+
   // Count AFTER applying correct filters
   const total = await CreateProperty.countDocuments(query);
 
   // ⚡ PERFORMANCE OPTIMIZATION: Only fetch essential fields for list view
-  // Exclude: images, videos, descriptions, SEO data, and other heavy fields
   const properties = await CreateProperty.find(query)
     .select(
       '_id ' +
@@ -720,7 +725,9 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'financialDetails.financialDetailsCurrency ' +
       'financialDetails.financialDetailsPrice ' +
       'financialDetails.financialDetailsLeasePrice ' +
-      'financialDetails.financialDetailsPricePerNight '
+      'financialDetails.financialDetailsPricePerNight ' +
+      'contactManagement.contactManagementOwner ' +
+      'contactManagement.contactManagementOwnerPhone '
     )
     .populate("createdBy", "name email")
     .populate("approvedBy", "name email")
@@ -730,7 +737,54 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
     .limit(limit)
     .lean();
 
-  // 🔍 Debug: Verify optimization is working
+  // 🔄 FALLBACK: If owner phone is missing on property, fetch it from Owner model (Migration support)
+  const propertiesToFix = properties.filter(
+    (p) =>
+      p.contactManagement?.contactManagementOwner &&
+      (!p.contactManagement.contactManagementOwnerPhone ||
+        p.contactManagement.contactManagementOwnerPhone.length === 0)
+  );
+
+  if (propertiesToFix.length > 0) {
+    const ownerNames = [];
+    propertiesToFix.forEach(p => {
+      if (p.contactManagement?.contactManagementOwner?.en) ownerNames.push(p.contactManagement.contactManagementOwner.en);
+      if (p.contactManagement?.contactManagementOwner?.vi) ownerNames.push(p.contactManagement.contactManagementOwner.vi);
+    });
+
+    const owners = await Owner.find({
+      $or: [
+        { "ownerName.en": { $in: ownerNames } },
+        { "ownerName.vi": { $in: ownerNames } }
+      ]
+    })
+      .select("ownerName phoneNumbers")
+      .lean();
+
+    const ownerMap = owners.reduce((acc, o) => {
+      if (o.ownerName?.en) acc[o.ownerName.en] = o.phoneNumbers;
+      if (o.ownerName?.vi) acc[o.ownerName.vi] = o.phoneNumbers;
+      return acc;
+    }, {});
+
+    properties.forEach((p) => {
+      if (
+        p.contactManagement?.contactManagementOwner &&
+        (!p.contactManagement.contactManagementOwnerPhone ||
+          p.contactManagement.contactManagementOwnerPhone.length === 0)
+      ) {
+        const nameEn = p.contactManagement.contactManagementOwner.en;
+        const nameVi = p.contactManagement.contactManagementOwner.vi;
+        if (nameEn && ownerMap[nameEn]) {
+          p.contactManagement.contactManagementOwnerPhone = ownerMap[nameEn];
+        } else if (nameVi && ownerMap[nameVi]) {
+          p.contactManagement.contactManagementOwnerPhone = ownerMap[nameVi];
+        }
+      }
+    });
+  }
+
+  // �🔍 Debug: Verify optimization is working
   console.log('📊 Properties fetched:', properties.length);
   if (properties.length > 0) {
     console.log('✅ First property has imagesVideos?', 'imagesVideos' in properties[0]);
@@ -805,7 +859,9 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
       'financialDetails.financialDetailsCurrency ' +
       'financialDetails.financialDetailsPrice ' +
       'financialDetails.financialDetailsLeasePrice ' +
-      'financialDetails.financialDetailsPricePerNight '
+      'financialDetails.financialDetailsPricePerNight ' +
+      'contactManagement.contactManagementOwner ' +
+      'contactManagement.contactManagementOwnerPhone '
     )
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -1055,6 +1111,9 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
         'propertyInformation.informationFloors': 1,
         'propertyInformation.informationFurnishing': 1,
         'propertyInformation.informationView': 1,
+        // Contact Management
+        'contactManagement.contactManagementOwner': 1,
+        'contactManagement.contactManagementOwnerPhone': 1,
         // Description
         'whatNearby.whatNearbyDescription': 1,
         // ⚡ CRITICAL: Only get first image at DB level
@@ -1080,6 +1139,53 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
 
   const total = result[0]?.metadata[0]?.total || 0;
   const properties = result[0]?.data || [];
+
+  // 🔄 FALLBACK: If owner phone is missing on property, fetch it from Owner model (Migration support)
+  const propertiesToFix = properties.filter(
+    (p) =>
+      p.contactManagement?.contactManagementOwner &&
+      (!p.contactManagement.contactManagementOwnerPhone ||
+        p.contactManagement.contactManagementOwnerPhone.length === 0)
+  );
+
+  if (propertiesToFix.length > 0) {
+    const ownerNames = [];
+    propertiesToFix.forEach(p => {
+      if (p.contactManagement.contactManagementOwner.en) ownerNames.push(p.contactManagement.contactManagementOwner.en);
+      if (p.contactManagement.contactManagementOwner.vi) ownerNames.push(p.contactManagement.contactManagementOwner.vi);
+    });
+
+    const owners = await Owner.find({
+      $or: [
+        { "ownerName.en": { $in: ownerNames } },
+        { "ownerName.vi": { $in: ownerNames } }
+      ]
+    })
+      .select("ownerName phoneNumbers")
+      .lean();
+
+    const ownerMap = owners.reduce((acc, o) => {
+      if (o.ownerName?.en) acc[o.ownerName.en] = o.phoneNumbers;
+      if (o.ownerName?.vi) acc[o.ownerName.vi] = o.phoneNumbers;
+      return acc;
+    }, {});
+
+    properties.forEach((p) => {
+      if (
+        p.contactManagement?.contactManagementOwner &&
+        (!p.contactManagement.contactManagementOwnerPhone ||
+          p.contactManagement.contactManagementOwnerPhone.length === 0)
+      ) {
+        const nameEn = p.contactManagement.contactManagementOwner.en;
+        const nameVi = p.contactManagement.contactManagementOwner.vi;
+        if (nameEn && ownerMap[nameEn]) {
+          p.contactManagement.contactManagementOwnerPhone = ownerMap[nameEn];
+        } else if (nameVi && ownerMap[nameVi]) {
+          p.contactManagement.contactManagementOwnerPhone = ownerMap[nameVi];
+        }
+      }
+    });
+  }
 
   // Log performance metrics
   if (properties.length > 0) {

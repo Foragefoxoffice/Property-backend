@@ -100,6 +100,7 @@ const CreatePropertySchema = new mongoose.Schema(
     /* 👤 7. Contact / Management */
     contactManagement: {
       contactManagementOwner: LocalizedString,
+      contactManagementOwnerPhone: [{ type: String, trim: true }],
       contactManagementOwnerNotes: LocalizedString,
       contactManagementConsultant: LocalizedString,
       contactManagementConnectingPoint: LocalizedString,
