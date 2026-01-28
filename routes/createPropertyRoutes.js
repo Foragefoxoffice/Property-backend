@@ -15,6 +15,7 @@ const {
   getPropertiesByTransactionType,
   getTrashProperties,
   getListingProperties,
+  validatePropertyNo,
 } = require("../controllers/createPropertyController");
 
 const { bulkUploadProperties } = require("../controllers/bulkUploadController");
@@ -26,6 +27,7 @@ console.log("🔥 createPropertyRoutes.js LOADED");
 
 // ✅ GET NEXT PROPERTY ID FIRST!
 router.get("/next-id", getNextPropertyId);
+router.post("/validate-property-no", validatePropertyNo);
 router.get("/pid/:propertyId", getPropertyByPropertyId);
 router.delete("/permanent-delete/:id", protect, permanentlyDeleteProperty);
 

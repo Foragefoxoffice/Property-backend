@@ -16,12 +16,12 @@ const Papa = require("papaparse");
 ========================================================= */
 async function generateNextPropertyId(transactionType) {
   const prefixes = {
-    Sale: "SAL-VN-",
-    Lease: "LSE-VN-",
-    "Home Stay": "HST-VN-",
+    Sale: "SAL-",
+    Lease: "LSE-",
+    "Home Stay": "HST-",
   };
 
-  const prefix = prefixes[transactionType] || "UNK-VN-";
+  const prefix = prefixes[transactionType] || "UNK-";
 
   const lastProperty = await CreateProperty.findOne({
     "listingInformation.listingInformationPropertyId": {
@@ -78,10 +78,10 @@ async function validateMasterFields(row, transactionType) {
   const validateBothLanguages = async (fieldName, modelName, Model) => {
     const field = row[fieldName];
     if (!field) return;
-    
+
     const enValue = typeof field === "object" ? (field.en || "") : field;
     const viValue = typeof field === "object" ? (field.vi || "") : field;
-    
+
     if (enValue || viValue) {
       // Validate English value
       if (enValue) {
@@ -98,7 +98,7 @@ async function validateMasterFields(row, transactionType) {
           });
         }
       }
-      
+
       // Validate Vietnamese value if different
       if (viValue && viValue !== enValue) {
         const foundVi = await Model.findOne({
@@ -123,7 +123,7 @@ async function validateMasterFields(row, transactionType) {
     // Get both EN and VI values
     const projectEnValue = typeof projectField === "object" ? (projectField.en || "") : projectField;
     const projectViValue = typeof projectField === "object" ? (projectField.vi || "") : projectField;
-    
+
     // Check if at least one value is provided
     if (projectEnValue || projectViValue) {
       // Validate English value if provided
@@ -141,7 +141,7 @@ async function validateMasterFields(row, transactionType) {
           });
         }
       }
-      
+
       // Validate Vietnamese value if provided and different from English
       if (projectViValue && projectViValue !== projectEnValue) {
         const projectVi = await Property.findOne({
@@ -196,7 +196,7 @@ async function validateMasterFields(row, transactionType) {
   if (unitField) {
     const unitEnValue = typeof unitField === "object" ? (unitField.en || "") : unitField;
     const unitViValue = typeof unitField === "object" ? (unitField.vi || "") : unitField;
-    
+
     if (unitEnValue) {
       const unitEn = await Unit.findOne({
         $or: [
@@ -213,7 +213,7 @@ async function validateMasterFields(row, transactionType) {
         });
       }
     }
-    
+
     if (unitViValue && unitViValue !== unitEnValue) {
       const unitVi = await Unit.findOne({
         $or: [
@@ -293,7 +293,7 @@ exports.bulkUploadProperties = asyncHandler(async (req, res) => {
     console.log("📥 CSV Data exists:", !!req.body.csvData);
     console.log("📥 Transaction Type:", req.body.transactionType);
     console.log("📥 Validate Only:", req.body.validateOnly);
-    
+
     const { csvData, transactionType, validateOnly } = req.body;
 
     if (!csvData) {
@@ -318,7 +318,7 @@ exports.bulkUploadProperties = asyncHandler(async (req, res) => {
     }
 
     const rows = parseResult.data;
-    
+
     // Process rows to merge EN/VI columns into localized objects
     const processedRows = rows.map(row => {
       const processed = {};
@@ -343,11 +343,11 @@ exports.bulkUploadProperties = asyncHandler(async (req, res) => {
         "Giá bán": "Sale Price",
         "Giá mỗi đêm": "Price Per Night",
       };
-      
+
       // Group EN/VI pairs
       const enFields = {};
       const viFields = {};
-      
+
       Object.keys(row).forEach(key => {
         if (fieldTranslations[key]) {
           // It's a Vietnamese column
@@ -357,26 +357,26 @@ exports.bulkUploadProperties = asyncHandler(async (req, res) => {
           enFields[key] = row[key];
         }
       });
-      
+
       // Merge into localized objects
       Object.keys(enFields).forEach(field => {
         const enValue = enFields[field] || "";
         const viValue = viFields[field] || "";
-        
+
         // For numeric/date/currency/identifier fields, just use English value
-        if (field === "Property No" || field === "Unit Size" || field === "Bedrooms" || 
-            field === "Bathrooms" || field.includes("Price") ||
-            field === "Available From" || field === "Currency") {
+        if (field === "Property No" || field === "Unit Size" || field === "Bedrooms" ||
+          field === "Bathrooms" || field.includes("Price") ||
+          field === "Available From" || field === "Currency") {
           processed[field] = enValue;
         } else {
           // Create localized object
           processed[field] = enValue || viValue ? { en: enValue, vi: viValue } : "";
         }
       });
-      
+
       return processed;
     });
-    
+
     const results = {
       total: processedRows.length,
       successful: 0,
@@ -405,13 +405,29 @@ exports.bulkUploadProperties = asyncHandler(async (req, res) => {
           continue;
         }
 
-        // Check for duplicate Property No
+        // Check for duplicate Property No within the SAME section
         if (row["Property No"]) {
+          const transEn = transactionType;
+          const propNo = row["Property No"];
+
           const existing = await CreateProperty.findOne({
-            $or: [
-              { "listingInformation.listingInformationPropertyNo.en": row["Property No"] },
-              { "listingInformation.listingInformationPropertyNo.vi": row["Property No"] },
-            ],
+            status: { $ne: "Archived" },
+            // Check if Property No matches in either language
+            $and: [
+              {
+                $or: [
+                  { "listingInformation.listingInformationPropertyNo.en": propNo },
+                  { "listingInformation.listingInformationPropertyNo.vi": propNo },
+                ]
+              },
+              {
+                // Check if Transaction Type matches in either language
+                $or: [
+                  { "listingInformation.listingInformationTransactionType.en": transEn },
+                  { "listingInformation.listingInformationTransactionType.vi": transEn },
+                ]
+              }
+            ]
           });
 
           if (existing) {
@@ -422,7 +438,7 @@ exports.bulkUploadProperties = asyncHandler(async (req, res) => {
               errors: [
                 {
                   field: "Property No",
-                  message: `Property No "${row["Property No"]}" already exists`,
+                  message: `Property No "${propNo}" already exists in the ${transEn} section`,
                 },
               ],
             });

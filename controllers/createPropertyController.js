@@ -58,12 +58,12 @@ function deepNormalizeLocalized(data) {
 ========================================================= */
 async function generateNextPropertyId(transactionType) {
   const prefixes = {
-    Sale: "SAL-VN-",
-    Lease: "LSE-VN-",
-    "Home Stay": "HST-VN-",
+    Sale: "SAL-",
+    Lease: "LSE-",
+    "Home Stay": "HST-",
   };
 
-  const prefix = prefixes[transactionType] || "UNK-VN-";
+  const prefix = prefixes[transactionType] || "UNK-";
 
   const lastProperty = await CreateProperty.findOne({
     "listingInformation.listingInformationPropertyId": {
@@ -83,6 +83,54 @@ async function generateNextPropertyId(transactionType) {
   }
 
   return nextId;
+}
+
+/**
+ * Helper to validate if Property No is unique within a Section
+ * @param {Object} propertyNo - {en, vi}
+ * @param {Object|String} transactionType - {en, vi} or string
+ * @param {String} excludeId - ID to exclude (for updates)
+ */
+async function validatePropertyNoUnique(propertyNo, transactionType, excludeId = null) {
+  if (!propertyNo || (!propertyNo.en && !propertyNo.vi)) return;
+
+  const transTypeEn = transactionType?.en || transactionType;
+  const transTypeVi = transactionType?.vi || transTypeEn;
+  const propNoEn = propertyNo.en;
+  const propNoVi = propertyNo.vi;
+
+  const query = {
+    status: { $ne: "Archived" },
+    $or: [
+      { "listingInformation.listingInformationTransactionType.en": transTypeEn },
+      { "listingInformation.listingInformationTransactionType.vi": transTypeEn },
+      { "listingInformation.listingInformationTransactionType.en": transTypeVi },
+      { "listingInformation.listingInformationTransactionType.vi": transTypeVi },
+    ],
+    $and: [
+      {
+        $or: [
+          { "listingInformation.listingInformationPropertyNo.en": propNoEn },
+          { "listingInformation.listingInformationPropertyNo.vi": propNoEn },
+          { "listingInformation.listingInformationPropertyNo.en": propNoVi },
+          { "listingInformation.listingInformationPropertyNo.vi": propNoVi },
+        ].filter(cond => Object.values(cond)[0] !== "")
+      }
+    ]
+  };
+
+  if (excludeId) {
+    query._id = { $ne: excludeId };
+  }
+
+  const existingProperty = await CreateProperty.findOne(query);
+
+  if (existingProperty) {
+    throw new ErrorResponse(
+      `Property No "${propNoEn || propNoVi}" already exists in the ${transTypeEn} section.`,
+      400
+    );
+  }
 }
 
 /* =========================================================
@@ -159,6 +207,12 @@ exports.createProperty = asyncHandler(async (req, res) => {
       body.sentByName = req.user.name;
     }
 
+    // ✅ Check for unique Property No within Transaction Type
+    await validatePropertyNoUnique(
+      body.listingInformation?.listingInformationPropertyNo,
+      body.listingInformation?.listingInformationTransactionType
+    );
+
     const newProperty = await CreateProperty.create({
       ...body,
       seoInformation: body.seoInformation || {},
@@ -178,6 +232,9 @@ exports.createProperty = asyncHandler(async (req, res) => {
     if (error.errors) {
       console.error("Validation Errors:", JSON.stringify(error.errors, null, 2));
     }
+    // If it's already an ErrorResponse, just rethrow
+    if (error instanceof ErrorResponse) throw error;
+    // Otherwise wrap it
     throw error;
   }
 });
@@ -242,6 +299,13 @@ exports.updateProperty = asyncHandler(async (req, res) => {
     body.sentBy = req.user.id;
     body.sentByName = req.user.name;
   }
+
+  // ✅ Check for unique Property No within Transaction Type (Exclude Current)
+  await validatePropertyNoUnique(
+    body.listingInformation?.listingInformationPropertyNo,
+    body.listingInformation?.listingInformationTransactionType,
+    id
+  );
 
   const property = await CreateProperty.findByIdAndUpdate(
     id,
@@ -359,6 +423,12 @@ exports.copyPropertyToSale = asyncHandler(async (req, res) => {
   // ✅ Always save copied properties as Draft
   newData.status = "Draft";
 
+  // ✅ Check for unique Property No in Target Section
+  await validatePropertyNoUnique(
+    newData.listingInformation?.listingInformationPropertyNo,
+    "Sale"
+  );
+
   const newProperty = await CreateProperty.create(newData);
 
   return res.status(200).json({
@@ -393,6 +463,12 @@ exports.copyPropertyToLease = asyncHandler(async (req, res) => {
 
   // ✅ Always save copied properties as Draft
   newData.status = "Draft";
+
+  // ✅ Check for unique Property No in Target Section
+  await validatePropertyNoUnique(
+    newData.listingInformation?.listingInformationPropertyNo,
+    "Lease"
+  );
 
   const newProperty = await CreateProperty.create(newData);
 
@@ -429,6 +505,12 @@ exports.copyPropertyToHomeStay = asyncHandler(async (req, res) => {
   // ✅ Always save copied properties as Draft
   newData.status = "Draft";
 
+  // ✅ Check for unique Property No in Target Section
+  await validatePropertyNoUnique(
+    newData.listingInformation?.listingInformationPropertyNo,
+    "Home Stay"
+  );
+
   const newProperty = await CreateProperty.create(newData);
 
   return res.status(200).json({
@@ -441,6 +523,13 @@ exports.copyPropertyToHomeStay = asyncHandler(async (req, res) => {
 exports.restoreProperty = asyncHandler(async (req, res) => {
   const property = await CreateProperty.findById(req.params.id);
   if (!property) throw new ErrorResponse("Property not found", 404);
+
+  // ✅ Check for unique Property No before restoring
+  await validatePropertyNoUnique(
+    property.listingInformation?.listingInformationPropertyNo,
+    property.listingInformation?.listingInformationTransactionType,
+    property._id
+  );
 
   property.status = "Draft"; // or "Published" if you want
   await property.save();
@@ -554,6 +643,16 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
     });
   }
 
+  const { owner } = req.query;
+  if (owner) {
+    query.$and.push({
+      $or: [
+        { "contactManagement.contactManagementOwner.en": { $regex: owner, $options: "i" } },
+        { "contactManagement.contactManagementOwner.vi": { $regex: owner, $options: "i" } },
+      ],
+    });
+  }
+
   if (floor) {
     query.$and.push({
       $or: [
@@ -578,10 +677,10 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
 
   // Helper to clean and parse number strings with commas
   const parsePrice = (val) => {
-      if (!val) return undefined;
-      const cleanVal = String(val).replace(/,/g, '');
-      const num = Number(cleanVal);
-      return isNaN(num) ? undefined : num;
+    if (!val) return undefined;
+    const cleanVal = String(val).replace(/,/g, '');
+    const num = Number(cleanVal);
+    return isNaN(num) ? undefined : num;
   };
 
   const minP = parsePrice(priceFrom);
@@ -1001,5 +1100,27 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     totalPages: Math.ceil(total / limit),
     count: properties.length,
     data: properties,
+  });
+});
+
+/* =========================================================
+   🔍 VALIDATE PROPERTY NO
+========================================================= */
+exports.validatePropertyNo = asyncHandler(async (req, res) => {
+  const { propertyNo, transactionType, excludeId } = req.body;
+
+  if (!propertyNo || (!propertyNo.en && !propertyNo.vi)) {
+    return res.status(200).json({ success: true, message: "Property No is empty" });
+  }
+
+  if (!transactionType) {
+    throw new ErrorResponse("Transaction type is required", 400);
+  }
+
+  await validatePropertyNoUnique(propertyNo, transactionType, excludeId);
+
+  res.status(200).json({
+    success: true,
+    message: "Property No is available",
   });
 });
