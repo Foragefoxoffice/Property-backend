@@ -59,13 +59,9 @@ exports.protect = async (req, res, next) => {
 // Grant access to specific roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    // Allow if user role is explicitly in the list
-    if (roles.includes(req.user.role)) {
-      return next();
-    }
-
-    // Allow "Admin" if "admin" is required (case-insensitive)
-    if (roles.includes('admin') && req.user.role?.toLowerCase() === 'admin') {
+    // Super Admin and Admin always have access
+    const roleLower = req.user.role?.toLowerCase();
+    if (roleLower === 'super admin' || roleLower === 'admin') {
       return next();
     }
 

@@ -1,9 +1,11 @@
 const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
-  // Create transporter specifically for Gmail service
+  // Create transporter using environment variables
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: process.env.SMTP_PORT || 587,
+    secure: process.env.SMTP_PORT == 465, // true for 465, false for other ports
     auth: {
       user: process.env.SMTP_EMAIL,
       pass: process.env.SMTP_PASSWORD
@@ -15,7 +17,7 @@ const sendEmail = async (options) => {
 
   // Send email
   const message = {
-    from: process.env.SMTP_EMAIL, // Use plain email to avoid formatting flags
+    from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`, 
     to: options.email,
     subject: options.subject,
     text: textMessage,
@@ -27,7 +29,7 @@ const sendEmail = async (options) => {
 
   try {
     const info = await transporter.sendMail(message);
-    console.log(`✅ Email accepted by Gmail:
+    console.log(`✅ Email accepted by SMTP Server:
       MessageId: ${info.messageId}
       Accepted: ${info.accepted}
       Rejected: ${info.rejected}
