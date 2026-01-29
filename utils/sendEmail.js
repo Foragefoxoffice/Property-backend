@@ -1,26 +1,41 @@
 const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
-  // Create transporter
+  // Create transporter specifically for Gmail service
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
+    service: 'gmail',
     auth: {
       user: process.env.SMTP_EMAIL,
       pass: process.env.SMTP_PASSWORD
     }
   });
 
+  // Strip HTML tags for the text version
+  const textMessage = options.message.replace(/<[^>]*>?/gm, '');
+
   // Send email
   const message = {
-    from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`,
+    from: process.env.SMTP_EMAIL, // Use plain email to avoid formatting flags
     to: options.email,
     subject: options.subject,
+    text: textMessage,
     html: options.message,
     attachments: options.attachments || []
   };
 
-  await transporter.sendMail(message);
+  console.log(`📧 Sending email to: ${options.email}...`);
+
+  try {
+    const info = await transporter.sendMail(message);
+    console.log(`✅ Email accepted by Gmail:
+      MessageId: ${info.messageId}
+      Accepted: ${info.accepted}
+      Rejected: ${info.rejected}
+      Response: ${info.response}`);
+  } catch (error) {
+    console.error(`❌ Email send failed: ${error.message}`);
+    throw error;
+  }
 };
 
 module.exports = sendEmail;

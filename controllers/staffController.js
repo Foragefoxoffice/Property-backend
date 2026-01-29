@@ -1,6 +1,8 @@
 const Staff = require("../models/Staff");
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
+const sendEmail = require("../utils/sendEmail");
+const crypto = require("crypto");
 
 // ✅ Get all staffs
 exports.getStaffs = asyncHandler(async (req, res) => {
@@ -31,7 +33,8 @@ exports.createStaff = asyncHandler(async (req, res) => {
     staffsDesignation_vi,
     staffsDob,
     staffsJoiningDate,
-    status
+    status,
+    password
   } = req.body;
 
   if (
@@ -49,8 +52,8 @@ exports.createStaff = asyncHandler(async (req, res) => {
   const existingEmail = await Staff.findOne({ staffsEmail });
   if (existingEmail) throw new ErrorResponse("Email already exists", 400);
 
-  // Generate default password for Staff
-  const rawPassword = "Admin@123";
+  // Generate random password for Staff if not provided
+  const rawPassword = password || crypto.randomBytes(8).toString("hex");
 
   console.log(`Creating Staff ${staffsName_en} with password: ${rawPassword}`);
 
@@ -74,9 +77,34 @@ exports.createStaff = asyncHandler(async (req, res) => {
     isVerified: true,
   });
 
+  // Send Email with password
+  try {
+    const message = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #41398B;">Welcome to the Team, ${staffsName_en}!</h2>
+        <p>Your staff account has been created successfully. Below are your login credentials:</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Email:</strong> ${staffsEmail}</p>
+          <p style="margin: 5px 0;"><strong>Temporary Password:</strong> <span style="color: #41398B; font-size: 1.2em; font-weight: bold;">${rawPassword}</span></p>
+        </div>
+        <p>Please log in and change your password as soon as possible for security reasons.</p>
+        <p>Best regards,<br>The Management Team</p>
+      </div>
+    `;
+
+    await sendEmail({
+      email: staffsEmail,
+      subject: "Your Staff Account Credentials",
+      message: message,
+    });
+  } catch (err) {
+    console.error("Error sending staff creation email:", err);
+    throw new ErrorResponse(`Staff account created, but failed to send email: ${err.message}`, 500);
+  }
+
   res.status(201).json({
     success: true,
-    message: "Staff created successfully",
+    message: "Staff created successfully and email sent",
     data: staff,
   });
 });
