@@ -1,6 +1,9 @@
 const Favorite = require('../models/Favorite');
 const CreateProperty = require('../models/CreateProperty');
 const User = require('../models/User');
+const NotificationSetting = require('../models/NotificationSetting');
+const sendEmail = require('../utils/sendEmail');
+
 
 exports.addFavorite = async (req, res) => {
     try {
@@ -57,7 +60,50 @@ exports.addFavorite = async (req, res) => {
             console.log(`🔔 New enquiry notification sent via Socket.IO`.green);
         }
 
+        // Send Email Notification
+        const settings = await NotificationSetting.findOne();
+        
+        // Determine type of enquiry and recipient
+        const isFavoritesEnquiry = Array.isArray(propertyIds) && propertyIds.length > 1;
+        const recipientEmail = settings 
+            ? (isFavoritesEnquiry ? settings.favoritesEnquiryEmail : settings.propertyEnquiryEmail) 
+            : process.env.SMTP_EMAIL;
+
+        if (recipientEmail) {
+            try {
+                const propertyListHtml = populatedFavorite.properties.map(p => `
+                    <li>
+                        <strong>Title:</strong> ${p.listingInformation?.listingInformationPropertyTitle?.en || 'N/A'}<br>
+                        <strong>ID:</strong> ${p.listingInformation?.listingInformationPropertyId || 'N/A'}<br>
+                        <strong>Type:</strong> ${p.listingInformation?.listingInformationTransactionType?.en || 'N/A'}
+                    </li>
+                `).join('<hr>');
+
+                await sendEmail({
+                    email: recipientEmail,
+                    subject: isFavoritesEnquiry ? `New Favorites Enquiry from ${userName}` : `New Property Inquiry from ${userName}`,
+                    message: `
+                        <h2>New Enquiry Received</h2>
+                        <p><strong>From:</strong> ${userName}</p>
+                        <p><strong>Email:</strong> ${userEmail}</p>
+                        <p><strong>Phone:</strong> ${userPhone || 'N/A'}</p>
+                        <p><strong>Type:</strong> ${isFavoritesEnquiry ? 'Favorites List Inquiry' : 'Single Property Inquiry'}</p>
+                        <p><strong>Message:</strong> ${message || 'No message provided'}</p>
+                        <br>
+                        <h3>Inquired Properties:</h3>
+                        <ul>
+                            ${propertyListHtml}
+                        </ul>
+                    `
+                });
+                console.log(`📧 Notification email sent to ${recipientEmail} for ${isFavoritesEnquiry ? 'Favorites' : 'Property'} enquiry`);
+            } catch (emailError) {
+                console.error(`❌ Failed to send notification email: ${emailError.message}`);
+            }
+        }
+
         res.status(201).json({ success: true, data: favorite });
+
     } catch (error) {
         console.error('Error adding enquiry:', error);
         res.status(500).json({ success: false, error: error.message || 'Server Error' });

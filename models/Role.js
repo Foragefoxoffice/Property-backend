@@ -62,6 +62,10 @@ const roleSchema = new mongoose.Schema({
         },
         landlords: permissionSchema,
         masters: permissionSchema,
+        settings: {
+            notification: permissionSchema,
+            testimonials: permissionSchema
+        }
     }
 }, { timestamps: true });
 

@@ -1,12 +1,39 @@
 const ContactEnquiry = require("../models/ContactEnquiry");
+const NotificationSetting = require("../models/NotificationSetting");
 const ErrorResponse = require("../utils/errorResponse");
 const asyncHandler = require("../utils/asyncHandler");
+const sendEmail = require("../utils/sendEmail");
 
 // @desc      Create a contact enquiry
 // @route     POST /api/v1/contact-enquiry
 // @access    Public
 exports.createEnquiry = asyncHandler(async (req, res, next) => {
     const enquiry = await ContactEnquiry.create(req.body);
+
+    // Fetch Notification Settings to get the recipient email
+    let settings = await NotificationSetting.findOne();
+    const recipientEmail = settings ? settings.contactEnquiryEmail : process.env.SMTP_EMAIL;
+
+    if (recipientEmail) {
+        try {
+            await sendEmail({
+                email: recipientEmail,
+                subject: `New Contact Enquiry: ${enquiry.subject}`,
+                message: `
+                    <h2>New Contact Enquiry Received</h2>
+                    <p><strong>Name:</strong> ${enquiry.firstName} ${enquiry.lastName}</p>
+                    <p><strong>Email:</strong> ${enquiry.email}</p>
+                    <p><strong>Phone:</strong> ${enquiry.phone}</p>
+                    <p><strong>Subject:</strong> ${enquiry.subject}</p>
+                    <p><strong>Message:</strong></p>
+                    <p>${enquiry.message}</p>
+                `
+            });
+            console.log(`📧 Notification email sent to ${recipientEmail}`);
+        } catch (error) {
+            console.error(`❌ Failed to send notification email: ${error.message}`);
+        }
+    }
 
     // Emit Socket.IO event for real-time notification
     const io = req.app.get('io');
