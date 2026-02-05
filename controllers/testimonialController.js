@@ -13,14 +13,33 @@ exports.getAdminTestimonials = async (req, res, next) => {
     }
 };
 
-// @desc    Create a manual testimonial
+// @desc    Create a manual testimonial (Admin)
 // @route   POST /api/v1/testimonials
 // @access  Private/Admin
 exports.createTestimonial = async (req, res, next) => {
     try {
         const testimonial = await Testimonial.create({
             ...req.body,
-            source: 'manual'
+            source: 'manual',
+            is_visible: req.body.is_visible !== undefined ? req.body.is_visible : true
+        });
+        res.status(201).json({ success: true, data: testimonial });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// @desc    Submit a testimonial (User)
+// @route   POST /api/v1/testimonials/submit
+// @access  Private
+exports.submitTestimonial = async (req, res, next) => {
+    try {
+        const testimonial = await Testimonial.create({
+            ...req.body,
+            author_name: req.user.name || req.body.author_name,
+            profile_photo_url: req.user.profileImage || req.body.profile_photo_url,
+            source: 'manual',
+            is_visible: false // Always false for user submissions
         });
         res.status(201).json({ success: true, data: testimonial });
     } catch (err) {
