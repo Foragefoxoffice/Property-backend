@@ -20,6 +20,14 @@ const testimonialSchema = new mongoose.Schema({
     relative_time_description: {
         type: String
     },
+    text_en: {
+        type: String,
+        required: false
+    },
+    text_vn: {
+        type: String,
+        required: false
+    },
     text: {
         type: String,
         required: true

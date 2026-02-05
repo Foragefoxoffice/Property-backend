@@ -244,15 +244,15 @@ app.use("/api/v1/testimonials", testimonialRoutes);
 ========================================================= */
 if (process.env.NODE_ENV === 'production' || process.env.SERVE_FRONTEND === 'true') {
   const metaTagMiddleware = require('./middleware/metaTagMiddleware');
-  
+
   console.log('🎯 Serving frontend with dynamic meta tag injection'.cyan.bold);
-  
+
   // Meta tag injection for crawlers (must be before static files to intercept root /)
   app.use(metaTagMiddleware);
 
   // Serve static files from React build
   app.use(express.static(path.join(__dirname, '../Property-frontend/dist')));
-  
+
   // Catch-all route - serve index.html for any non-API route
   // Use regex to match all routes except /api
   app.get(/^(?!\/api).*$/, (req, res) => {
@@ -280,6 +280,14 @@ mongoose.connection.once("open", async () => {
   try {
     await mongoose.connection.db.collection('favorites').dropIndex('user_1_property_1');
     console.log('✅ Dropped stale index: user_1_property_1'.yellow);
+  } catch (e) {
+    // Index might not exist, ignore
+  }
+
+  // FIX: Drop stale index for testimonials if it exists
+  try {
+    await mongoose.connection.db.collection('testimonials').dropIndex('review_id_1');
+    console.log('✅ Dropped stale index: review_id_1'.yellow);
   } catch (e) {
     // Index might not exist, ignore
   }

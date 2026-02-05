@@ -367,6 +367,32 @@ const homePageSchema = new mongoose.Schema(
             maxlength: 500,
         },
 
+        // Testimonial Section
+        homeTestimonialSubTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 100,
+        },
+        homeTestimonialSubTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 100,
+        },
+        homeTestimonialTitle_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+        homeTestimonialTitle_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 200,
+        },
+
         // SEO Section
         homeSeoMetaTitle_en: {
             type: String,

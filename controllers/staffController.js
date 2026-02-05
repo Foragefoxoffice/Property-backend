@@ -148,9 +148,7 @@ exports.updateStaff = asyncHandler(async (req, res) => {
   if (!staff) throw new ErrorResponse("Staff not found", 404);
 
   // Prevent update of Super Admin Staff
-  if (staff.staffsRole?.en === "Super Admin") {
-    throw new ErrorResponse("Cannot update Super Admin staff", 403);
-  }
+
 
   // Construct update object with nested fields
   const updateFields = {};

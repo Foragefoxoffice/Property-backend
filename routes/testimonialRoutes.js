@@ -4,7 +4,6 @@ const {
     getTestimonials,
     toggleVisibility,
     deleteTestimonial,
-    syncGoogleReviews,
     createTestimonial
 } = require('../controllers/testimonialController');
 
@@ -18,6 +17,6 @@ router.post('/', createTestimonial);
 router.get('/admin', getAdminTestimonials);
 router.put('/:id/visibility', toggleVisibility);
 router.delete('/:id', deleteTestimonial);
-router.post('/sync', syncGoogleReviews);
+
 
 module.exports = router;
