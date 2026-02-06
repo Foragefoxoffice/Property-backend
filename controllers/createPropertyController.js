@@ -898,6 +898,8 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     currency = "",     // Currency filter
     minPrice = "",     // Minimum price
     maxPrice = "",     // Maximum price
+    owner = "",        // Owner name filter
+    status = "",       // Status filter (overrides default "Published")
     sortBy = "newest"  // Sort: newest, oldest, price-low, price-high
   } = req.query;
 
@@ -905,10 +907,15 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
   limit = parseInt(limit);
   const skip = (page - 1) * limit;
 
-  // Base filter - show ONLY Published properties
-  const matchStage = {
-    status: "Published"
-  };
+  // Base filter - default to Published if no status provided
+  const matchStage = {};
+  if (status === "all") {
+    matchStage.status = { $ne: "Archived" };
+  } else if (status) {
+    matchStage.status = status;
+  } else {
+    matchStage.status = "Published";
+  }
 
   // Transaction type filter (required)
   if (type) {
@@ -1029,6 +1036,17 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     if (maxPrice) {
       matchStage[filterPriceField].$lte = parseFloat(maxPrice);
     }
+  }
+
+  // Owner filter
+  if (owner) {
+    matchStage.$and = matchStage.$and || [];
+    matchStage.$and.push({
+      $or: [
+        { "contactManagement.contactManagementOwner.en": { $regex: owner, $options: "i" } },
+        { "contactManagement.contactManagementOwner.vi": { $regex: owner, $options: "i" } },
+      ]
+    });
   }
 
   // Remove old Size range filter
