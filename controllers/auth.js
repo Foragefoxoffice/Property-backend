@@ -301,20 +301,34 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
    FORGOT PASSWORD (Send OTP)
 ========================================================= */
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
-  const { email } = req.body;
+  let { email } = req.body;
   if (!email) return next(new ErrorResponse("Provide email", 400));
+  email = email.toLowerCase().trim();
 
   let user = await User.findOne({ email });
   if (!user) {
     user = await Staff.findOne({ staffsEmail: email });
   }
 
-  if (!user) return next(new ErrorResponse("No user found", 404));
+  if (!user) {
+    console.log(`❌ ForgotPassword: No user or staff found with email: ${email}`);
+    return next(new ErrorResponse("No user found", 404));
+  }
+
+  console.log(`✅ ForgotPassword: Found user/staff for email ${email}`);
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  user.resetPasswordToken = otp;
-  user.resetPasswordExpire = Date.now() + 30 * 60 * 1000;
-  await user.save();
+  const resetData = {
+    resetPasswordToken: otp,
+    resetPasswordExpire: Date.now() + 30 * 60 * 1000,
+  };
+
+  // Use findOneAndUpdate to ensure fields are saved even if schema was recently updated
+  if (user.staffsEmail) {
+    await Staff.findByIdAndUpdate(user._id, resetData);
+  } else {
+    await User.findByIdAndUpdate(user._id, resetData);
+  }
 
   const message = `
     <h2>Password Reset OTP</h2>
@@ -330,9 +344,16 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
     });
     res.status(200).json({ success: true, message: "OTP sent to email" });
   } catch (err) {
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
-    await user.save();
+    console.log(`❌ ForgotPassword Error sending email: ${err.message}`);
+    const clearData = {
+      resetPasswordToken: undefined,
+      resetPasswordExpire: undefined,
+    };
+    if (user.staffsEmail) {
+      await Staff.findByIdAndUpdate(user._id, clearData);
+    } else {
+      await User.findByIdAndUpdate(user._id, clearData);
+    }
     return next(new ErrorResponse("Email could not be sent", 500));
   }
 });
@@ -341,26 +362,38 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
    RESET PASSWORD (With OTP)
 ========================================================= */
 exports.resetPassword = asyncHandler(async (req, res, next) => {
-  const { email, otp, newPassword } = req.body;
+  let { email, otp, newPassword } = req.body;
   if (!email || !otp || !newPassword) {
     return next(new ErrorResponse("Email, OTP & new password required", 400));
   }
+  email = email.toLowerCase().trim();
+  otp = otp.trim();
 
-  let user = await User.findOne({
-    email,
-    resetPasswordToken: otp,
-    resetPasswordExpire: { $gt: Date.now() },
-  }).select("+password");
+  console.log(`🔍 ResetPassword Attempt: email=${email}, otp=${otp}`);
+
+  let user = await User.findOne({ email }).select("+password");
+  let foundIn = 'User';
 
   if (!user) {
-    user = await Staff.findOne({
-      staffsEmail: email,
-      resetPasswordToken: otp,
-      resetPasswordExpire: { $gt: Date.now() },
-    }).select("+password");
+    user = await Staff.findOne({ staffsEmail: email }).select("+password");
+    foundIn = 'Staff';
   }
 
-  if (!user) return next(new ErrorResponse("Invalid or expired OTP", 400));
+  if (!user) {
+    console.log(`❌ ResetPassword: No account found for email ${email}`);
+    return next(new ErrorResponse("Invalid or expired OTP", 400));
+  }
+
+  console.log(`✅ ResetPassword: Found ${foundIn} record. Checking OTP...`);
+  console.log(`   Stored OTP: ${user.resetPasswordToken}, Expiry: ${user.resetPasswordExpire}`);
+  console.log(`   Current Time: ${new Date().toISOString()}`);
+
+  if (user.resetPasswordToken !== otp || !user.resetPasswordExpire || user.resetPasswordExpire < Date.now()) {
+    console.log(`❌ ResetPassword: OTP mismatch or expired.`);
+    return next(new ErrorResponse("Invalid or expired OTP", 400));
+  }
+
+  console.log(`✅ ResetPassword: OTP verified for ${foundIn}. Updating password.`);
 
   user.password = newPassword;
   user.resetPasswordToken = undefined;
