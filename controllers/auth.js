@@ -304,7 +304,11 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body;
   if (!email) return next(new ErrorResponse("Provide email", 400));
 
-  const user = await User.findOne({ email });
+  let user = await User.findOne({ email });
+  if (!user) {
+    user = await Staff.findOne({ staffsEmail: email });
+  }
+
   if (!user) return next(new ErrorResponse("No user found", 404));
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -320,7 +324,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 
   try {
     await sendEmail({
-      email: user.email,
+      email: user.email || user.staffsEmail,
       subject: "Password Reset OTP",
       message,
     });
@@ -342,11 +346,19 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("Email, OTP & new password required", 400));
   }
 
-  const user = await User.findOne({
+  let user = await User.findOne({
     email,
     resetPasswordToken: otp,
     resetPasswordExpire: { $gt: Date.now() },
   }).select("+password");
+
+  if (!user) {
+    user = await Staff.findOne({
+      staffsEmail: email,
+      resetPasswordToken: otp,
+      resetPasswordExpire: { $gt: Date.now() },
+    }).select("+password");
+  }
 
   if (!user) return next(new ErrorResponse("Invalid or expired OTP", 400));
 
