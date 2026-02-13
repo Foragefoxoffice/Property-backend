@@ -727,7 +727,8 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'financialDetails.financialDetailsLeasePrice ' +
       'financialDetails.financialDetailsPricePerNight ' +
       'contactManagement.contactManagementOwner ' +
-      'contactManagement.contactManagementOwnerPhone '
+      'contactManagement.contactManagementOwnerPhone ' +
+      'seoInformation.slugUrl '
     )
     .populate("createdBy", "name email")
     .populate("approvedBy", "name email")
@@ -861,7 +862,8 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
       'financialDetails.financialDetailsLeasePrice ' +
       'financialDetails.financialDetailsPricePerNight ' +
       'contactManagement.contactManagementOwner ' +
-      'contactManagement.contactManagementOwnerPhone '
+      'contactManagement.contactManagementOwnerPhone ' +
+      'seoInformation.slugUrl '
     )
     .sort({ createdAt: -1 })
     .skip(skip)
