@@ -200,10 +200,19 @@ exports.updateStaff = asyncHandler(async (req, res) => {
   if (staffsJoiningDate !== undefined) updateFields.staffsJoiningDate = staffsJoiningDate;
   if (status !== undefined) updateFields.status = status;
 
+  console.log("📝 Updating Staff:", req.params.id);
+  console.log("📦 Internal updateFields:", JSON.stringify(updateFields, null, 2));
+
   staff = await Staff.findByIdAndUpdate(req.params.id, updateFields, {
     new: true,
     runValidators: true,
   });
+
+  if (staff) {
+    console.log("✅ Staff updated successfully. New Staff Image:", staff.staffsImage);
+  } else {
+    console.log("❌ Staff update failed - staff not found");
+  }
 
   res.status(200).json({
     success: true,

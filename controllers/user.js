@@ -26,10 +26,19 @@ exports.createUser = asyncHandler(async (req, res) => {
 
 // Update user
 exports.updateUser = asyncHandler(async (req, res, next) => {
+  console.log("📝 Updating User:", req.params.id);
+  console.log("📦 Payload:", JSON.stringify(req.body, null, 2));
+
   const user = await User.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
   });
+
+  if (user) {
+    console.log("✅ User updated successfully. New Profile Image:", user.profileImage);
+  } else {
+    console.log("❌ User update failed - user not found");
+  }
   if (!user)
     return next(
       new ErrorResponse(`User not found with id of ${req.params.id}`, 404)

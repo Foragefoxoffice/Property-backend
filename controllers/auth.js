@@ -259,14 +259,45 @@ exports.getMe = asyncHandler(async (req, res) => {
 /* =========================================================
    UPDATE DETAILS
 ========================================================= */
-exports.updateDetails = asyncHandler(async (req, res) => {
-  const { name, email, phone } = req.body;
-  const fieldsToUpdate = { name, email, phone };
-  const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
-    new: true,
-    runValidators: true,
-  });
-  res.status(200).json({ success: true, data: user });
+exports.updateDetails = asyncHandler(async (req, res, next) => {
+  const { name, email, phone, profileImage, staffsImage } = req.body;
+
+  // Find if user is in User or Staff collection
+  let user = await User.findById(req.user.id);
+  let isStaff = false;
+
+  if (!user) {
+    user = await Staff.findById(req.user.id);
+    isStaff = true;
+  }
+
+  if (!user) {
+    console.log(`❌ UpdateDetails: User with ID ${req.user.id} not found.`);
+    return next(new ErrorResponse("User not found", 404));
+  }
+
+  if (isStaff) {
+    const updateFields = {};
+    if (name) updateFields.staffsName = { en: name, vi: user.staffsName?.vi || '' }; // Simple mapping
+    if (email) updateFields.staffsEmail = email;
+    if (phone) updateFields.staffsNumbers = [phone];
+    if (profileImage || staffsImage) updateFields.staffsImage = profileImage || staffsImage;
+
+    console.log(`📤 Updating Staff Profile. ID: ${req.user.id}, Payload:`, updateFields);
+    const updatedStaff = await Staff.findByIdAndUpdate(req.user.id, updateFields, {
+      new: true,
+      runValidators: true,
+    });
+    return res.status(200).json({ success: true, data: updatedStaff });
+  } else {
+    const fieldsToUpdate = { name, email, phone, profileImage };
+    console.log(`📤 Updating User Profile. ID: ${req.user.id}, Payload:`, fieldsToUpdate);
+    const updatedUser = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
+      new: true,
+      runValidators: true,
+    });
+    return res.status(200).json({ success: true, data: updatedUser });
+  }
 });
 
 /* =========================================================
