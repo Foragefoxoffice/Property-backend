@@ -1,4 +1,5 @@
 const Staff = require("../models/Staff");
+const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const sendEmail = require("../utils/sendEmail");
@@ -48,9 +49,15 @@ exports.createStaff = asyncHandler(async (req, res) => {
     throw new ErrorResponse("All fields are required", 400);
   }
 
-  // Check in Staff collection
-  const existingEmail = await Staff.findOne({ staffsEmail });
-  if (existingEmail) throw new ErrorResponse("Email already exists", 400);
+  // Check if email already exists in either collection
+  const [existingStaff, existingUser] = await Promise.all([
+    Staff.findOne({ staffsEmail }),
+    User.findOne({ email: staffsEmail })
+  ]);
+
+  if (existingStaff || existingUser) {
+    throw new ErrorResponse("Email already exists", 400);
+  }
 
   // Generate random password for Staff if not provided
   const rawPassword = password || crypto.randomBytes(8).toString("hex");
@@ -134,18 +141,24 @@ exports.updateStaff = asyncHandler(async (req, res) => {
     status
   } = req.body;
 
-  // Prevent duplicate email
-  if (staffsEmail) {
-    const existing = await Staff.findOne({
-      staffsEmail: staffsEmail,
-      _id: { $ne: req.params.id },
-    });
-    if (existing) throw new ErrorResponse("Email already exists", 400);
-  }
-
   // Find staff first to ensure it exists
   let staff = await Staff.findById(req.params.id);
   if (!staff) throw new ErrorResponse("Staff not found", 404);
+
+  // Prevent duplicate email
+  if (staffsEmail) {
+    // If email is being changed, check if new email exists in either collection
+    if (staffsEmail && staffsEmail !== staff.staffsEmail) {
+      const [existingStaff, existingUser] = await Promise.all([
+        Staff.findOne({ staffsEmail }),
+        User.findOne({ email: staffsEmail })
+      ]);
+
+      if (existingStaff || existingUser) {
+        throw new ErrorResponse("Email already exists", 400);
+      }
+    }
+  }
 
   // Prevent update of Super Admin Staff
 

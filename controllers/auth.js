@@ -1,6 +1,7 @@
 const ErrorResponse = require("../utils/errorResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const User = require("../models/User");
+const Staff = require("../models/Staff");
 const generateToken = require("../utils/generateToken");
 const sendEmail = require("../utils/sendEmail");
 const crypto = require("crypto");
@@ -16,9 +17,14 @@ const fs = require("fs");
 exports.register = asyncHandler(async (req, res, next) => {
   const { employeeId, name, email, phone } = req.body;
 
-  // Check if user already exists
-  if (await User.findOne({ email })) {
-    return next(new ErrorResponse("User already exists", 400));
+  // Check if email already exists in either collection
+  const [existingUser, existingStaff] = await Promise.all([
+    User.findOne({ email }),
+    Staff.findOne({ staffsEmail: email })
+  ]);
+
+  if (existingUser || existingStaff) {
+    return next(new ErrorResponse("Email already exists", 400));
   }
 
   // Generate random password
@@ -99,9 +105,14 @@ exports.userRegister = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("Passwords do not match", 400));
   }
 
-  // Check if user already exists
-  if (await User.findOne({ email })) {
-    return next(new ErrorResponse("User already exists with this email", 400));
+  // Check if email already exists in either collection
+  const [existingUser, existingStaff] = await Promise.all([
+    User.findOne({ email }),
+    Staff.findOne({ staffsEmail: email })
+  ]);
+
+  if (existingUser || existingStaff) {
+    return next(new ErrorResponse("Email already exists", 400));
   }
 
   // Create user with role 'user' and auto-generated employeeId
@@ -137,7 +148,6 @@ exports.userRegister = asyncHandler(async (req, res, next) => {
 /* =========================================================
    LOGIN (Email or Employee ID)
 ========================================================= */
-const Staff = require("../models/Staff");
 
 /* =========================================================
    LOGIN (Email/EmpID + Password) -> Checks User OR Staff

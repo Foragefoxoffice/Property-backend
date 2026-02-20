@@ -1,6 +1,7 @@
-const ErrorResponse = require("../utils/errorResponse");
-const asyncHandler = require("../utils/asyncHandler");
 const User = require("../models/User");
+const Staff = require("../models/Staff");
+const asyncHandler = require("../utils/asyncHandler");
+const ErrorResponse = require("../utils/errorResponse");
 
 // Get all users
 exports.getUsers = asyncHandler(async (req, res) => {
@@ -19,7 +20,20 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 });
 
 // Create user
-exports.createUser = asyncHandler(async (req, res) => {
+exports.createUser = asyncHandler(async (req, res, next) => {
+  const { email } = req.body;
+
+  if (email) {
+    const [existingUser, existingStaff] = await Promise.all([
+      User.findOne({ email }),
+      Staff.findOne({ staffsEmail: email })
+    ]);
+
+    if (existingUser || existingStaff) {
+      return next(new ErrorResponse("Email already exists", 400));
+    }
+  }
+
   const user = await User.create(req.body);
   res.status(201).json({ success: true, data: user });
 });
@@ -29,21 +43,42 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
   console.log("📝 Updating User:", req.params.id);
   console.log("📦 Payload:", JSON.stringify(req.body, null, 2));
 
-  const user = await User.findByIdAndUpdate(req.params.id, req.body, {
+  const { email } = req.body;
+
+  // Find user first
+  let existingUserMatch = await User.findById(req.params.id);
+  if (!existingUserMatch)
+    return next(
+      new ErrorResponse(`User not found with id of ${req.params.id}`, 404)
+    );
+
+  // If email is being changed, check if new email exists in either collection
+  if (email && email !== existingUserMatch.email) {
+    const [existingUser, existingStaff] = await Promise.all([
+      User.findOne({ email }),
+      Staff.findOne({ staffsEmail: email })
+    ]);
+
+    if (existingUser || existingStaff) {
+      return next(new ErrorResponse("Email already exists", 400));
+    }
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
   });
 
-  if (user) {
-    console.log("✅ User updated successfully. New Profile Image:", user.profileImage);
+  if (updatedUser) {
+    console.log("✅ User updated successfully. New Profile Image:", updatedUser.profileImage);
   } else {
     console.log("❌ User update failed - user not found");
   }
-  if (!user)
+  if (!updatedUser)
     return next(
       new ErrorResponse(`User not found with id of ${req.params.id}`, 404)
     );
-  res.status(200).json({ success: true, data: user });
+  res.status(200).json({ success: true, data: updatedUser });
 });
 
 // Delete user
