@@ -87,7 +87,7 @@ const CreatePropertySchema = new mongoose.Schema(
       financialDetailsDeposit: LocalizedString,
       financialDetailsMainFee: LocalizedString,
       financialDetailsLeasePrice: { type: Number, default: 0 },
-      financialDetailsContractLength: { type: String, trim: true, default: "" },
+      financialDetailsContractLength: LocalizedString,
       financialDetailsPricePerNight: { type: Number, default: 0 },
       financialDetailsCheckIn: { type: String, trim: true, default: "" },
       financialDetailsCheckOut: { type: String, trim: true, default: "" },

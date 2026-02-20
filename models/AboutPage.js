@@ -495,9 +495,10 @@ const aboutPageSchema = new mongoose.Schema(
             required: false,
             default: true,
         },
-        aboutSeoOgImages: {
-            type: [String],
+        aboutSeoOgImage: {
+            type: String,
             required: false,
+            default: "",
         },
     },
     {

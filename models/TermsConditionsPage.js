@@ -56,7 +56,7 @@ const termsConditionsPageSchema = new mongoose.Schema(
         termsConditionSeoOgDescription_en: { type: String },
         termsConditionSeoOgDescription_vn: { type: String },
         termsConditionSeoAllowIndexing: { type: Boolean, default: true },
-        termsConditionSeoOgImages: [{ type: String }],
+        termsConditionSeoOgImage: { type: String, default: "" },
     },
     {
         timestamps: true,

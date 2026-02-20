@@ -253,10 +253,10 @@ const contactPageSchema = new mongoose.Schema(
             required: false,
             default: true,
         },
-        contactSeoOgImages: {
-            type: [String],
+        contactSeoOgImage: {
+            type: String,
             required: false,
-            default: [],
+            default: "",
         },
     },
     {

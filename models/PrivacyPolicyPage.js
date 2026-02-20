@@ -56,7 +56,7 @@ const privacyPolicyPageSchema = new mongoose.Schema(
         privacyPolicySeoOgDescription_en: { type: String },
         privacyPolicySeoOgDescription_vn: { type: String },
         privacyPolicySeoAllowIndexing: { type: Boolean, default: true },
-        privacyPolicySeoOgImages: [{ type: String }],
+        privacyPolicySeoOgImage: { type: String, default: "" },
     },
     {
         timestamps: true,

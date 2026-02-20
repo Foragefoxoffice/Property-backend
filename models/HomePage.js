@@ -487,10 +487,10 @@ const homePageSchema = new mongoose.Schema(
             required: false,
             default: true,
         },
-        homeSeoOgImages: {
-            type: [String],
+        homeSeoOgImage: {
+            type: String,
             required: false,
-            default: [],
+            default: "",
         },
     },
     {

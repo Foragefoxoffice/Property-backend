@@ -85,7 +85,7 @@ const BlogSchema = new mongoose.Schema(
         en: String,
         vi: String,
       },
-      ogImages: [String],
+      ogImage: { type: String, default: "" },
     },
     views: {
       type: Number,
