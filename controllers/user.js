@@ -41,7 +41,6 @@ exports.createUser = asyncHandler(async (req, res, next) => {
 // Update user
 exports.updateUser = asyncHandler(async (req, res, next) => {
   console.log("📝 Updating User:", req.params.id);
-  console.log("📦 Payload:", JSON.stringify(req.body, null, 2));
 
   const { email } = req.body;
 
@@ -71,6 +70,15 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
 
   if (updatedUser) {
     console.log("✅ User updated successfully. New Profile Image:", updatedUser.profileImage);
+
+    // IF STATUS CHANGED TO INACTIVE, EMIT SOCKET EVENT FOR INSTANT LOGOUT
+    if (req.body.status === 'Inactive') {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('accountDeactivated', { userId: req.params.id });
+        console.log(`🔌 Deactivation event emitted for user: ${req.params.id}`.red.bold);
+      }
+    }
   } else {
     console.log("❌ User update failed - user not found");
   }
@@ -89,6 +97,14 @@ exports.deleteUser = asyncHandler(async (req, res, next) => {
       new ErrorResponse(`User not found with id of ${req.params.id}`, 404)
     );
   await user.deleteOne();
+
+  // EMIT SOCKET EVENT FOR INSTANT LOGOUT
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('accountDeactivated', { userId: req.params.id });
+    console.log(`🔌 Deletion event emitted for user: ${req.params.id}`.red.bold);
+  }
+
   res
     .status(200)
     .json({ success: true, message: "User deleted successfully ✅" });

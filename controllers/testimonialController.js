@@ -6,8 +6,28 @@ const NotificationSetting = require('../models/NotificationSetting');
 // @access  Private/Admin
 exports.getAdminTestimonials = async (req, res, next) => {
     try {
-        const testimonials = await Testimonial.find().sort({ time: -1, createdAt: -1 });
-        res.status(200).json({ success: true, count: testimonials.length, data: testimonials });
+        const User = require('../models/User'); // Ensure User model is available
+        let testimonials = await Testimonial.find()
+            .populate('user', 'name profileImage')
+            .sort({ time: -1, createdAt: -1 });
+
+        // For unlinked manual testimonials, try to find users by name for avatar updates
+        const unlinkedNames = [...new Set(testimonials.filter(t => !t.user && t.source === 'manual').map(t => t.author_name))];
+        const shadowUsers = await User.find({ name: { $in: unlinkedNames } }).select('name profileImage');
+        const userMap = shadowUsers.reduce((acc, u) => ({ ...acc, [u.name]: u.profileImage }), {});
+
+        const processedTestimonials = testimonials.map(t => {
+            const testimonial = t.toObject();
+            if (testimonial.user) {
+                testimonial.author_name = testimonial.user.name || testimonial.author_name;
+                testimonial.profile_photo_url = testimonial.user.profileImage || testimonial.profile_photo_url;
+            } else if (testimonial.source === 'manual' && userMap[testimonial.author_name]) {
+                testimonial.profile_photo_url = userMap[testimonial.author_name];
+            }
+            return testimonial;
+        });
+
+        res.status(200).json({ success: true, count: processedTestimonials.length, data: processedTestimonials });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
@@ -36,6 +56,7 @@ exports.submitTestimonial = async (req, res, next) => {
     try {
         const testimonial = await Testimonial.create({
             ...req.body,
+            user: req.user._id,
             author_name: req.user.name || req.body.author_name,
             profile_photo_url: req.user.profileImage || req.body.profile_photo_url,
             source: 'manual',
@@ -52,8 +73,28 @@ exports.submitTestimonial = async (req, res, next) => {
 // @access  Public
 exports.getTestimonials = async (req, res, next) => {
     try {
-        const testimonials = await Testimonial.find({ is_visible: true }).sort({ time: -1, createdAt: -1 });
-        res.status(200).json({ success: true, count: testimonials.length, data: testimonials });
+        const User = require('../models/User'); // Ensure User model is available
+        const testimonials = await Testimonial.find({ is_visible: true })
+            .populate('user', 'name profileImage')
+            .sort({ time: -1, createdAt: -1 });
+
+        // For unlinked manual testimonials, try to find users by name for avatar updates
+        const unlinkedNames = [...new Set(testimonials.filter(t => !t.user && t.source === 'manual').map(t => t.author_name))];
+        const shadowUsers = await User.find({ name: { $in: unlinkedNames } }).select('name profileImage');
+        const userMap = shadowUsers.reduce((acc, u) => ({ ...acc, [u.name]: u.profileImage }), {});
+
+        const processedTestimonials = testimonials.map(t => {
+            const testimonial = t.toObject();
+            if (testimonial.user) {
+                testimonial.author_name = testimonial.user.name || testimonial.author_name;
+                testimonial.profile_photo_url = testimonial.user.profileImage || testimonial.profile_photo_url;
+            } else if (testimonial.source === 'manual' && userMap[testimonial.author_name]) {
+                testimonial.profile_photo_url = userMap[testimonial.author_name];
+            }
+            return testimonial;
+        });
+
+        res.status(200).json({ success: true, count: processedTestimonials.length, data: processedTestimonials });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }

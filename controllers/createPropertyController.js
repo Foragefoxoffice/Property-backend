@@ -21,6 +21,45 @@ function normalizeLocalized(val) {
   return { en: "", vi: "" };
 }
 
+// List of fields that MUST be localized objects {en, vi}
+const LOCALIZED_FIELDS = [
+  "listingInformationPropertyNo",
+  "listingInformationTransactionType",
+  "listingInformationProjectCommunity",
+  "listingInformationZoneSubArea",
+  "listingInformationPropertyTitle",
+  "listingInformationBlockName",
+  "listingInformationPropertyType",
+  "listingInformationGoogleMapsIframe",
+  "listingInformationAvailabilityStatus",
+  "informationUnit",
+  "informationFurnishing",
+  "informationView",
+  "whatNearbyDescription",
+  "propertyUtilityUnitName",
+  "financialDetailsTerms",
+  "financialDetailsDeposit",
+  "financialDetailsMainFee",
+  "financialDetailsContractLength",
+  "financialDetailsAgentPaymentAgenda",
+  "financialDetailsFeeTax",
+  "financialDetailsLegalDoc",
+  "contactManagementOwner",
+  "contactManagementOwnerNotes",
+  "contactManagementConsultant",
+  "contactManagementConnectingPoint",
+  "contactManagementConnectingPointNotes",
+  "contactManagementInternalNotes",
+  "contactManagementSource",
+  "metaTitle",
+  "metaDescription",
+  "slugUrl",
+  "canonicalUrl",
+  "schemaType",
+  "ogTitle",
+  "ogDescription"
+];
+
 function deepNormalizeLocalized(data) {
   if (!data || typeof data !== "object") return data;
 
@@ -38,6 +77,12 @@ function deepNormalizeLocalized(data) {
         en: Array.isArray(val.en) ? val.en : [],
         vi: Array.isArray(val.vi) ? val.vi : [],
       };
+      continue;
+    }
+
+    // If it's a known localized field, always normalize it
+    if (LOCALIZED_FIELDS.includes(key)) {
+      data[key] = normalizeLocalized(val);
       continue;
     }
 

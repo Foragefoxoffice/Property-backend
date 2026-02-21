@@ -223,6 +223,15 @@ exports.updateStaff = asyncHandler(async (req, res) => {
 
   if (staff) {
     console.log("✅ Staff updated successfully. New Staff Image:", staff.staffsImage);
+
+    // IF STATUS CHANGED TO INACTIVE, EMIT SOCKET EVENT FOR INSTANT LOGOUT
+    if (status === 'Inactive') {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('accountDeactivated', { userId: req.params.id });
+        console.log(`🔌 Deactivation event emitted for staff: ${req.params.id}`.red.bold);
+      }
+    }
   } else {
     console.log("❌ Staff update failed - staff not found");
   }
@@ -246,6 +255,14 @@ exports.deleteStaff = asyncHandler(async (req, res) => {
   }
 
   await staff.deleteOne();
+
+  // EMIT SOCKET EVENT FOR INSTANT LOGOUT
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('accountDeactivated', { userId: req.params.id });
+    console.log(`🔌 Deletion event emitted for staff: ${req.params.id}`.red.bold);
+  }
+
   res.status(200).json({
     success: true,
     message: "Staff deleted successfully",

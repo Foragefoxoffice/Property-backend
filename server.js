@@ -190,9 +190,12 @@ app.use((req, res, next) => {
 ========================================================= */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+const { checkInactive } = require("./middleware/auth");
+
 /* =========================================================
    🛣️ API Routes
 ========================================================= */
+app.use("/api/v1", checkInactive); // Global status check for all /api/v1 routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/project-community", projectCommunityRoutes);

@@ -6,7 +6,7 @@ const errorHandler = (err, req, res, next) => {
 
   // Log to console for dev
   if (!err.statusCode || err.statusCode === 500) {
-    console.error(err.stack.red);
+    console.error(err.stack?.red || err.message?.red);
   }
 
   // Mongoose bad ObjectId
@@ -26,6 +26,23 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === "ValidationError") {
     const message = Object.values(err.errors).map((val) => val.message);
     error = new ErrorResponse(message, 400);
+  }
+
+  // Handle specific technical errors from Mongoose
+  if (err.message && (
+    err.message.includes("Tried to set nested object field") ||
+    err.message.includes("to primitive value") ||
+    err.message.includes("Cast to object failed")
+  )) {
+    const message = "Invalid data format provided for some fields. Please check your input.";
+    error = new ErrorResponse(message, 400);
+  }
+
+  // Generic fallback message for unhandled 500 errors in production (if NODE_ENV is set)
+  if (!error.statusCode || error.statusCode === 500) {
+    if (process.env.NODE_ENV === "production") {
+      error.message = "An unexpected server error occurred. Please try again later.";
+    }
   }
 
   res.status(error.statusCode || 500).json({

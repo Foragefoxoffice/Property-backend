@@ -48,6 +48,10 @@ const testimonialSchema = new mongoose.Schema({
         type: String,
         unique: true,
         sparse: true
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 }, { timestamps: true });
 

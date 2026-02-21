@@ -22,7 +22,7 @@ exports.protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Check User collection first
     let user = await User.findById(decoded.id);
 
@@ -32,10 +32,11 @@ exports.protect = async (req, res, next) => {
       if (staff) {
         user = staff;
         // Normalize role for authorization middleware
-        user.role = staff.staffsRole?.en || 'staff'; 
-        // Normalize name/email for convenience if needed elsewhere
+        user.role = staff.staffsRole?.en || 'staff';
+        // Normalize name, email, and profileImage for consistency
         user.name = staff.staffsName?.en || "Staff";
         user.email = staff.staffsEmail;
+        user.profileImage = staff.staffsImage;
       }
     }
 
@@ -88,4 +89,42 @@ exports.requireVerifiedEmail = async (req, res, next) => {
     );
   }
   next();
+};
+
+// Middleware to check if user is inactive (even on public routes if token is provided)
+exports.checkInactive = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies.token) {
+    token = req.cookies.token;
+  }
+
+  if (!token) {
+    return next(); // Proceed as guest
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Quick status check from DB
+    const [user, staff] = await Promise.all([
+      User.findById(decoded.id).select('status'),
+      Staff.findById(decoded.id).select('status')
+    ]);
+
+    const activeUser = user || staff;
+
+    if (activeUser && activeUser.status === 'Inactive') {
+      return next(new ErrorResponse('Your account is Inactive. Please contact admin.', 401));
+    }
+
+    next();
+  } catch (err) {
+    next(); // Token invalid, proceed as guest
+  }
 };
