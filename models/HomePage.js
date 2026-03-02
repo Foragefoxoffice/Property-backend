@@ -393,6 +393,16 @@ const homePageSchema = new mongoose.Schema(
             maxlength: 200,
         },
 
+        // New Flat SEO Section
+        seo: {
+            focusKeyword: { type: String, default: "" },
+            title: { type: String, default: "" },
+            description: { type: String, default: "" },
+            slug: { type: String, default: "" },
+            canonicalUrl: { type: String, default: "" },
+            noIndex: { type: Boolean, default: false }
+        },
+
         // SEO Section
         homeSeoMetaTitle_en: {
             type: String,

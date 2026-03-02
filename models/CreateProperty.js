@@ -151,6 +151,16 @@ const CreatePropertySchema = new mongoose.Schema(
       checkOut: { type: Boolean, default: false },
     },
 
+    /* 🔍 New Flat SEO Information */
+    seo: {
+      focusKeyword: { type: String, default: "" },
+      title: { type: String, default: "" },
+      description: { type: String, default: "" },
+      slug: { type: String, default: "" },
+      canonicalUrl: { type: String, default: "" },
+      noIndex: { type: Boolean, default: false }
+    },
+
     /* 🔍 SEO Information */
     seoInformation: {
       metaTitle: LocalizedString,

@@ -38,6 +38,15 @@ const termsConditionsPageSchema = new mongoose.Schema(
             type: String,
             required: false,
         },
+        // New Flat SEO Fields
+        seo: {
+            focusKeyword: { type: String, default: "" },
+            title: { type: String, default: "" },
+            description: { type: String, default: "" },
+            slug: { type: String, default: "" },
+            canonicalUrl: { type: String, default: "" },
+            noIndex: { type: Boolean, default: false },
+        },
         // SEO Fields
         termsConditionSeoMetaTitle_en: { type: String, maxlength: 200 },
         termsConditionSeoMetaTitle_vn: { type: String, maxlength: 200 },

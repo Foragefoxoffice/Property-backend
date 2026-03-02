@@ -163,6 +163,16 @@ const contactPageSchema = new mongoose.Schema(
             required: false,
         },
 
+        // New Flat SEO Section
+        seo: {
+            focusKeyword: { type: String, default: "" },
+            title: { type: String, default: "" },
+            description: { type: String, default: "" },
+            slug: { type: String, default: "" },
+            canonicalUrl: { type: String, default: "" },
+            noIndex: { type: Boolean, default: false }
+        },
+
         // SEO Section
         contactSeoMetaTitle_en: {
             type: String,
