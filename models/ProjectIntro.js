@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
-const projectOverviewSchema = new mongoose.Schema(
+const projectIntroSchema = new mongoose.Schema(
     {
         // Overview Content (Multi-language, Rich Text)
-        projectOverviewContent: {
+        projectIntroContent: {
             en: {
                 type: String,
                 required: false,
@@ -24,7 +24,7 @@ const projectOverviewSchema = new mongoose.Schema(
         },
 
         // Image URL or Youtube Embed URL
-        projectOverviewVideo: {
+        projectIntroVideo: {
             type: String,
             required: false,
             trim: true,
@@ -35,4 +35,4 @@ const projectOverviewSchema = new mongoose.Schema(
     }
 );
 
-module.exports = mongoose.model("ProjectOverview", projectOverviewSchema);
+module.exports = mongoose.model("ProjectIntro", projectIntroSchema);

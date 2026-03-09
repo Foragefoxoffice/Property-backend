@@ -58,8 +58,10 @@ const privacyPolicyPageRoutes = require("./routes/privacyPolicyPageRoutes");
 const notificationSettingRoutes = require("./routes/notificationSettingRoutes");
 const testimonialRoutes = require("./routes/testimonialRoutes");
 const projectBannerRoutes = require("./routes/projectBannerRoutes");
-const projectOverviewRoutes = require("./routes/projectOverviewRoutes");
+const projectIntroRoutes = require("./routes/projectIntroRoutes");
 const projectPageRoutes = require("./routes/projectPageRoutes");
+const projectCategoryRoutes = require("./routes/projectCategoryRoutes");
+const projectMainRoutes = require("./routes/projectRoutes");
 
 
 // ===== Connect to MongoDB =====
@@ -237,8 +239,10 @@ app.use("/api/v1/privacy-policy-page", privacyPolicyPageRoutes);
 app.use("/api/v1/notification-settings", notificationSettingRoutes);
 app.use("/api/v1/testimonials", testimonialRoutes);
 app.use("/api/v1/project-banner", projectBannerRoutes);
-app.use("/api/v1/project-overview", projectOverviewRoutes);
+app.use("/api/v1/project-intro", projectIntroRoutes);
 app.use("/api/v1/project-page", projectPageRoutes);
+app.use("/api/v1/projects", projectMainRoutes);
+app.use("/api/v1/project-categories", projectCategoryRoutes);
 
 
 

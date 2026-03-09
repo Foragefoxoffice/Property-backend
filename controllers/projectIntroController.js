@@ -1,7 +1,7 @@
-const ProjectOverview = require("../models/ProjectOverview");
+const ProjectOverview = require("../models/ProjectIntro");
 
 // Get Project Overview
-const getProjectOverview = async (req, res) => {
+const getProjectIntro = async (req, res) => {
     try {
         const projectOverview = await ProjectOverview.findOne();
 
@@ -27,7 +27,7 @@ const getProjectOverview = async (req, res) => {
 };
 
 // Create Project Overview
-const createProjectOverview = async (req, res) => {
+const createProjectIntro = async (req, res) => {
     try {
         const existingOverview = await ProjectOverview.findOne();
 
@@ -57,7 +57,7 @@ const createProjectOverview = async (req, res) => {
 };
 
 // Update Project Overview
-const updateProjectOverview = async (req, res) => {
+const updateProjectIntro = async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -94,7 +94,7 @@ const updateProjectOverview = async (req, res) => {
 };
 
 module.exports = {
-    getProjectOverview,
-    createProjectOverview,
-    updateProjectOverview,
+    getProjectIntro,
+    createProjectIntro,
+    updateProjectIntro,
 };
