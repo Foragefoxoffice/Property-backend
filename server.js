@@ -57,6 +57,7 @@ const termsConditionsPageRoutes = require("./routes/termsConditionsPageRoutes");
 const privacyPolicyPageRoutes = require("./routes/privacyPolicyPageRoutes");
 const notificationSettingRoutes = require("./routes/notificationSettingRoutes");
 const testimonialRoutes = require("./routes/testimonialRoutes");
+const projectBannerRoutes = require("./routes/projectBannerRoutes");
 
 
 
@@ -236,6 +237,7 @@ app.use("/api/v1/terms-conditions-page", termsConditionsPageRoutes);
 app.use("/api/v1/privacy-policy-page", privacyPolicyPageRoutes);
 app.use("/api/v1/notification-settings", notificationSettingRoutes);
 app.use("/api/v1/testimonials", testimonialRoutes);
+app.use("/api/v1/project-banner", projectBannerRoutes);
 
 
 
