@@ -58,9 +58,8 @@ const privacyPolicyPageRoutes = require("./routes/privacyPolicyPageRoutes");
 const notificationSettingRoutes = require("./routes/notificationSettingRoutes");
 const testimonialRoutes = require("./routes/testimonialRoutes");
 const projectBannerRoutes = require("./routes/projectBannerRoutes");
-
-
-
+const projectOverviewRoutes = require("./routes/projectOverviewRoutes");
+const projectPageRoutes = require("./routes/projectPageRoutes");
 
 
 // ===== Connect to MongoDB =====
@@ -238,6 +237,8 @@ app.use("/api/v1/privacy-policy-page", privacyPolicyPageRoutes);
 app.use("/api/v1/notification-settings", notificationSettingRoutes);
 app.use("/api/v1/testimonials", testimonialRoutes);
 app.use("/api/v1/project-banner", projectBannerRoutes);
+app.use("/api/v1/project-overview", projectOverviewRoutes);
+app.use("/api/v1/project-page", projectPageRoutes);
 
 
 
