@@ -36,6 +36,10 @@ const projectSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        projectMainDescription: {
+            en: { type: String, required: false, trim: true },
+            vi: { type: String, required: false, trim: true },
+        },
 
         // Banner Section (Multi-language)
         projectBannerTitle: {
@@ -53,6 +57,10 @@ const projectSchema = new mongoose.Schema(
         },
 
         // Intro Section (Multi-language)
+        projectIntroTitle: {
+            en: { type: String, required: false, trim: true },
+            vi: { type: String, required: false, trim: true },
+        },
         projectIntroContent: {
             en: { type: String, required: false, trim: true },
             vi: { type: String, required: false, trim: true },

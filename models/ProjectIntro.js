@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 
 const projectIntroSchema = new mongoose.Schema(
     {
+        // Title Segment (Multi-language)
+        projectIntroTitle: {
+            en: { type: String, required: false, trim: true },
+            vi: { type: String, required: false, trim: true },
+        },
+
         // Overview Content (Multi-language, Rich Text)
         projectIntroContent: {
             en: {
