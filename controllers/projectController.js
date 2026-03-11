@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Project = require("../models/Project");
 const ProjectCategory = require("../models/ProjectCategory");
 const ErrorResponse = require("../utils/errorResponse");
@@ -33,11 +34,24 @@ exports.getAdminProjects = asyncHandler(async (req, res, next) => {
     });
 });
 
-// @desc      Get single project by ID
+// @desc      Get single project by ID or Slug
 // @route     GET /api/v1/projects/:id
-// @access    Private (Admin)
+// @access    Public
 exports.getProjectById = asyncHandler(async (req, res, next) => {
-    const project = await Project.findById(req.params.id).populate("category");
+    const idOrSlug = req.params.id;
+    let project;
+
+    // 1. Try finding by ID if it's a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(idOrSlug)) {
+        project = await Project.findById(idOrSlug).populate("category");
+    }
+
+    // 2. If not found by ID (or not a valid ID), try finding by slug
+    if (!project) {
+        project = await Project.findOne({
+            $or: [{ "slug.en": idOrSlug }, { "slug.vi": idOrSlug }],
+        }).populate("category");
+    }
 
     if (!project) {
         return next(new ErrorResponse("Project not found", 404));

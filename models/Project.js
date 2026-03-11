@@ -176,7 +176,7 @@ const projectSchema = new mongoose.Schema(
                 },
                 videos: [
                     {
-                projectVideoEmbeded: { type: String, required: false },
+                        projectVideoEmbeded: { type: String, required: false },
                     },
                 ],
             },
@@ -294,12 +294,24 @@ const projectSchema = new mongoose.Schema(
 
 // Pre-save hook to ensure slugs exist
 projectSchema.pre("save", function (next) {
-    if (this.title.en && !this.slug.en) {
+    // 1) Handle EN Slug
+    if (this.projectSeoSlugUrl_en) {
+        // If user manually entered an SEO slug, use it as the main slug
+        this.slug.en = this.projectSeoSlugUrl_en;
+    } else if (this.title.en && (!this.slug.en || this.isModified('title.en'))) {
+        // If no SEO slug but title exists, generate one if missing or title changed
         this.slug.en = generateSlug(this.title.en);
     }
-    if (this.title.vi && !this.slug.vi) {
+
+    // 2) Handle VI Slug
+    if (this.projectSeoSlugUrl_vn) {
+        // If user manually entered an SEO slug, use it as the main slug
+        this.slug.vi = this.projectSeoSlugUrl_vn;
+    } else if (this.title.vi && (!this.slug.vi || this.isModified('title.vi'))) {
+        // If no SEO slug but title exists, generate one if missing or title changed
         this.slug.vi = generateSlug(this.title.vi);
     }
+
     next();
 });
 
