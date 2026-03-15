@@ -35,7 +35,7 @@ const ownerRoutes = require("./routes/ownerRoutes");
 const staffRoutes = require("./routes/staffRoutes");
 const currencyRoutes = require("./routes/currencyRoutes");
 const blockRoutes = require("./routes/blockRoutes");
-const feeTaxRoutes = require("./routes/FeeTaxRoutes");
+const feeTaxRoutes = require("./routes/feeTaxRoutes");
 const legalDocumentRoutes = require("./routes/legalDocumentRoutes");
 const floorRangeRoutes = require("./routes/floorRangeRoutes");
 const propertyListingRoutes = require("./routes/propertyListingRoutes");
@@ -57,18 +57,12 @@ const termsConditionsPageRoutes = require("./routes/termsConditionsPageRoutes");
 const privacyPolicyPageRoutes = require("./routes/privacyPolicyPageRoutes");
 const notificationSettingRoutes = require("./routes/notificationSettingRoutes");
 const testimonialRoutes = require("./routes/testimonialRoutes");
-const projectBannerRoutes = require("./routes/projectBannerRoutes");
-const projectIntroRoutes = require("./routes/projectIntroRoutes");
-const projectPageRoutes = require("./routes/projectPageRoutes");
-const projectCategoryRoutes = require("./routes/projectCategoryRoutes");
-const projectMainRoutes = require("./routes/projectRoutes");
-
-
 // ===== Connect to MongoDB =====
 connectDB();
 
 // ===== Initialize App =====
 const app = express();
+
 
 // ===== Setup HTTP Server for Socket.IO =====
 const http = require("http");
@@ -80,6 +74,8 @@ const io = new Server(server, {
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
+      'http://localhost:3000',
+      'http://localhost:3001',
       "http://localhost:9002",
       "https://183-housingsolutions.vercel.app",
     ],
@@ -116,7 +112,7 @@ app.use(
   fileUpload({
     createParentPath: true,
     useTempFiles: false,
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB (videos stored as files, not in MongoDB)
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
   })
 );
 
@@ -126,11 +122,18 @@ app.use(
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow Postman/no-origin + your allowed frontends
       const allowedOrigins = [
         "http://localhost:5173",
         "http://localhost:5174",
+        "http://localhost:5175",
+        'http://localhost:3001',
+      "http://localhost:3000",
         "http://localhost:9002",
+
+        // ✅ FIXED DOMAIN
+        "https://dev.183housingsolutions.com",
+
+        "https://dev.placetest.in",
         "https://183-housingsolutions.vercel.app",
       ];
 
@@ -138,11 +141,13 @@ app.use(
         return callback(null, true);
       }
 
+      console.log("❌ CORS BLOCKED:", origin);
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
 );
+
 
 /* =========================================================
    🔐 Security Middleware
@@ -197,7 +202,7 @@ const { checkInactive } = require("./middleware/auth");
 /* =========================================================
    🛣️ API Routes
 ========================================================= */
-app.use("/api/v1", checkInactive); // Global status check for all /api/v1 routes
+app.use("/api/v1", checkInactive);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/project-community", projectCommunityRoutes);
@@ -238,13 +243,6 @@ app.use("/api/v1/terms-conditions-page", termsConditionsPageRoutes);
 app.use("/api/v1/privacy-policy-page", privacyPolicyPageRoutes);
 app.use("/api/v1/notification-settings", notificationSettingRoutes);
 app.use("/api/v1/testimonials", testimonialRoutes);
-app.use("/api/v1/project-banner", projectBannerRoutes);
-app.use("/api/v1/project-intro", projectIntroRoutes);
-app.use("/api/v1/project-page", projectPageRoutes);
-app.use("/api/v1/projects", projectMainRoutes);
-app.use("/api/v1/project-categories", projectCategoryRoutes);
-
-
 
 /* =========================================================
    🎯 Serve Frontend with Dynamic Meta Tags
@@ -254,15 +252,16 @@ app.use("/api/v1/project-categories", projectCategoryRoutes);
 ========================================================= */
 if (process.env.NODE_ENV === 'production' || process.env.SERVE_FRONTEND === 'true') {
   const metaTagMiddleware = require('./middleware/metaTagMiddleware');
-
+  
   console.log('🎯 Serving frontend with dynamic meta tag injection'.cyan.bold);
-
-  // Meta tag injection for crawlers (must be before static files to intercept root /)
+  
+    // Meta tag injection for crawlers (must be before static files to intercept root /)
   app.use(metaTagMiddleware);
-
+  
   // Serve static files from React build
   app.use(express.static(path.join(__dirname, '../Property-frontend/dist')));
-
+  
+  
   // Catch-all route - serve index.html for any non-API route
   // Use regex to match all routes except /api
   app.get(/^(?!\/api).*$/, (req, res) => {
@@ -280,27 +279,12 @@ app.use(errorHandler);
 ========================================================= */
 const PORT = process.env.PORT || 5000;
 
-mongoose.connection.once("open", async () => {
+mongoose.connection.once("open", () => {
   console.log(
     `✅ MongoDB Connected: ${mongoose.connection.host}:${mongoose.connection.port}`
       .green.bold
   );
-
-  // FIX: Drop stale index for favorites/enquiries if it exists (caused by schema change)
-  try {
-    await mongoose.connection.db.collection('favorites').dropIndex('user_1_property_1');
-    console.log('✅ Dropped stale index: user_1_property_1'.yellow);
-  } catch (e) {
-    // Index might not exist, ignore
-  }
-
-  // FIX: Drop stale index for testimonials if it exists
-  try {
-    await mongoose.connection.db.collection('testimonials').dropIndex('review_id_1');
-    console.log('✅ Dropped stale index: review_id_1'.yellow);
-  } catch (e) {
-    // Index might not exist, ignore
-  }
+  
 
   server.listen(PORT, () => {
     console.log(`🚀 Server running at http://localhost:${PORT}`.cyan.bold);
