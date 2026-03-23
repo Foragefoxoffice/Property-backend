@@ -100,7 +100,13 @@ app.set("io", io);
 /* =========================================================
    🌐 FIX: Allow direct browser open of http://localhost:5000/
 ========================================================= */
-app.get("/", (req, res) => {
+app.get("/", (req, res, next) => {
+  // Let crawlers (WhatsApp, Facebook, etc.) pass through to metaTagMiddleware
+  const userAgent = req.headers['user-agent'] || '';
+  const crawlerAgents = ['facebookexternalhit','Facebot','Twitterbot','WhatsApp','LinkedInBot','Slackbot','TelegramBot','Discordbot','Googlebot','bingbot','Applebot'];
+  const isCrawler = crawlerAgents.some(bot => userAgent.toLowerCase().includes(bot.toLowerCase()));
+  if (isCrawler || req.query.debug_seo === 'true') return next();
+
   res.status(200).json({
     success: true,
     message: "API Running 🚀",

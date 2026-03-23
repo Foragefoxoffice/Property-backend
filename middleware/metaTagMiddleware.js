@@ -45,58 +45,52 @@ async function fetchSEOData(reqPath) {
     // Home page
     if (reqPath === '/' || reqPath === '') {
       const data = await HomePage.findOne().lean();
-      if (data) {
-        return {
-          title: data.homeSeoOgTitle_en || '183 Housing Solutions',
-          description: data.homeSeoOgDescription_en || 'Find and manage properties easily.',
-          image: data.homeSeoOgImage,
-          url: reqPath,
-          type: 'website',
-        };
-      }
+      return {
+        title: data?.homeSeoOgTitle_en || data?.homeSeoMetaTitle_en || '183 Housing Solutions',
+        description: data?.homeSeoOgDescription_en || data?.homeSeoMetaDescription_en || 'Find and manage properties easily.',
+        image: data?.homeSeoOgImage,
+        url: reqPath,
+        type: 'website',
+      };
     }
 
     // About page
     else if (reqPath.startsWith('/about')) {
       const data = await AboutPage.findOne().lean();
-      if (data) {
-        return {
-          title: data.aboutSeoMetaTitle_en || 'About Us',
-          description: data.aboutSeoMetaDescription_en || '',
-          image: data.aboutSeoOgImage,
-          url: reqPath,
-          type: 'website',
-        };
-      }
+      return {
+        title: data?.aboutSeoOgTitle_en || data?.aboutSeoMetaTitle_en || 'About Us',
+        description: data?.aboutSeoOgDescription_en || data?.aboutSeoMetaDescription_en || '',
+        image: data?.aboutSeoOgImage,
+        url: reqPath,
+        type: 'website',
+      };
     }
 
     // Contact page
     else if (reqPath.startsWith('/contact')) {
       const data = await ContactPage.findOne().lean();
-      if (data) {
-        return {
-          title: data.contactSeoMetaTitle_en || 'Contact Us',
-          description: data.contactSeoMetaDescription_en || '',
-          image: data.contactSeoOgImage,
-          url: reqPath,
-          type: 'website',
-        };
-      }
+      return {
+        title: data?.contactSeoOgTitle_en || data?.contactSeoMetaTitle_en || 'Contact Us',
+        description: data?.contactSeoOgDescription_en || data?.contactSeoMetaDescription_en || '',
+        image: data?.contactSeoOgImage,
+        url: reqPath,
+        type: 'website',
+      };
     }
 
     // Blog listing page (/blogs)
     else if (reqPath === '/blogs') {
       const data = await BlogPage.findOne().lean();
       return {
-        title: data?.blogTitle?.en || 'Blog',
-        description: data?.blogDescription?.en || 'Read our latest articles and news.',
-        image: data?.blogBannerbg,
+        title: data?.blogSeoOgTitle_en || data?.blogSeoMetaTitle_en || data?.blogTitle?.en || 'Blog',
+        description: data?.blogSeoOgDescription_en || data?.blogSeoMetaDescription_en || data?.blogDescription?.en || 'Read our latest articles and news.',
+        image: data?.blogSeoOgImage || data?.blogBannerbg,
         url: reqPath,
         type: 'website',
       };
     }
 
-    // Blog detail page (/blogs/:slug) — fixed from /blog/:slug
+    // Blog detail page (/blogs/:slug)
     else if (reqPath.match(/^\/blogs\/[^/]+$/)) {
       const slug = reqPath.split('/blogs/')[1];
       const blog = await Blog.findOne({
@@ -110,8 +104,8 @@ async function fetchSEOData(reqPath) {
 
       if (blog) {
         return {
-          title: blog.seoInformation?.metaTitle?.en || blog.title?.en || 'Blog Post',
-          description: blog.seoInformation?.metaDescription?.en || '',
+          title: blog.seoInformation?.ogTitle?.en || blog.seoInformation?.metaTitle?.en || blog.title?.en || 'Blog Post',
+          description: blog.seoInformation?.ogDescription?.en || blog.seoInformation?.metaDescription?.en || '',
           image: blog.seoInformation?.ogImage || blog.mainImage,
           url: reqPath,
           type: 'article',
@@ -142,15 +136,13 @@ async function fetchSEOData(reqPath) {
     // Projects listing page (/projects)
     else if (reqPath === '/projects') {
       const data = await ProjectPage.findOne().lean();
-      if (data) {
-        return {
-          title: data.projectSeoMetaTitle_en || data.projectBannerTitle?.en || 'Projects',
-          description: data.projectSeoMetaDescription_en || data.projectBannerDesc?.en || 'Explore our property projects.',
-          image: data.projectSeoOgImage || data.projectBannerImages?.[0],
-          url: reqPath,
-          type: 'website',
-        };
-      }
+      return {
+        title: data?.projectSeoOgTitle_en || data?.projectSeoMetaTitle_en || data?.projectBannerTitle?.en || 'Projects',
+        description: data?.projectSeoOgDescription_en || data?.projectSeoMetaDescription_en || data?.projectBannerDesc?.en || 'Explore our property projects.',
+        image: data?.projectSeoOgImage || data?.projectBannerImages?.[0],
+        url: reqPath,
+        type: 'website',
+      };
     }
 
     // Project detail page (/projects/:slug)
@@ -190,29 +182,25 @@ async function fetchSEOData(reqPath) {
     // Terms & Conditions
     else if (reqPath.startsWith('/terms')) {
       const data = await TermsConditionsPage.findOne().lean();
-      if (data) {
-        return {
-          title: data.termsConditionSeoMetaTitle_en || 'Terms & Conditions',
-          description: data.termsConditionSeoMetaDescription_en || '',
-          image: data.termsConditionSeoOgImage,
-          url: reqPath,
-          type: 'website',
-        };
-      }
+      return {
+        title: data?.termsConditionSeoOgTitle_en || data?.termsConditionSeoMetaTitle_en || 'Terms & Conditions',
+        description: data?.termsConditionSeoOgDescription_en || data?.termsConditionSeoMetaDescription_en || '',
+        image: data?.termsConditionSeoOgImage,
+        url: reqPath,
+        type: 'website',
+      };
     }
 
     // Privacy Policy
     else if (reqPath.startsWith('/privacy')) {
       const data = await PrivacyPolicyPage.findOne().lean();
-      if (data) {
-        return {
-          title: data.privacyPolicySeoMetaTitle_en || 'Privacy Policy',
-          description: data.privacyPolicySeoMetaDescription_en || '',
-          image: data.privacyPolicySeoOgImage,
-          url: reqPath,
-          type: 'website',
-        };
-      }
+      return {
+        title: data?.privacyPolicySeoOgTitle_en || data?.privacyPolicySeoMetaTitle_en || 'Privacy Policy',
+        description: data?.privacyPolicySeoOgDescription_en || data?.privacyPolicySeoMetaDescription_en || '',
+        image: data?.privacyPolicySeoOgImage,
+        url: reqPath,
+        type: 'website',
+      };
     }
 
     return null;
@@ -224,32 +212,40 @@ async function fetchSEOData(reqPath) {
 
 // Build the absolute image URL
 function resolveImageUrl(image, seoUrl, baseUrl) {
-  const fallback = `${baseUrl}/images/favicon.png`;
+  const clean = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const fallback = `${clean}/images/favicon.png`;
 
-  if (!image) return fallback;
+  if (!image || image.trim() === '') return fallback;
 
   // Skip base64 strings
   if (image.length > 500 && !image.startsWith('http') && !image.startsWith('/')) {
     return fallback;
   }
 
+  // Already an absolute URL — force HTTPS
   if (image.startsWith('http')) {
     return image.replace(/^http:\/\//i, 'https://');
   }
 
-  // Bare filename — try to guess the uploads subfolder
-  if (!image.includes('/')) {
-    if (seoUrl.includes('about'))   image = `/uploads/aboutpage/${image}`;
-    else if (seoUrl.includes('contact')) image = `/uploads/contactpage/${image}`;
-    else if (seoUrl === '/' || seoUrl === '') image = `/uploads/homepage/${image}`;
-    else if (seoUrl.includes('terms'))   image = `/uploads/termsconditionspage/${image}`;
-    else if (seoUrl.includes('privacy')) image = `/uploads/privacypolicypage/${image}`;
-    else image = `/uploads/misc/${image}`;
+  // Add leading slash if missing (e.g. "uploads/aboutpage/file.jpg")
+  if (!image.startsWith('/')) {
+    image = `/${image}`;
   }
 
-  const clean = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  const cleanPath = image.startsWith('/') ? image : `/${image}`;
-  return `${clean}${cleanPath}`;
+  // Bare filename stored without subfolder — guess from page context
+  if (!image.includes('/', 1)) {
+    const filename = image.slice(1);
+    if (seoUrl.includes('about'))        image = `/uploads/aboutpage/${filename}`;
+    else if (seoUrl.includes('contact')) image = `/uploads/contactpage/${filename}`;
+    else if (seoUrl === '/' || seoUrl === '') image = `/uploads/homepage/${filename}`;
+    else if (seoUrl.includes('terms'))   image = `/uploads/termsconditionspage/${filename}`;
+    else if (seoUrl.includes('privacy')) image = `/uploads/privacypolicypage/${filename}`;
+    else if (seoUrl.includes('blog'))    image = `/uploads/misc/${filename}`;
+    else if (seoUrl.includes('project')) image = `/uploads/misc/${filename}`;
+    else                                 image = `/uploads/misc/${filename}`;
+  }
+
+  return `${clean}${image}`;
 }
 
 // Inject meta tags into the HTML string, replacing any existing ones
