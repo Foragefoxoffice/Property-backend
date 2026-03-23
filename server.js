@@ -84,6 +84,9 @@ const io = new Server(server, {
       'http://localhost:3000',
       'http://localhost:3001',
       "http://localhost:9002",
+      "https://183housingsolutions.com",
+      "https://www.183housingsolutions.com",
+      "https://dev.183housingsolutions.com",
       "https://183-housingsolutions.vercel.app",
     ],
     credentials: true,
@@ -144,6 +147,8 @@ app.use(
         "http://localhost:9002",
 
         // ✅ FIXED DOMAIN
+        "https://183housingsolutions.com",
+        "https://www.183housingsolutions.com",
         "https://dev.183housingsolutions.com",
 
         "https://dev.placetest.in",
