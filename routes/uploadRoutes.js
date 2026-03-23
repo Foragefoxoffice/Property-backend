@@ -38,9 +38,7 @@ router.post(
     const filePath = path.join(folderPath, fileName);
     await file.mv(filePath);
 
-    const fileUrl = `${req.protocol}://${req.get(
-      "host"
-    )}/uploads/${subfolder}/${fileName}`;
+    const fileUrl = `/uploads/${subfolder}/${fileName}`;
 
     res.json({ success: true, url: fileUrl });
   })
@@ -114,7 +112,7 @@ router.post(
     }
 
     // Generate URL
-    const fileUrl = `${req.protocol}://${req.get("host")}/uploads/properties/${subfolder}/${fileName}`;
+    const fileUrl = `/uploads/properties/${subfolder}/${fileName}`;
 
     console.log(`✅ Uploaded ${type}: ${fileName} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
 
