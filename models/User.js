@@ -86,6 +86,17 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/* Clean up date fields before validation to prevent empty object errors */
+userSchema.pre("validate", function (next) {
+  const dateFields = ["dob", "joiningDate", "createdAt", "updatedAt", "resetPasswordExpire"];
+  dateFields.forEach((field) => {
+    if (this[field] && typeof this[field] === "object" && !(this[field] instanceof Date) && Object.keys(this[field]).length === 0) {
+      this[field] = undefined;
+    }
+  });
+  next();
+});
+
 /* Pre-save hook to populate 'name' from parts if missing */
 userSchema.pre("save", async function (next) {
   // Auto-generate employeeId if not provided

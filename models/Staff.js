@@ -90,6 +90,17 @@ const StaffSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Clean up date fields before validation to prevent empty object errors
+StaffSchema.pre("validate", function (next) {
+  const dateFields = ["staffsDob", "staffsJoiningDate", "createdAt", "updatedAt", "resetPasswordExpire"];
+  dateFields.forEach((field) => {
+    if (this[field] && typeof this[field] === "object" && !(this[field] instanceof Date) && Object.keys(this[field]).length === 0) {
+      this[field] = undefined;
+    }
+  });
+  next();
+});
+
 // Encrypt password using bcrypt and auto-generate staffsId
 StaffSchema.pre("save", async function (next) {
   // Auto-generate staffsId if not provided

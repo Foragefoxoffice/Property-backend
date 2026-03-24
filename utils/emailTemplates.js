@@ -125,7 +125,7 @@ const getOTPTemplate = (otp, title = "Password Reset OTP") => {
     </div>
     <p>This code is <strong>valid for 30 minutes</strong>. If you did not request this code, please ignore this email or contact support if you have concerns.</p>
     <p>For your security, never share this code with anyone.</p>
-    <p>Best regards,<br>The ${process.env.FROM_NAME || 'Property Management'} Team</p>
+    <p>Best regards,<br><a href="${process.env.CLIENT_URL || '#'}">${process.env.FROM_NAME || 'Property Management'}</a> Team</p>
   `;
   return getEmailTemplate(title, content);
 };
