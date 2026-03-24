@@ -3,6 +3,7 @@ const NotificationSetting = require("../models/NotificationSetting");
 const ErrorResponse = require("../utils/errorResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const sendEmail = require("../utils/sendEmail");
+const { getNotificationTemplate } = require("../utils/emailTemplates");
 
 // @desc      Create a contact enquiry
 // @route     POST /api/v1/contact-enquiry
@@ -16,18 +17,20 @@ exports.createEnquiry = asyncHandler(async (req, res, next) => {
 
     if (recipientEmail) {
         try {
+            const detailsHtml = `
+                <p><strong>Name:</strong> ${enquiry.firstName} ${enquiry.lastName}</p>
+                <p><strong>Email:</strong> ${enquiry.email}</p>
+                <p><strong>Phone:</strong> ${enquiry.phone}</p>
+                <p><strong>Subject:</strong> ${enquiry.subject}</p>
+                <p><strong>Message:</strong></p>
+                <p>${enquiry.message}</p>
+            `;
+            const message = getNotificationTemplate(`New Contact Enquiry: ${enquiry.subject}`, detailsHtml);
+
             await sendEmail({
                 email: recipientEmail,
                 subject: `New Contact Enquiry: ${enquiry.subject}`,
-                message: `
-                    <h2>New Contact Enquiry Received</h2>
-                    <p><strong>Name:</strong> ${enquiry.firstName} ${enquiry.lastName}</p>
-                    <p><strong>Email:</strong> ${enquiry.email}</p>
-                    <p><strong>Phone:</strong> ${enquiry.phone}</p>
-                    <p><strong>Subject:</strong> ${enquiry.subject}</p>
-                    <p><strong>Message:</strong></p>
-                    <p>${enquiry.message}</p>
-                `
+                message
             });
             console.log(`📧 Notification email sent to ${recipientEmail}`);
         } catch (error) {

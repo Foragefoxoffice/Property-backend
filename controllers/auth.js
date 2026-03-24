@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Staff = require("../models/Staff");
 const generateToken = require("../utils/generateToken");
 const sendEmail = require("../utils/sendEmail");
+const { getCredentialsTemplate, getOTPTemplate } = require("../utils/emailTemplates");
 const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
@@ -24,7 +25,7 @@ exports.register = asyncHandler(async (req, res, next) => {
   ]);
 
   if (existingUser || existingStaff) {
-    return next(new ErrorResponse("Email already exists", 400));
+    return next(new ErrorResponse("This email address is already registered. Please use a different one or try logging in.", 400));
   }
 
   // Generate random password
@@ -55,21 +56,17 @@ exports.register = asyncHandler(async (req, res, next) => {
   });
 
   // Send credentials email
-  const message = `
-    <h2>Welcome ${name}</h2>
-    <p>Your account has been created successfully.</p>
-    <p><strong>Email:</strong> ${email}</p>
-    <p><strong>Password:</strong> ${rawPassword}</p>
-  `;
+  const message = getCredentialsTemplate(name, email, rawPassword, "Your Account credentials");
 
   try {
     await sendEmail({
       email: user.email,
-      subject: "Your Account Credentials",
+      subject: `Welcome to ${process.env.FROM_NAME || 'our Platform'}! Your Account is Ready`,
       message,
     });
     res.status(200).json({
       success: true,
+      message: "Account created successfully. User credentials have been sent via email.",
       data: {
         id: user._id,
         employeeId,
@@ -102,7 +99,7 @@ exports.userRegister = asyncHandler(async (req, res, next) => {
 
   // Check if passwords match
   if (password !== confirmPassword) {
-    return next(new ErrorResponse("Passwords do not match", 400));
+    return next(new ErrorResponse("The passwords you entered do not match. Please try again.", 400));
   }
 
   // Check if email already exists in either collection
@@ -112,7 +109,7 @@ exports.userRegister = asyncHandler(async (req, res, next) => {
   ]);
 
   if (existingUser || existingStaff) {
-    return next(new ErrorResponse("Email already exists", 400));
+    return next(new ErrorResponse("This email address is already registered. Please use a different one or try logging in.", 400));
   }
 
   // Create user with role 'user' and auto-generated employeeId
@@ -188,14 +185,14 @@ exports.login = asyncHandler(async (req, res, next) => {
   // If still not found
   if (!user) {
     console.log("🚫 No user or staff record found.");
-    return next(new ErrorResponse("Invalid credentials", 401));
+    return next(new ErrorResponse("We couldn't find an account with those details. Please check your credentials and try again.", 401));
   }
 
   // 3️⃣ Check Verification
   if (!user.isVerified) {
     console.log("⚠️ Account not verified.");
     return next(
-      new ErrorResponse("Your account is not verified. Please contact admin.", 401)
+      new ErrorResponse("Your account is not yet verified. Please contact our support team or administrator for assistance.", 401)
     );
   }
 
@@ -203,7 +200,7 @@ exports.login = asyncHandler(async (req, res, next) => {
   if (isStaff && user.status === 'Inactive') {
     console.log("⚠️ Account is Inactive.");
     return next(
-      new ErrorResponse("Your account is Inactive. Please contact admin.", 401)
+      new ErrorResponse("Your account is currently inactive. Please contact your administrator to reactivate it.", 401)
     );
   }
 
@@ -212,7 +209,7 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   if (!isMatch) {
     console.log("❌ Password mismatch");
-    return next(new ErrorResponse("Invalid credentials", 401));
+    return next(new ErrorResponse("The password you entered is incorrect. Please try again.", 401));
   }
 
   // 5️⃣ Generate Token
@@ -353,7 +350,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 
   if (!user) {
     console.log(`❌ ForgotPassword: No user or staff found with email: ${email}`);
-    return next(new ErrorResponse("No user found", 404));
+    return next(new ErrorResponse("We couldn't find an account associated with this email address.", 404));
   }
 
   console.log(`✅ ForgotPassword: Found user/staff for email ${email}`);
@@ -371,19 +368,15 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
     await User.findByIdAndUpdate(user._id, resetData);
   }
 
-  const message = `
-    <h2>Password Reset OTP</h2>
-    <p>Your OTP: <strong>${otp}</strong></p>
-    <p>Valid for 30 minutes.</p>
-  `;
+  const message = getOTPTemplate(otp, "Password Reset OTP");
 
   try {
     await sendEmail({
       email: user.email || user.staffsEmail,
-      subject: "Password Reset OTP",
+      subject: "Reset Your Password - Property Management",
       message,
     });
-    res.status(200).json({ success: true, message: "OTP sent to email" });
+    res.status(200).json({ success: true, message: "A verification code has been sent to your email address. It will be valid for 30 minutes." });
   } catch (err) {
     console.log(`❌ ForgotPassword Error sending email: ${err.message}`);
     const clearData = {
@@ -422,7 +415,7 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
 
   if (!user) {
     console.log(`❌ ResetPassword: No account found for email ${email}`);
-    return next(new ErrorResponse("Invalid or expired OTP", 400));
+    return next(new ErrorResponse("The verification code you provided is invalid or has expired. Please request a new one.", 400));
   }
 
   console.log(`✅ ResetPassword: Found ${foundIn} record. Checking OTP...`);
@@ -431,7 +424,7 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
 
   if (user.resetPasswordToken !== otp || !user.resetPasswordExpire || user.resetPasswordExpire < Date.now()) {
     console.log(`❌ ResetPassword: OTP mismatch or expired.`);
-    return next(new ErrorResponse("Invalid or expired OTP", 400));
+    return next(new ErrorResponse("The verification code you provided is invalid or has expired. Please request a new one.", 400));
   }
 
   console.log(`✅ ResetPassword: OTP verified for ${foundIn}. Updating password.`);
@@ -441,7 +434,7 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   user.resetPasswordExpire = undefined;
   await user.save();
 
-  res.status(200).json({ success: true, message: "Password reset successful" });
+  res.status(200).json({ success: true, message: "Your password has been successfully reset. You can now log in with your new password." });
 });
 
 /* =========================================================

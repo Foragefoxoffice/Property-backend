@@ -30,7 +30,7 @@ exports.createUser = asyncHandler(async (req, res, next) => {
     ]);
 
     if (existingUser || existingStaff) {
-      return next(new ErrorResponse("Email already exists", 400));
+      return next(new ErrorResponse("This email address is already registered. Please use a different one or try logging in.", 400));
     }
   }
 
@@ -59,7 +59,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
     ]);
 
     if (existingUser || existingStaff) {
-      return next(new ErrorResponse("Email already exists", 400));
+      return next(new ErrorResponse("This email address is already registered. Please use a different one or try logging in.", 400));
     }
   }
 

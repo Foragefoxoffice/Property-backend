@@ -3,6 +3,7 @@ const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const sendEmail = require("../utils/sendEmail");
+const { getCredentialsTemplate } = require("../utils/emailTemplates");
 const crypto = require("crypto");
 
 // ✅ Get all staffs
@@ -86,22 +87,11 @@ exports.createStaff = asyncHandler(async (req, res) => {
 
   // Send Email with password
   try {
-    const message = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #41398B;">Welcome to the Team, ${staffsName_en}!</h2>
-        <p>Your staff account has been created successfully. Below are your login credentials:</p>
-        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>Email:</strong> ${staffsEmail}</p>
-          <p style="margin: 5px 0;"><strong>Temporary Password:</strong> <span style="color: #41398B; font-size: 1.2em; font-weight: bold;">${rawPassword}</span></p>
-        </div>
-        <p>Please log in and change your password as soon as possible for security reasons.</p>
-        <p>Best regards,<br>The Management Team</p>
-      </div>
-    `;
+    const message = getCredentialsTemplate(staffsName_en, staffsEmail, rawPassword, "Your Staff Account Credentials");
 
     await sendEmail({
       email: staffsEmail,
-      subject: "Your Staff Account Credentials",
+      subject: `Welcome to the Team! Your Staff Account is Ready`,
       message: message,
     });
   } catch (err) {

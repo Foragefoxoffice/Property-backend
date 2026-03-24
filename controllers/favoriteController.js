@@ -3,6 +3,7 @@ const CreateProperty = require('../models/CreateProperty');
 const User = require('../models/User');
 const NotificationSetting = require('../models/NotificationSetting');
 const sendEmail = require('../utils/sendEmail');
+const { getNotificationTemplate } = require('../utils/emailTemplates');
 
 
 exports.addFavorite = async (req, res) => {
@@ -79,22 +80,27 @@ exports.addFavorite = async (req, res) => {
                     </li>
                 `).join('<hr>');
 
+                const detailsHtml = `
+                    <p><strong>From:</strong> ${userName}</p>
+                    <p><strong>Email:</strong> ${userEmail}</p>
+                    <p><strong>Phone:</strong> ${userPhone || 'N/A'}</p>
+                    <p><strong>Type:</strong> ${isFavoritesEnquiry ? 'Favorites List Inquiry' : 'Single Property Inquiry'}</p>
+                    <p><strong>Message:</strong> ${message || 'No message provided'}</p>
+                    <br>
+                    <h3>Inquired Properties:</h3>
+                    <ul>
+                        ${propertyListHtml}
+                    </ul>
+                `;
+                const emailBody = getNotificationTemplate(
+                    isFavoritesEnquiry ? `New Favorites Enquiry from ${userName}` : `New Property Inquiry from ${userName}`,
+                    detailsHtml
+                );
+
                 await sendEmail({
                     email: recipientEmail,
                     subject: isFavoritesEnquiry ? `New Favorites Enquiry from ${userName}` : `New Property Inquiry from ${userName}`,
-                    message: `
-                        <h2>New Enquiry Received</h2>
-                        <p><strong>From:</strong> ${userName}</p>
-                        <p><strong>Email:</strong> ${userEmail}</p>
-                        <p><strong>Phone:</strong> ${userPhone || 'N/A'}</p>
-                        <p><strong>Type:</strong> ${isFavoritesEnquiry ? 'Favorites List Inquiry' : 'Single Property Inquiry'}</p>
-                        <p><strong>Message:</strong> ${message || 'No message provided'}</p>
-                        <br>
-                        <h3>Inquired Properties:</h3>
-                        <ul>
-                            ${propertyListHtml}
-                        </ul>
-                    `
+                    message: emailBody
                 });
                 console.log(`📧 Notification email sent to ${recipientEmail} for ${isFavoritesEnquiry ? 'Favorites' : 'Property'} enquiry`);
             } catch (emailError) {
