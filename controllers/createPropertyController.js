@@ -290,7 +290,6 @@ exports.createProperty = asyncHandler(async (req, res) => {
 ========================================================= */
 exports.getProperties = asyncHandler(async (req, res) => {
   const properties = await CreateProperty.find()
-    .populate("createdBy")
     .sort({ createdAt: -1 })
     .allowDiskUse(true);
   res.status(200).json({
@@ -304,9 +303,7 @@ exports.getProperties = asyncHandler(async (req, res) => {
    🔍 GET SINGLE PROPERTY
 ========================================================= */
 exports.getProperty = asyncHandler(async (req, res) => {
-  const property = await CreateProperty.findById(req.params.id).populate(
-    "createdBy"
-  );
+  const property = await CreateProperty.findById(req.params.id);
 
   if (!property) throw new ErrorResponse("Property not found", 404);
 
@@ -775,9 +772,6 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'contactManagement.contactManagementOwnerPhone ' +
       'seoInformation.slugUrl '
     )
-    .populate("createdBy", "name email")
-    .populate("approvedBy", "name email")
-    .populate("sentBy", "name email")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
