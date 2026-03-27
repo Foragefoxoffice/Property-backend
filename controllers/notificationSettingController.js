@@ -13,7 +13,8 @@ exports.getNotificationSettings = asyncHandler(async (req, res, next) => {
         settings = await NotificationSetting.create({
             contactEnquiryEmail: process.env.SMTP_EMAIL || 'admin@example.com',
             favoritesEnquiryEmail: process.env.SMTP_EMAIL || 'admin@example.com',
-            propertyEnquiryEmail: process.env.SMTP_EMAIL || 'admin@example.com'
+            propertyEnquiryEmail: process.env.SMTP_EMAIL || 'admin@example.com',
+            projectEnquiryEmail: process.env.SMTP_EMAIL || 'admin@example.com'
         });
     }
 
