@@ -116,7 +116,7 @@ async function generateNextPropertyId(transactionType) {
       $regex: `^${prefix}\\d+$`,
     },
   })
-    .sort({ createdAt: -1 })
+    .sort({ "listingInformation.listingInformationPropertyId": -1 })
     .select("listingInformation.listingInformationPropertyId")
     .lean();
 
