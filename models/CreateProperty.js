@@ -153,11 +153,11 @@ const CreatePropertySchema = new mongoose.Schema(
 
     /* 🔍 New Flat SEO Information */
     seo: {
-      focusKeyword: { type: String, default: "" },
-      title: { type: String, default: "" },
-      description: { type: String, default: "" },
-      slug: { type: String, default: "" },
-      canonicalUrl: { type: String, default: "" },
+      focusKeyword: LocalizedString,
+      title: LocalizedString,
+      description: LocalizedString,
+      slug: LocalizedString,
+      canonicalUrl: LocalizedString,
       noIndex: { type: Boolean, default: false }
     },
 
@@ -196,12 +196,11 @@ const CreatePropertySchema = new mongoose.Schema(
 
 /* =========================================================
    📌 INDEXES
-========================================================= */
+ ========================================================= */
 CreatePropertySchema.index({ createdAt: -1 });
 CreatePropertySchema.index({ status: 1 });
 CreatePropertySchema.index({ "listingInformation.listingInformationTransactionType.en": 1 });
 CreatePropertySchema.index({ "listingInformation.listingInformationTransactionType.vi": 1 });
-CreatePropertySchema.index({ "listingInformation.listingInformationPropertyId": 1 });
 CreatePropertySchema.index({ "listingInformation.listingInformationPropertyNo.en": 1 });
 CreatePropertySchema.index({ "listingInformation.listingInformationPropertyNo.vi": 1 });
 CreatePropertySchema.index({ "listingInformation.listingInformationPropertyType.en": 1 });

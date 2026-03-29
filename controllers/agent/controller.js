@@ -28,15 +28,34 @@ const getAgent = async (req, res) => {
 const updateAgent = async (req, res) => {
     try {
         const data = req.body;
+        console.log('🔍 UPDATE AGENT: Incoming data keys:', Object.keys(data));
+        console.log('🔍 UPDATE AGENT: data.createdAt type:', typeof data.createdAt, JSON.stringify(data.createdAt));
 
         let agent = await Agent.findOne();
+        console.log('🔍 UPDATE AGENT: Loaded agent ID:', agent?._id);
+        console.log('🔍 UPDATE AGENT: Loaded agent createdAt:', agent?.createdAt);
 
         if (!agent) {
             // Create new agent if doesn't exist
             agent = await Agent.create(data);
         } else {
-            // Update existing agent by assigning all fields
-            Object.assign(agent, data);
+            // Update existing agent by only assigning allowed fields
+            const { 
+                agentImage, 
+                agentNumber, 
+                agentEmail, 
+                agentZaloLink, 
+                agentMessengerLink, 
+                agentWhatsappLink 
+            } = data;
+            
+            if (agentImage !== undefined) agent.agentImage = agentImage;
+            if (agentNumber !== undefined) agent.agentNumber = agentNumber;
+            if (agentEmail !== undefined) agent.agentEmail = agentEmail;
+            if (agentZaloLink !== undefined) agent.agentZaloLink = agentZaloLink;
+            if (agentMessengerLink !== undefined) agent.agentMessengerLink = agentMessengerLink;
+            if (agentWhatsappLink !== undefined) agent.agentWhatsappLink = agentWhatsappLink;
+            
             await agent.save();
         }
 

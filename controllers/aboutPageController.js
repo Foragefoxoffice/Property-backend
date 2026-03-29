@@ -1,14 +1,16 @@
 const AboutPage = require("../models/AboutPage");
+const { getLocalizedMessage } = require("../utils/localize");
 
 // Get About Page
 const getAboutPage = async (req, res) => {
     try {
+        const lang = req.headers["accept-language"] || "en";
         const aboutPage = await AboutPage.findOne();
 
         if (!aboutPage) {
             return res.status(404).json({
                 success: false,
-                message: "About page not found",
+                message: getLocalizedMessage("not_found", lang),
             });
         }
 
@@ -18,9 +20,10 @@ const getAboutPage = async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching about page:", error);
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to fetch about page",
+            message: getLocalizedMessage("failed_to_fetch", lang),
             error: error.message,
         });
     }
@@ -29,13 +32,14 @@ const getAboutPage = async (req, res) => {
 // Create About Page
 const createAboutPage = async (req, res) => {
     try {
+        const lang = req.headers["accept-language"] || "en";
         // Check if about page already exists
         const existingPage = await AboutPage.findOne();
 
         if (existingPage) {
             return res.status(400).json({
                 success: false,
-                message: "About page already exists. Use update instead.",
+                message: getLocalizedMessage("already_exists", lang),
             });
         }
 
@@ -43,21 +47,15 @@ const createAboutPage = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: "About page created successfully",
+            message: getLocalizedMessage("created_successfully", lang),
             data: aboutPage,
         });
     } catch (error) {
         console.error("Error creating about page:", error);
-
-        // Provide more specific error messages
-        let errorMessage = "Failed to create about page";
-        if (error.name === 'ValidationError') {
-            errorMessage = `Validation error: ${error.message}`;
-        }
-
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: errorMessage,
+            message: getLocalizedMessage("failed_to_create", lang),
             error: error.message,
         });
     }
@@ -66,6 +64,7 @@ const createAboutPage = async (req, res) => {
 // Update About Page
 const updateAboutPage = async (req, res) => {
     try {
+        const lang = req.headers["accept-language"] || "en";
         const { id } = req.params;
 
         const aboutPage = await AboutPage.findByIdAndUpdate(
@@ -80,27 +79,21 @@ const updateAboutPage = async (req, res) => {
         if (!aboutPage) {
             return res.status(404).json({
                 success: false,
-                message: "About page not found",
+                message: getLocalizedMessage("not_found", lang),
             });
         }
 
         res.status(200).json({
             success: true,
-            message: "About page updated successfully",
+            message: getLocalizedMessage("updated_successfully", lang),
             data: aboutPage,
         });
     } catch (error) {
         console.error("Error updating about page:", error);
-
-        // Provide more specific error messages
-        let errorMessage = "Failed to update about page";
-        if (error.name === 'ValidationError') {
-            errorMessage = `Validation error: ${error.message}`;
-        }
-
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: errorMessage,
+            message: getLocalizedMessage("failed_to_update", lang),
             error: error.message,
         });
     }
@@ -109,10 +102,11 @@ const updateAboutPage = async (req, res) => {
 // Upload About Page Image
 const uploadAboutPageImage = async (req, res) => {
     try {
+        const lang = req.headers["accept-language"] || "en";
         if (!req.files || !req.files.image) {
             return res.status(400).json({
                 success: false,
-                message: "No file uploaded",
+                message: getLocalizedMessage("no_file_uploaded", lang),
             });
         }
 
@@ -123,7 +117,7 @@ const uploadAboutPageImage = async (req, res) => {
         if (!allowedTypes.includes(file.mimetype)) {
             return res.status(400).json({
                 success: false,
-                message: "Only image files are allowed (JPEG, PNG, GIF, WebP, SVG)",
+                message: getLocalizedMessage("invalid_file_type", lang),
             });
         }
 
@@ -132,7 +126,7 @@ const uploadAboutPageImage = async (req, res) => {
         if (file.size > maxSize) {
             return res.status(400).json({
                 success: false,
-                message: "File size must be less than 5MB",
+                message: getLocalizedMessage("file_too_large", lang),
             });
         }
 
@@ -153,7 +147,7 @@ const uploadAboutPageImage = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Image uploaded successfully",
+            message: getLocalizedMessage("file_uploaded", lang),
             data: {
                 url: fileUrl,
                 filename: fileName,
@@ -161,9 +155,10 @@ const uploadAboutPageImage = async (req, res) => {
         });
     } catch (error) {
         console.error("Error uploading image:", error);
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to upload image",
+            message: getLocalizedMessage("failed_to_update", lang), // Or localized failed_to_upload
             error: error.message,
         });
     }

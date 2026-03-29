@@ -25,7 +25,10 @@ exports.register = asyncHandler(async (req, res, next) => {
   ]);
 
   if (existingUser || existingStaff) {
-    return next(new ErrorResponse("This email address is already registered. Please use a different one or try logging in.", 400));
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Địa chỉ email này đã được đăng ký. Vui lòng sử dụng một địa chỉ khác hoặc thử đăng nhập."
+      : "This email address is already registered. Please use a different one or try logging in.";
+    return next(new ErrorResponse(message, 400));
   }
 
   // Generate random password
@@ -99,7 +102,10 @@ exports.userRegister = asyncHandler(async (req, res, next) => {
 
   // Check if passwords match
   if (password !== confirmPassword) {
-    return next(new ErrorResponse("The passwords you entered do not match. Please try again.", 400));
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Mật khẩu bạn đã nhập không khớp. Vui lòng thử lại."
+      : "The passwords you entered do not match. Please try again.";
+    return next(new ErrorResponse(message, 400));
   }
 
   // Check if email already exists in either collection
@@ -109,7 +115,10 @@ exports.userRegister = asyncHandler(async (req, res, next) => {
   ]);
 
   if (existingUser || existingStaff) {
-    return next(new ErrorResponse("This email address is already registered. Please use a different one or try logging in.", 400));
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Địa chỉ email này đã được đăng ký. Vui lòng sử dụng một địa chỉ khác hoặc thử đăng nhập."
+      : "This email address is already registered. Please use a different one or try logging in.";
+    return next(new ErrorResponse(message, 400));
   }
 
   // Create user with role 'user' and auto-generated employeeId
@@ -185,7 +194,10 @@ exports.login = asyncHandler(async (req, res, next) => {
   // If still not found
   if (!user) {
     console.log("🚫 No user or staff record found.");
-    return next(new ErrorResponse("We couldn't find an account with those details. Please check your credentials and try again.", 401));
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Chúng tôi không tìm thấy tài khoản với những chi tiết này. Vui lòng kiểm tra lại thông tin và thử lại."
+      : "We couldn't find an account with those details. Please check your credentials and try again.";
+    return next(new ErrorResponse(message, 401));
   }
 
   // 3️⃣ Check Verification
@@ -209,7 +221,10 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   if (!isMatch) {
     console.log("❌ Password mismatch");
-    return next(new ErrorResponse("The password you entered is incorrect. Please try again.", 401));
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Mật khẩu bạn nhập không đúng. Vui lòng thử lại."
+      : "The password you entered is incorrect. Please try again.";
+    return next(new ErrorResponse(message, 401));
   }
 
   // 5️⃣ Generate Token
@@ -322,17 +337,26 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
   }
 
   if (req.body.currentPassword === req.body.newPassword) {
-    return next(new ErrorResponse("New password cannot be the same as the current password", 400));
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Mật khẩu mới không được trùng với mật khẩu hiện tại"
+      : "New password cannot be the same as the current password";
+    return next(new ErrorResponse(message, 400));
   }
 
   if (!(await user.matchPassword(req.body.currentPassword))) {
-    return next(new ErrorResponse("The current password you entered is incorrect", 400));
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Mật khẩu hiện tại bạn đã nhập không đúng"
+      : "The current password you entered is incorrect";
+    return next(new ErrorResponse(message, 400));
   }
   user.password = req.body.newPassword;
   await user.save();
+  const message = (req.headers["accept-language"] === "vi")
+    ? "Mật khẩu đã được cập nhật thành công"
+    : "Password updated successfully";
   res
     .status(200)
-    .json({ success: true, message: "Password updated successfully" });
+    .json({ success: true, message });
 });
 
 /* =========================================================

@@ -1,4 +1,5 @@
 const ProjectOverview = require("../models/ProjectIntro");
+const { getLocalizedMessage } = require("../utils/localize");
 
 // Get Project Overview
 const getProjectIntro = async (req, res) => {
@@ -18,9 +19,10 @@ const getProjectIntro = async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching project overview:", error);
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to fetch project overview",
+            message: getLocalizedMessage("failed_to_fetch", lang),
             error: error.message,
         });
     }
@@ -32,25 +34,27 @@ const createProjectIntro = async (req, res) => {
         const existingOverview = await ProjectOverview.findOne();
 
         if (existingOverview) {
+            const lang = req.headers["accept-language"] || "en";
             return res.status(400).json({
                 success: false,
-                message: "Project overview already exists. Use update instead.",
+                message: getLocalizedMessage("already_exists", lang),
             });
         }
 
         const projectOverview = await ProjectOverview.create(req.body);
 
+        const lang = req.headers["accept-language"] || "en";
         res.status(201).json({
             success: true,
-            message: "Project overview created successfully",
+            message: getLocalizedMessage("created_successfully", lang),
             data: projectOverview,
         });
     } catch (error) {
         console.error("Error creating project overview:", error);
-
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to create project overview",
+            message: getLocalizedMessage("failed_to_create", lang),
             error: error.message,
         });
     }
@@ -71,23 +75,25 @@ const updateProjectIntro = async (req, res) => {
         );
 
         if (!projectOverview) {
+            const lang = req.headers["accept-language"] || "en";
             return res.status(404).json({
                 success: false,
-                message: "Project overview not found",
+                message: getLocalizedMessage("not_found", lang),
             });
         }
 
+        const lang = req.headers["accept-language"] || "en";
         res.status(200).json({
             success: true,
-            message: "Project overview updated successfully",
+            message: getLocalizedMessage("updated_successfully", lang),
             data: projectOverview,
         });
     } catch (error) {
         console.error("Error updating project overview:", error);
-
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to update project overview",
+            message: getLocalizedMessage("failed_to_update", lang),
             error: error.message,
         });
     }

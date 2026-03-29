@@ -1,4 +1,5 @@
 const HomePage = require("../models/HomePage");
+const { getLocalizedMessage } = require("../utils/localize");
 
 /**
  * @desc    Get home page content
@@ -7,12 +8,13 @@ const HomePage = require("../models/HomePage");
  */
 exports.getHomePage = async (req, res) => {
     try {
+        const lang = req.headers["accept-language"] || "en";
         const homePage = await HomePage.findOne().sort({ createdAt: -1 });
 
         if (!homePage) {
             return res.status(404).json({
                 success: false,
-                message: "No home page content found",
+                message: getLocalizedMessage("not_found", lang),
             });
         }
 
@@ -22,9 +24,10 @@ exports.getHomePage = async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching home page:", error);
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to fetch home page",
+            message: getLocalizedMessage("failed_to_fetch", lang),
             error: error.message,
         });
     }
@@ -37,6 +40,7 @@ exports.getHomePage = async (req, res) => {
  */
 exports.createHomePage = async (req, res) => {
     try {
+        const lang = req.headers["accept-language"] || "en";
         const {
             heroTitle_en,
             heroDescription_en,
@@ -90,14 +94,15 @@ exports.createHomePage = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: "Home page created successfully",
+            message: getLocalizedMessage("created_successfully", lang),
             data: homePage,
         });
     } catch (error) {
         console.error("Error creating home page:", error);
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to create home page",
+            message: getLocalizedMessage("failed_to_create", lang),
             error: error.message,
         });
     }
@@ -110,12 +115,13 @@ exports.createHomePage = async (req, res) => {
  */
 exports.updateHomePage = async (req, res) => {
     try {
+        const lang = req.headers["accept-language"] || "en";
         const homePage = await HomePage.findById(req.params.id);
 
         if (!homePage) {
             return res.status(404).json({
                 success: false,
-                message: "Home page not found",
+                message: getLocalizedMessage("not_found", lang),
             });
         }
 
@@ -130,14 +136,15 @@ exports.updateHomePage = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Home page updated successfully",
+            message: getLocalizedMessage("updated_successfully", lang),
             data: updatedHomePage,
         });
     } catch (error) {
         console.error("Error updating home page:", error);
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to update home page",
+            message: getLocalizedMessage("failed_to_update", lang),
             error: error.message,
         });
     }
@@ -150,10 +157,11 @@ exports.updateHomePage = async (req, res) => {
  */
 exports.uploadHomePageImage = async (req, res) => {
     try {
+        const lang = req.headers["accept-language"] || "en";
         if (!req.files || !req.files.image) {
             return res.status(400).json({
                 success: false,
-                message: "No file uploaded",
+                message: getLocalizedMessage("no_file_uploaded", lang),
             });
         }
 
@@ -164,7 +172,7 @@ exports.uploadHomePageImage = async (req, res) => {
         if (!allowedTypes.includes(file.mimetype)) {
             return res.status(400).json({
                 success: false,
-                message: "Only image files are allowed (JPEG, PNG, GIF, WebP, SVG)",
+                message: getLocalizedMessage("invalid_file_type", lang),
             });
         }
 
@@ -173,7 +181,7 @@ exports.uploadHomePageImage = async (req, res) => {
         if (file.size > maxSize) {
             return res.status(400).json({
                 success: false,
-                message: "File size must be less than 5MB",
+                message: getLocalizedMessage("file_too_large", lang),
             });
         }
 
@@ -194,7 +202,7 @@ exports.uploadHomePageImage = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Image uploaded successfully",
+            message: getLocalizedMessage("file_uploaded", lang),
             data: {
                 url: fileUrl,
                 filename: fileName,
@@ -202,9 +210,10 @@ exports.uploadHomePageImage = async (req, res) => {
         });
     } catch (error) {
         console.error("Error uploading image:", error);
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to upload image",
+            message: getLocalizedMessage("failed_to_update", lang), // Or localized failed_to_upload
             error: error.message,
         });
     }

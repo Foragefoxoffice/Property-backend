@@ -1,4 +1,5 @@
 const ProjectBanner = require("../models/ProjectBanner");
+const { getLocalizedMessage } = require("../utils/localize");
 
 // Get Project Banner
 const getProjectBanner = async (req, res) => {
@@ -18,9 +19,10 @@ const getProjectBanner = async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching project banner:", error);
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to fetch project banner",
+            message: getLocalizedMessage("failed_to_fetch", lang),
             error: error.message,
         });
     }
@@ -32,30 +34,27 @@ const createProjectBanner = async (req, res) => {
         const existingBanner = await ProjectBanner.findOne();
 
         if (existingBanner) {
+            const lang = req.headers["accept-language"] || "en";
             return res.status(400).json({
                 success: false,
-                message: "Project banner already exists. Use update instead.",
+                message: getLocalizedMessage("already_exists", lang),
             });
         }
 
         const projectBanner = await ProjectBanner.create(req.body);
 
+        const lang = req.headers["accept-language"] || "en";
         res.status(201).json({
             success: true,
-            message: "Project banner created successfully",
+            message: getLocalizedMessage("created_successfully", lang),
             data: projectBanner,
         });
     } catch (error) {
         console.error("Error creating project banner:", error);
-
-        let errorMessage = "Failed to create project banner";
-        if (error.name === "ValidationError") {
-            errorMessage = `Validation error: ${error.message}`;
-        }
-
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: errorMessage,
+            message: getLocalizedMessage("failed_to_create", lang),
             error: error.message,
         });
     }
@@ -76,28 +75,25 @@ const updateProjectBanner = async (req, res) => {
         );
 
         if (!projectBanner) {
+            const lang = req.headers["accept-language"] || "en";
             return res.status(404).json({
                 success: false,
-                message: "Project banner not found",
+                message: getLocalizedMessage("not_found", lang),
             });
         }
 
+        const lang = req.headers["accept-language"] || "en";
         res.status(200).json({
             success: true,
-            message: "Project banner updated successfully",
+            message: getLocalizedMessage("updated_successfully", lang),
             data: projectBanner,
         });
     } catch (error) {
         console.error("Error updating project banner:", error);
-
-        let errorMessage = "Failed to update project banner";
-        if (error.name === "ValidationError") {
-            errorMessage = `Validation error: ${error.message}`;
-        }
-
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: errorMessage,
+            message: getLocalizedMessage("failed_to_update", lang),
             error: error.message,
         });
     }

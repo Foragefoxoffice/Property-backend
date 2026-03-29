@@ -57,11 +57,20 @@ const LOCALIZED_FIELDS = [
   "canonicalUrl",
   "schemaType",
   "ogTitle",
-  "ogDescription"
+  "ogDescription",
+  "focusKeyword",
+  "title",
+  "description",
+  "slug"
 ];
 
 function deepNormalizeLocalized(data) {
   if (!data || typeof data !== "object") return data;
+
+  // ⚠️ CRITICAL: Do NOT recurse into Date or ObjectId instances
+  if (data instanceof Date || data instanceof mongoose.Types.ObjectId) {
+    return data;
+  }
 
   // Handle arrays
   if (Array.isArray(data)) {
@@ -136,8 +145,9 @@ async function generateNextPropertyId(transactionType) {
  * @param {Object} propertyNo - {en, vi}
  * @param {Object|String} transactionType - {en, vi} or string
  * @param {String} excludeId - ID to exclude (for updates)
+ * @param {String} lang - language preference (en/vi)
  */
-async function validatePropertyNoUnique(propertyNo, transactionType, excludeId = null) {
+async function validatePropertyNoUnique(propertyNo, transactionType, excludeId = null, lang = "en") {
   if (!propertyNo || (!propertyNo.en && !propertyNo.vi)) return;
 
   const transTypeEn = transactionType?.en || transactionType;
@@ -172,10 +182,10 @@ async function validatePropertyNoUnique(propertyNo, transactionType, excludeId =
   const existingProperty = await CreateProperty.findOne(query);
 
   if (existingProperty) {
-    throw new ErrorResponse(
-      `Property No "${propNoEn || propNoVi}" already exists in the ${transTypeEn} section.`,
-      400
-    );
+    const message = lang === "vi"
+      ? `Mã căn "${propNoVi || propNoEn}" đã tồn tại trong phần ${transTypeVi}.`
+      : `Property No "${propNoEn || propNoVi}" already exists in the ${transTypeEn} section.`;
+    throw new ErrorResponse(message, 400);
   }
 }
 
@@ -223,8 +233,12 @@ exports.createProperty = asyncHandler(async (req, res) => {
         body.listingInformation?.listingInformationTransactionType?.en ||
         body.listingInformation?.listingInformationTransactionType;
 
-      if (!transactionType)
-        throw new ErrorResponse("Transaction type is required", 400);
+      if (!transactionType) {
+        const message = (req.headers["accept-language"] === "vi")
+          ? "Loại giao dịch là bắt buộc"
+          : "Transaction type is required";
+        throw new ErrorResponse(message, 400);
+      }
 
       const propertyId = await generateNextPropertyId(transactionType);
       body.listingInformation.listingInformationPropertyId = propertyId;
@@ -256,7 +270,9 @@ exports.createProperty = asyncHandler(async (req, res) => {
     // ✅ Check for unique Property No within Transaction Type
     await validatePropertyNoUnique(
       body.listingInformation?.listingInformationPropertyNo,
-      body.listingInformation?.listingInformationTransactionType
+      body.listingInformation?.listingInformationTransactionType,
+      null,
+      req.headers["accept-language"] || "en"
     );
 
     const newProperty = await CreateProperty.create({
@@ -305,7 +321,12 @@ exports.getProperties = asyncHandler(async (req, res) => {
 exports.getProperty = asyncHandler(async (req, res) => {
   const property = await CreateProperty.findById(req.params.id);
 
-  if (!property) throw new ErrorResponse("Property not found", 404);
+  if (!property) {
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Không tìm thấy bất động sản"
+      : "Property not found";
+    throw new ErrorResponse(message, 404);
+  }
 
   res.status(200).json({
     success: true,
@@ -347,7 +368,8 @@ exports.updateProperty = asyncHandler(async (req, res) => {
   await validatePropertyNoUnique(
     body.listingInformation?.listingInformationPropertyNo,
     body.listingInformation?.listingInformationTransactionType,
-    id
+    id,
+    req.headers["accept-language"] || "en"
   );
 
   const property = await CreateProperty.findByIdAndUpdate(
@@ -356,8 +378,12 @@ exports.updateProperty = asyncHandler(async (req, res) => {
     { new: true, runValidators: true }
   );
 
-  if (!property)
-    throw new ErrorResponse(`Resource not found with id of ${id}`, 404);
+  if (!property) {
+    const message = (req.headers["accept-language"] === "vi")
+      ? `Không tìm thấy tài nguyên với id ${id}`
+      : `Resource not found with id of ${id}`;
+    throw new ErrorResponse(message, 404);
+  }
 
   res.status(200).json({
     success: true,
@@ -374,7 +400,12 @@ exports.getPropertyByPropertyId = asyncHandler(async (req, res) => {
     "listingInformation.listingInformationPropertyId": req.params.propertyId,
   });
 
-  if (!property) throw new ErrorResponse("Property not found", 404);
+  if (!property) {
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Không tìm thấy bất động sản"
+      : "Property not found";
+    throw new ErrorResponse(message, 404);
+  }
 
   res.status(200).json({
     success: true,
@@ -387,7 +418,12 @@ exports.getPropertyByPropertyId = asyncHandler(async (req, res) => {
 ========================================================= */
 exports.deleteProperty = asyncHandler(async (req, res) => {
   const property = await CreateProperty.findById(req.params.id);
-  if (!property) throw new ErrorResponse("Property not found", 404);
+  if (!property) {
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Không tìm thấy bất động sản"
+      : "Property not found";
+    throw new ErrorResponse(message, 404);
+  }
 
   property.status = "Archived";
   await property.save();
@@ -404,7 +440,12 @@ exports.deleteProperty = asyncHandler(async (req, res) => {
 exports.permanentlyDeleteProperty = asyncHandler(async (req, res) => {
   const property = await CreateProperty.findById(req.params.id);
 
-  if (!property) throw new ErrorResponse("Property not found", 404);
+  if (!property) {
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Không tìm thấy bất động sản"
+      : "Property not found";
+    throw new ErrorResponse(message, 404);
+  }
 
   await property.deleteOne();
 
@@ -469,7 +510,9 @@ exports.copyPropertyToSale = asyncHandler(async (req, res) => {
   // ✅ Check for unique Property No in Target Section
   await validatePropertyNoUnique(
     newData.listingInformation?.listingInformationPropertyNo,
-    "Sale"
+    "Sale",
+    null,
+    req.headers["accept-language"] || "en"
   );
 
   const newProperty = await CreateProperty.create(newData);
@@ -510,7 +553,9 @@ exports.copyPropertyToLease = asyncHandler(async (req, res) => {
   // ✅ Check for unique Property No in Target Section
   await validatePropertyNoUnique(
     newData.listingInformation?.listingInformationPropertyNo,
-    "Lease"
+    "Lease",
+    null,
+    req.headers["accept-language"] || "en"
   );
 
   const newProperty = await CreateProperty.create(newData);
@@ -551,7 +596,9 @@ exports.copyPropertyToHomeStay = asyncHandler(async (req, res) => {
   // ✅ Check for unique Property No in Target Section
   await validatePropertyNoUnique(
     newData.listingInformation?.listingInformationPropertyNo,
-    "Home Stay"
+    "Home Stay",
+    null,
+    req.headers["accept-language"] || "en"
   );
 
   const newProperty = await CreateProperty.create(newData);
@@ -565,13 +612,19 @@ exports.copyPropertyToHomeStay = asyncHandler(async (req, res) => {
 
 exports.restoreProperty = asyncHandler(async (req, res) => {
   const property = await CreateProperty.findById(req.params.id);
-  if (!property) throw new ErrorResponse("Property not found", 404);
+  if (!property) {
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Không tìm thấy bất động sản"
+      : "Property not found";
+    throw new ErrorResponse(message, 404);
+  }
 
   // ✅ Check for unique Property No before restoring
   await validatePropertyNoUnique(
     property.listingInformation?.listingInformationPropertyNo,
     property.listingInformation?.listingInformationTransactionType,
-    property._id
+    property._id,
+    req.headers["accept-language"] || "en"
   );
 
   property.status = "Draft"; // or "Published" if you want
@@ -590,7 +643,10 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   let { type, page = 1, limit = 10, trashMode } = req.query;
 
   if (!type && trashMode !== "true") {
-    throw new ErrorResponse("Transaction type (type) is required", 400);
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Loại giao dịch (type) là bắt buộc"
+      : "Transaction type (type) is required";
+    throw new ErrorResponse(message, 400);
   }
 
   page = parseInt(page);
@@ -1279,10 +1335,13 @@ exports.validatePropertyNo = asyncHandler(async (req, res) => {
   }
 
   if (!transactionType) {
-    throw new ErrorResponse("Transaction type is required", 400);
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Loại giao dịch là bắt buộc"
+      : "Transaction type is required";
+    throw new ErrorResponse(message, 400);
   }
 
-  await validatePropertyNoUnique(propertyNo, transactionType, excludeId);
+  await validatePropertyNoUnique(propertyNo, transactionType, excludeId, req.headers["accept-language"] || "en");
 
   res.status(200).json({
     success: true,

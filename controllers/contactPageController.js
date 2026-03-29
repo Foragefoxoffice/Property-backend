@@ -1,4 +1,5 @@
 const ContactPage = require("../models/ContactPage");
+const { getLocalizedMessage } = require("../utils/localize");
 
 // Get Contact Page
 const getContactPage = async (req, res) => {
@@ -6,9 +7,10 @@ const getContactPage = async (req, res) => {
         const contactPage = await ContactPage.findOne();
 
         if (!contactPage) {
+            const lang = req.headers["accept-language"] || "en";
             return res.status(404).json({
                 success: false,
-                message: "Contact page not found",
+                message: getLocalizedMessage("not_found", lang),
             });
         }
 
@@ -18,9 +20,10 @@ const getContactPage = async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching contact page:", error);
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to fetch contact page",
+            message: getLocalizedMessage("failed_to_fetch", lang),
             error: error.message,
         });
     }
@@ -33,31 +36,27 @@ const createContactPage = async (req, res) => {
         const existingPage = await ContactPage.findOne();
 
         if (existingPage) {
+            const lang = req.headers["accept-language"] || "en";
             return res.status(400).json({
                 success: false,
-                message: "Contact page already exists. Use update instead.",
+                message: getLocalizedMessage("already_exists", lang),
             });
         }
 
         const contactPage = await ContactPage.create(req.body);
 
+        const lang = req.headers["accept-language"] || "en";
         res.status(201).json({
             success: true,
-            message: "Contact page created successfully",
+            message: getLocalizedMessage("created_successfully", lang),
             data: contactPage,
         });
     } catch (error) {
         console.error("Error creating contact page:", error);
-
-        // Provide more specific error messages
-        let errorMessage = "Failed to create contact page";
-        if (error.name === 'ValidationError') {
-            errorMessage = `Validation error: ${error.message}`;
-        }
-
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: errorMessage,
+            message: getLocalizedMessage("failed_to_create", lang),
             error: error.message,
         });
     }
@@ -78,29 +77,25 @@ const updateContactPage = async (req, res) => {
         );
 
         if (!contactPage) {
+            const lang = req.headers["accept-language"] || "en";
             return res.status(404).json({
                 success: false,
-                message: "Contact page not found",
+                message: getLocalizedMessage("not_found", lang),
             });
         }
 
+        const lang = req.headers["accept-language"] || "en";
         res.status(200).json({
             success: true,
-            message: "Contact page updated successfully",
+            message: getLocalizedMessage("updated_successfully", lang),
             data: contactPage,
         });
     } catch (error) {
         console.error("Error updating contact page:", error);
-
-        // Provide more specific error messages
-        let errorMessage = "Failed to update contact page";
-        if (error.name === 'ValidationError') {
-            errorMessage = `Validation error: ${error.message}`;
-        }
-
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: errorMessage,
+            message: getLocalizedMessage("failed_to_update", lang),
             error: error.message,
         });
     }
@@ -150,10 +145,11 @@ const uploadContactPageImage = async (req, res) => {
         await file.mv(filePath);
 
         const fileUrl = `/uploads/contactpage/${fileName}`;
+        const lang = req.headers["accept-language"] || "en";
 
         res.status(200).json({
             success: true,
-            message: "Image uploaded successfully",
+            message: getLocalizedMessage("file_uploaded", lang),
             data: {
                 url: fileUrl,
                 filename: fileName,
@@ -161,9 +157,10 @@ const uploadContactPageImage = async (req, res) => {
         });
     } catch (error) {
         console.error("Error uploading image:", error);
+        const lang = req.headers["accept-language"] || "en";
         res.status(500).json({
             success: false,
-            message: "Failed to upload image",
+            message: getLocalizedMessage("failed_to_update", lang),
             error: error.message,
         });
     }
