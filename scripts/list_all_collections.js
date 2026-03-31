@@ -2,15 +2,12 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const connectDB = require('../config/db');
 
-async function listCounts() {
+async function listAll() {
   try {
     await connectDB();
     const collections = await mongoose.connection.db.listCollections().toArray();
-    console.log('--- COLLECTION COUNTS ---');
-    for (const coll of collections) {
-      const count = await mongoose.connection.db.collection(coll.name).countDocuments();
-      console.log(`${coll.name}: ${count}`);
-    }
+    console.log('--- ALL COLLECTIONS ---');
+    console.log(collections.map(c => c.name));
     process.exit(0);
   } catch (err) {
     console.error('Error:', err);
@@ -18,4 +15,4 @@ async function listCounts() {
   }
 }
 
-listCounts();
+listAll();
