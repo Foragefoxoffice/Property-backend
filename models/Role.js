@@ -44,6 +44,11 @@ const roleSchema = new mongoose.Schema({
             privacyPolicy: permissionSchema,
             blogBanner: permissionSchema
         },
+        projects: {
+            category: permissionSchema,
+            projectCms: permissionSchema,
+            projectEnquiries: permissionSchema
+        },
         blogs: {
             category: permissionSchema,
             blogCms: permissionSchema,
