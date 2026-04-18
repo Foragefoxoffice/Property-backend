@@ -47,7 +47,7 @@ exports.addFavorite = async (req, res) => {
         const populatedFavorite = await Favorite.findById(favorite._id)
             .populate({
                 path: 'properties',
-                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight financialDetails.financialDetailsCurrency listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea propertyInformation.informationBedrooms propertyInformation.informationBathrooms propertyInformation.informationUnitSize whatNearby.whatNearbyDescription'
+                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight financialDetails.financialDetailsCurrency listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea propertyInformation.informationBedrooms propertyInformation.informationBathrooms propertyInformation.informationUnitSize whatNearby.whatNearbyDescription financialVisibility titleVisibility listingInformationVisibility'
             });
 
         // Emit Socket.IO event for real-time notification
@@ -129,7 +129,7 @@ exports.getFavorites = async (req, res) => {
         const favorites = await Favorite.find({ user: userId })
             .populate({
                 path: 'properties',
-                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight financialDetails.financialDetailsCurrency listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea whatNearby.whatNearbyDescription'
+                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight financialDetails.financialDetailsCurrency listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea whatNearby.whatNearbyDescription financialVisibility titleVisibility listingInformationVisibility'
             })
             .sort({ createdAt: -1 });
 
@@ -146,7 +146,7 @@ exports.getAllEnquiries = async (req, res) => {
         const favorites = await Favorite.find({})
             .populate({
                 path: 'properties',
-                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight financialDetails.financialDetailsCurrency listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea propertyInformation.informationBedrooms propertyInformation.informationBathrooms propertyInformation.informationUnitSize whatNearby.whatNearbyDescription'
+                select: 'imagesVideos.propertyImages listingInformation.listingInformationPropertyTitle listingInformation.listingInformationPropertyId listingInformation.listingInformationDateListed financialDetails.financialDetailsPrice financialDetails.financialDetailsLeasePrice financialDetails.financialDetailsPricePerNight financialDetails.financialDetailsCurrency listingInformation.listingInformationTransactionType listingInformation.listingInformationProjectCommunity listingInformation.listingInformationZoneSubArea propertyInformation.informationBedrooms propertyInformation.informationBathrooms propertyInformation.informationUnitSize whatNearby.whatNearbyDescription financialVisibility titleVisibility listingInformationVisibility'
             })
             .sort({ createdAt: -1 });
 

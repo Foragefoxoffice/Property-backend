@@ -826,7 +826,16 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'financialDetails.financialDetailsPricePerNight ' +
       'contactManagement.contactManagementOwner ' +
       'contactManagement.contactManagementOwnerPhone ' +
-      'seoInformation.slugUrl '
+      'seoInformation.slugUrl ' +
+      'financialVisibility ' +
+      'titleVisibility ' +
+      'listingInformationVisibility ' +
+      'propertyInformationVisibility ' +
+      'descriptionVisibility ' +
+      'whatNearbyVisibility ' +
+      'propertyUtilityVisibility ' +
+      'videoVisibility ' +
+      'floorImageVisibility '
     )
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -958,7 +967,16 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
       'financialDetails.financialDetailsPricePerNight ' +
       'contactManagement.contactManagementOwner ' +
       'contactManagement.contactManagementOwnerPhone ' +
-      'seoInformation.slugUrl '
+      'seoInformation.slugUrl ' +
+      'financialVisibility ' +
+      'titleVisibility ' +
+      'listingInformationVisibility ' +
+      'propertyInformationVisibility ' +
+      'descriptionVisibility ' +
+      'whatNearbyVisibility ' +
+      'propertyUtilityVisibility ' +
+      'videoVisibility ' +
+      'floorImageVisibility '
     )
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -1233,6 +1251,16 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
         'whatNearby.whatNearbyDescription': 1,
         // ⚡ CRITICAL: Only get first image at DB level
         'imagesVideos.propertyImages': { $slice: ['$imagesVideos.propertyImages', 1] },
+        // Visibility Settings (CRITICAL for frontend hide/show logic)
+        listingInformationVisibility: 1,
+        propertyInformationVisibility: 1,
+        titleVisibility: 1,
+        descriptionVisibility: 1,
+        whatNearbyVisibility: 1,
+        propertyUtilityVisibility: 1,
+        videoVisibility: 1,
+        floorImageVisibility: 1,
+        financialVisibility: 1,
         // SEO Info for URL Construction
         'seoInformation.slugUrl': 1
       }

@@ -40,7 +40,29 @@ const sanitizeInput = (req, res, next) => {
       }
 
       if (typeof val === 'string') {
-        obj[key] = xss(val);
+        // ✅ Allow 'style' attribute for rich text fields (e.g. colors, alignment)
+        obj[key] = xss(val, {
+          whiteList: {
+            ...xss.whiteList,
+            span: ['style'],
+            p: ['style'],
+            div: ['style'],
+            li: ['style'],
+            ul: ['style'],
+            ol: ['style'],
+            h1: ['style'],
+            h2: ['style'],
+            h3: ['style'],
+            h4: ['style'],
+            h5: ['style'],
+            h6: ['style'],
+            a: ['href', 'title', 'target', 'style', 'rel'],
+            img: ['src', 'alt', 'title', 'width', 'height', 'style'],
+            blockquote: ['style'],
+            pre: ['style'],
+            code: ['style'],
+          }
+        });
       } else if (typeof val === 'object' && val !== null) {
         sanitize(val);
       }
