@@ -5,6 +5,7 @@ const ZoneSubArea = require("../models/ZoneSubArea");
 const Owner = require("../models/Owner");
 const Role = require("../models/Role");
 const mongoose = require("mongoose");
+const { sanitizeProperty } = require("../utils/propertySanitizer");
 
 /* =========================================================
    🧰 Helpers: Localized Fields
@@ -307,11 +308,15 @@ exports.createProperty = asyncHandler(async (req, res) => {
 exports.getProperties = asyncHandler(async (req, res) => {
   const properties = await CreateProperty.find()
     .sort({ createdAt: -1 })
-    .allowDiskUse(true);
+    .allowDiskUse(true)
+    .lean();
+
+  const sanitizedProperties = sanitizeProperty(properties, req.user);
+
   res.status(200).json({
     success: true,
-    count: properties.length,
-    data: properties,
+    count: sanitizedProperties.length,
+    data: sanitizedProperties,
   });
 });
 
@@ -328,9 +333,11 @@ exports.getProperty = asyncHandler(async (req, res) => {
     throw new ErrorResponse(message, 404);
   }
 
+  const sanitizedProperty = sanitizeProperty(property, req.user);
+
   res.status(200).json({
     success: true,
-    data: property,
+    data: sanitizedProperty,
   });
 });
 
@@ -407,9 +414,11 @@ exports.getPropertyByPropertyId = asyncHandler(async (req, res) => {
     throw new ErrorResponse(message, 404);
   }
 
+  const sanitizedProperty = sanitizeProperty(property, req.user);
+
   res.status(200).json({
     success: true,
-    data: property,
+    data: sanitizedProperty,
   });
 });
 
@@ -1244,9 +1253,6 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
         'propertyInformation.informationFloors': 1,
         'propertyInformation.informationFurnishing': 1,
         'propertyInformation.informationView': 1,
-        // Contact Management
-        'contactManagement.contactManagementOwner': 1,
-        'contactManagement.contactManagementOwnerPhone': 1,
         // Description
         'whatNearby.whatNearbyDescription': 1,
         // ⚡ CRITICAL: Only get first image at DB level
@@ -1283,56 +1289,12 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
   const total = result[0]?.metadata[0]?.total || 0;
   const properties = result[0]?.data || [];
 
-  // 🔄 FALLBACK: If owner phone is missing on property, fetch it from Owner model (Migration support)
-  const propertiesToFix = properties.filter(
-    (p) =>
-      p.contactManagement?.contactManagementOwner &&
-      (!p.contactManagement.contactManagementOwnerPhone ||
-        p.contactManagement.contactManagementOwnerPhone.length === 0)
-  );
-
-  if (propertiesToFix.length > 0) {
-    const ownerNames = [];
-    propertiesToFix.forEach(p => {
-      if (p.contactManagement.contactManagementOwner.en) ownerNames.push(p.contactManagement.contactManagementOwner.en);
-      if (p.contactManagement.contactManagementOwner.vi) ownerNames.push(p.contactManagement.contactManagementOwner.vi);
-    });
-
-    const owners = await Owner.find({
-      $or: [
-        { "ownerName.en": { $in: ownerNames } },
-        { "ownerName.vi": { $in: ownerNames } }
-      ]
-    })
-      .select("ownerName phoneNumbers")
-      .lean();
-
-    const ownerMap = owners.reduce((acc, o) => {
-      if (o.ownerName?.en) acc[o.ownerName.en] = o.phoneNumbers;
-      if (o.ownerName?.vi) acc[o.ownerName.vi] = o.phoneNumbers;
-      return acc;
-    }, {});
-
-    properties.forEach((p) => {
-      if (
-        p.contactManagement?.contactManagementOwner &&
-        (!p.contactManagement.contactManagementOwnerPhone ||
-          p.contactManagement.contactManagementOwnerPhone.length === 0)
-      ) {
-        const nameEn = p.contactManagement.contactManagementOwner.en;
-        const nameVi = p.contactManagement.contactManagementOwner.vi;
-        if (nameEn && ownerMap[nameEn]) {
-          p.contactManagement.contactManagementOwnerPhone = ownerMap[nameEn];
-        } else if (nameVi && ownerMap[nameVi]) {
-          p.contactManagement.contactManagementOwnerPhone = ownerMap[nameVi];
-        }
-      }
-    });
-  }
+  // Sanitize properties before sending
+  const sanitizedProperties = sanitizeProperty(properties, req.user);
 
   // Log performance metrics
-  if (properties.length > 0) {
-    const firstProp = properties[0];
+  if (sanitizedProperties.length > 0) {
+    const firstProp = sanitizedProperties[0];
     const imageCount = firstProp.imagesVideos?.propertyImages?.length || 0;
   }
 
@@ -1348,7 +1310,7 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     total,
     totalPages: Math.ceil(total / limit),
     count: properties.length,
-    data: properties,
+    data: sanitizedProperties,
   });
 });
 

@@ -26,6 +26,11 @@ const favoriteSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    status: {
+        type: String,
+        enum: ['pending', 'resolved', 'cancelled'],
+        default: 'pending'
+    },
     createdAt: {
         type: Date,
         default: Date.now

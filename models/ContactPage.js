@@ -156,6 +156,18 @@ const contactPageSchema = new mongoose.Schema(
             trim: true,
             maxlength: 1000,
         },
+        contactReachOutGetinButtonText_en: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 100,
+        },
+        contactReachOutGetinButtonText_vn: {
+            type: String,
+            required: false,
+            trim: true,
+            maxlength: 100,
+        },
 
         // Map Section
         contactMapIframe: {
