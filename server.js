@@ -150,7 +150,7 @@ app.use(
         "https://183housingsolutions.com",
         "https://www.183housingsolutions.com",
         "https://dev.183housingsolutions.com",
-
+"http://localhost:3000",
         "https://dev.placetest.in",
         "https://183-housingsolutions.vercel.app",
       ];
