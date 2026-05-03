@@ -88,6 +88,8 @@ const io = new Server(server, {
       "https://www.183housingsolutions.com",
       "https://dev.183housingsolutions.com",
       "https://183-housingsolutions.vercel.app",
+      "https://admin.183housingsolutions.com",
+      "https://www.admin.183housingsolutions.com",
     ],
     credentials: true,
   },
@@ -111,7 +113,7 @@ app.set("io", io);
 app.get("/", (req, res, next) => {
   // Let crawlers (WhatsApp, Facebook, etc.) pass through to metaTagMiddleware
   const userAgent = req.headers['user-agent'] || '';
-  const crawlerAgents = ['facebookexternalhit','Facebot','Twitterbot','WhatsApp','LinkedInBot','Slackbot','TelegramBot','Discordbot','Googlebot','bingbot','Applebot'];
+  const crawlerAgents = ['facebookexternalhit', 'Facebot', 'Twitterbot', 'WhatsApp', 'LinkedInBot', 'Slackbot', 'TelegramBot', 'Discordbot', 'Googlebot', 'bingbot', 'Applebot'];
   const isCrawler = crawlerAgents.some(bot => userAgent.toLowerCase().includes(bot.toLowerCase()));
   if (isCrawler || req.query.debug_seo === 'true') return next();
 
@@ -143,16 +145,18 @@ app.use(
         "http://localhost:5174",
         "http://localhost:5175",
         'http://localhost:3001',
-      "http://localhost:3000",
+        "http://localhost:3000",
         "http://localhost:9002",
 
         // ✅ FIXED DOMAIN
         "https://183housingsolutions.com",
         "https://www.183housingsolutions.com",
         "https://dev.183housingsolutions.com",
-"http://localhost:3000",
+        "http://localhost:3000",
         "https://dev.placetest.in",
         "https://183-housingsolutions.vercel.app",
+        "https://admin.183housingsolutions.com",
+        "https://www.admin.183housingsolutions.com",
       ];
 
       if (!origin || allowedOrigins.includes(origin)) {
@@ -276,16 +280,16 @@ app.use("/api/v1/project-intro", projectIntroRoutes);
 ========================================================= */
 if (process.env.NODE_ENV === 'production' || process.env.SERVE_FRONTEND === 'true') {
   const metaTagMiddleware = require('./middleware/metaTagMiddleware');
-  
+
   console.log('🎯 Serving frontend with dynamic meta tag injection'.cyan.bold);
-  
-    // Meta tag injection for crawlers (must be before static files to intercept root /)
+
+  // Meta tag injection for crawlers (must be before static files to intercept root /)
   app.use(metaTagMiddleware);
-  
+
   // Serve static files from React build
   app.use(express.static(path.join(__dirname, '../Property-frontend/dist')));
-  
-  
+
+
   // Catch-all route - serve index.html for any non-API route
   // Use regex to match all routes except /api
   app.get(/^(?!\/api).*$/, (req, res) => {
@@ -308,7 +312,7 @@ mongoose.connection.once("open", () => {
     `✅ MongoDB Connected: ${mongoose.connection.host}:${mongoose.connection.port}`
       .green.bold
   );
-  
+
 
   server.listen(PORT, () => {
     console.log(`🚀 Server running at http://localhost:${PORT}`.cyan.bold);
