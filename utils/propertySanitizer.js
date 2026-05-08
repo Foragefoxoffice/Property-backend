@@ -8,7 +8,8 @@
  */
 const sanitizeProperty = (data, user) => {
   // If user is admin/superadmin, don't sanitize (or sanitize less)
-  const isAdmin = user && (user.role === 'admin' || user.role === 'super admin');
+  const role = user?.role?.toLowerCase() || '';
+  const isAdmin = role === 'admin' || role === 'super admin' || role === 'superadmin';
   
   if (isAdmin) {
     return data;

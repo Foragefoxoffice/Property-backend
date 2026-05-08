@@ -57,6 +57,50 @@ exports.protect = async (req, res, next) => {
   }
 };
 
+// Populate req.user if token exists, but don't require it (for public/admin shared routes)
+exports.optionalProtect = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies.token) {
+    token = req.cookies.token;
+  }
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check User collection first
+    let user = await User.findById(decoded.id);
+
+    // If not found, check Staff collection
+    if (!user) {
+      const staff = await Staff.findById(decoded.id);
+      if (staff) {
+        user = staff;
+        user.role = staff.staffsRole?.en || 'staff';
+        user.name = staff.staffsName?.en || "Staff";
+      }
+    }
+
+    if (user && user.status !== 'Inactive') {
+      req.user = user;
+    }
+    
+    next();
+  } catch (err) {
+    // If token is invalid, just proceed as guest
+    next();
+  }
+};
+
 // Grant access to specific roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {

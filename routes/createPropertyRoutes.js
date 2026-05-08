@@ -20,7 +20,7 @@ const {
 
 const { bulkUploadProperties } = require("../controllers/bulkUploadController");
 
-const { protect } = require("../middleware/auth");
+const { protect, optionalProtect } = require("../middleware/auth");
 
 const router = express.Router();
 console.log("🔥 createPropertyRoutes.js LOADED");
@@ -28,7 +28,7 @@ console.log("🔥 createPropertyRoutes.js LOADED");
 // ✅ GET NEXT PROPERTY ID FIRST!
 router.get("/next-id", getNextPropertyId);
 router.post("/validate-property-no", validatePropertyNo);
-router.get("/pid/:propertyId", getPropertyByPropertyId);
+router.get("/pid/:propertyId", optionalProtect, getPropertyByPropertyId);
 router.delete("/permanent-delete/:id", protect, permanentlyDeleteProperty);
 
 // Copy Property Routes
@@ -41,16 +41,16 @@ router.put("/restore/:id", protect, restoreProperty);
 router.post("/bulk-upload", protect, bulkUploadProperties);
 
 // ✅ Main Property Routes
-router.route("/").get(getProperties).post(protect, createProperty);
+router.route("/").get(optionalProtect, getProperties).post(protect, createProperty);
 
-router.get("/transaction", getPropertiesByTransactionType);
-router.get("/trash", getTrashProperties);
-router.get("/listing", getListingProperties); // New optimized listing API
+router.get("/transaction", optionalProtect, getPropertiesByTransactionType);
+router.get("/trash", protect, getTrashProperties);
+router.get("/listing", optionalProtect, getListingProperties); // New optimized listing API
 
 
 router
   .route("/:id")
-  .get(getProperty)
+  .get(optionalProtect, getProperty)
   .put(protect, updateProperty)
   .delete(protect, deleteProperty);
 
