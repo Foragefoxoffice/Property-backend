@@ -7,43 +7,58 @@
  * @returns {Object|Array} - The sanitized data.
  */
 const sanitizeProperty = (data, user) => {
-  // If user is admin/superadmin, don't sanitize (or sanitize less)
-  const role = user?.role?.toLowerCase() || '';
-  const isAdmin = role === 'admin' || role === 'super admin' || role === 'superadmin';
-  
-  if (isAdmin) {
-    return data;
-  }
+  const role = user?.role?.toLowerCase() || "";
+  const isAdmin =
+    role === "admin" || role === "super admin" || role === "superadmin";
 
   const performSanitization = (property) => {
     // If it's a Mongoose document, convert to object
     const p = property.toObject ? property.toObject() : { ...property };
 
-    // 1. Remove Contact Management (Landlord info)
+    // =========================================================
+    // 🔒 ALWAYS HIDE (Private Data - requested for all users)
+    // =========================================================
+
+    // 1. Remove Contact Management (Landlord info & Agent Fee)
     delete p.contactManagement;
 
-    // 2. Remove Internal Tracking Fields
-    delete p.createdBy;
-    delete p.createdByName;
-    delete p.approvedBy;
-    delete p.approvedByName;
-    delete p.sentBy;
-    delete p.sentByName;
-    delete p.approvedDate;
-    delete p.sentDate;
+    // 2. Remove Private Listing Information
+    if (p.listingInformation) {
+      delete p.listingInformation.listingInformationPropertyNo;
+      delete p.listingInformation.listingInformationAvailableFrom;
+      delete p.listingInformation.listingInformationAvailabilityStatus;
+    }
 
-    // 3. Remove Internal Financial Details
+    // 3. Remove Internal Financial Details (Agent Fee & Agenda)
     if (p.financialDetails) {
       delete p.financialDetails.financialDetailsAgentFee;
       delete p.financialDetails.financialDetailsAgentPaymentAgenda;
-      delete p.financialDetails.financialDetailsFeeTax; // Often internal tax info
-      delete p.financialDetails.financialDetailsLegalDoc; // Link to internal documents
-      delete p.financialDetails.financialDetailsInternalNotes;
     }
 
-    // 4. Remove Internal Status / Notes
-    delete p.internalNotes;
-    delete p.statusHistory;
+    // =========================================================
+    // 🛡️ HIDE FOR NON-ADMINS ONLY
+    // =========================================================
+    if (!isAdmin) {
+      // Internal Tracking Fields
+      delete p.createdBy;
+      delete p.createdByName;
+      delete p.approvedBy;
+      delete p.approvedByName;
+      delete p.sentBy;
+      delete p.sentByName;
+      delete p.approvedDate;
+      delete p.sentDate;
+
+      // Internal Status / Notes
+      delete p.internalNotes;
+      delete p.statusHistory;
+
+      if (p.financialDetails) {
+        delete p.financialDetails.financialDetailsFeeTax;
+        delete p.financialDetails.financialDetailsLegalDoc;
+        delete p.financialDetails.financialDetailsInternalNotes;
+      }
+    }
 
     return p;
   };
@@ -51,7 +66,7 @@ const sanitizeProperty = (data, user) => {
   if (Array.isArray(data)) {
     return data.map(performSanitization);
   }
-  
+
   return performSanitization(data);
 };
 

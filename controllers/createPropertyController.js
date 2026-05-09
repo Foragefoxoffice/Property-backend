@@ -286,7 +286,7 @@ exports.createProperty = asyncHandler(async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Property created successfully",
-      data: newProperty,
+      data: sanitizeProperty(newProperty, req.user),
     });
   } catch (error) {
     console.error("❌ CREATE PROPERTY ERROR:", error);
@@ -395,7 +395,7 @@ exports.updateProperty = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Property updated successfully",
-    data: property,
+    data: sanitizeProperty(property, req.user),
   });
 });
 
@@ -529,7 +529,7 @@ exports.copyPropertyToSale = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: "Property copied to Sale",
-    data: newProperty,
+    data: sanitizeProperty(newProperty, req.user),
   });
 });
 
@@ -572,7 +572,7 @@ exports.copyPropertyToLease = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: "Property copied to Lease",
-    data: newProperty,
+    data: sanitizeProperty(newProperty, req.user),
   });
 });
 
@@ -615,7 +615,7 @@ exports.copyPropertyToHomeStay = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: "Property copied to Home Stay",
-    data: newProperty,
+    data: sanitizeProperty(newProperty, req.user),
   });
 });
 
@@ -1007,7 +1007,7 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
     total,
     totalPages: Math.ceil(total / limit),
     count: properties.length,
-    data: properties,
+    data: sanitizeProperty(properties, req.user),
   });
 });
 
