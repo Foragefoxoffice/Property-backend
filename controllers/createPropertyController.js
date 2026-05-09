@@ -690,7 +690,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   // --- NEW FILTERS ---
-  const { project, zone, block, propertyType, propertyNo, floor, currency, priceFrom, priceTo, keyword } = req.query;
+  const { project, zone, block, propertyType, propertyNo, floor, currency, priceFrom, priceTo, keyword, availabilityStatus } = req.query;
 
   if (keyword) {
     andConditions.push({
@@ -774,6 +774,15 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
 
   if (currency) {
     query["financialDetails.financialDetailsCurrency"] = { $regex: currency, $options: "i" };
+  }
+
+  if (availabilityStatus) {
+    andConditions.push({
+      $or: [
+        { "listingInformation.listingInformationAvailabilityStatus.en": { $regex: availabilityStatus, $options: "i" } },
+        { "listingInformation.listingInformationAvailabilityStatus.vi": { $regex: availabilityStatus, $options: "i" } },
+      ],
+    });
   }
 
   // Price Range
@@ -1024,7 +1033,8 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     maxPrice = "",     // Maximum price
     owner = "",        // Owner name filter
     status = "",       // Status filter (overrides default "Published")
-    sortBy = "newest"  // Sort: newest, oldest, price-low, price-high
+    sortBy = "newest",  // Sort: newest, oldest, price-low, price-high
+    availabilityStatus = "" // Availability Status filter
   } = req.query;
 
   page = parseInt(page);
@@ -1169,6 +1179,17 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
       $or: [
         { "contactManagement.contactManagementOwner.en": { $regex: owner, $options: "i" } },
         { "contactManagement.contactManagementOwner.vi": { $regex: owner, $options: "i" } },
+      ]
+    });
+  }
+
+  // Availability Status filter
+  if (availabilityStatus) {
+    matchStage.$and = matchStage.$and || [];
+    matchStage.$and.push({
+      $or: [
+        { "listingInformation.listingInformationAvailabilityStatus.en": { $regex: availabilityStatus, $options: "i" } },
+        { "listingInformation.listingInformationAvailabilityStatus.vi": { $regex: availabilityStatus, $options: "i" } },
       ]
     });
   }

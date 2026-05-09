@@ -5,21 +5,40 @@ const CreateProperty = require("../models/CreateProperty");
 
 // GET /api/v1/owners
 exports.getOwners = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  let { page = 1, limit = 10, keyword = "", sortBy = "newest" } = req.query;
+  page = parseInt(page);
+  limit = parseInt(limit);
   const skip = (page - 1) * limit;
 
-  const owners = await Owner.find()
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(Number(limit));
+  // Construct query
+  const query = {};
+  if (keyword) {
+    query.$or = [
+      { "ownerName.en": { $regex: keyword, $options: "i" } },
+      { "ownerName.vi": { $regex: keyword, $options: "i" } },
+      { "phoneNumbers": { $regex: keyword, $options: "i" } },
+      { "emailAddresses": { $regex: keyword, $options: "i" } },
+    ];
+  }
 
-  const total = await Owner.countDocuments();
+  // Determine sort
+  let sort = { createdAt: -1 };
+  if (sortBy === "oldest") sort = { createdAt: 1 };
+  if (sortBy === "name-asc") sort = { "ownerName.en": 1 };
+  if (sortBy === "name-desc") sort = { "ownerName.en": -1 };
+
+  const owners = await Owner.find(query)
+    .sort(sort)
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Owner.countDocuments(query);
 
   res.status(200).json({
     success: true,
     count: owners.length,
     total,
-    page: Number(page),
+    page,
     totalPages: Math.ceil(total / limit),
     data: owners,
   });
