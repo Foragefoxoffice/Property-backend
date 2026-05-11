@@ -16,29 +16,25 @@ const sanitizeProperty = (data, user) => {
     const p = property.toObject ? property.toObject() : { ...property };
 
     // =========================================================
-    // 🔒 ALWAYS HIDE (Private Data - requested for all users)
-    // =========================================================
-
-    // 1. Remove Contact Management (Landlord info & Agent Fee)
-    delete p.contactManagement;
-
-    // 2. Remove Private Listing Information
-    if (p.listingInformation) {
-      delete p.listingInformation.listingInformationPropertyNo;
-      delete p.listingInformation.listingInformationAvailableFrom;
-      delete p.listingInformation.listingInformationAvailabilityStatus;
-    }
-
-    // 3. Remove Internal Financial Details (Agent Fee & Agenda)
-    if (p.financialDetails) {
-      delete p.financialDetails.financialDetailsAgentFee;
-      delete p.financialDetails.financialDetailsAgentPaymentAgenda;
-    }
-
-    // =========================================================
     // 🛡️ HIDE FOR NON-ADMINS ONLY
     // =========================================================
     if (!isAdmin) {
+      // 1. Remove Contact Management (Landlord info & Agent Fee)
+      delete p.contactManagement;
+
+      // 2. Remove Private Listing Information
+      if (p.listingInformation) {
+        delete p.listingInformation.listingInformationPropertyNo;
+        delete p.listingInformation.listingInformationAvailableFrom;
+        delete p.listingInformation.listingInformationAvailabilityStatus;
+      }
+
+      // 3. Remove Internal Financial Details (Agent Fee & Agenda)
+      if (p.financialDetails) {
+        delete p.financialDetails.financialDetailsAgentFee;
+        delete p.financialDetails.financialDetailsAgentPaymentAgenda;
+      }
+
       // Internal Tracking Fields
       delete p.createdBy;
       delete p.createdByName;
