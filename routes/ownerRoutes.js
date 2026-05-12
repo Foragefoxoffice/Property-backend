@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   getOwners,
+  getOwner,
   createOwner,
   updateOwner,
   deleteOwner, // ✅ must exist
@@ -13,6 +14,6 @@ const router = express.Router();
 router.use(protect); // Protect all owner routes
 
 router.route("/").get(getOwners).post(createOwner);
-router.route("/:id").put(updateOwner).delete(deleteOwner);
+router.route("/:id").get(getOwner).put(updateOwner).delete(deleteOwner);
 
 module.exports = router;

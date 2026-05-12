@@ -44,6 +44,17 @@ exports.getOwners = asyncHandler(async (req, res) => {
   });
 });
 
+// GET /api/v1/owners/:id
+exports.getOwner = asyncHandler(async (req, res) => {
+  const owner = await Owner.findById(req.params.id);
+  if (!owner) throw new ErrorResponse("Owner not found", 404);
+
+  res.status(200).json({
+    success: true,
+    data: owner,
+  });
+});
+
 // POST /api/v1/owners
 exports.createOwner = asyncHandler(async (req, res) => {
   const {
