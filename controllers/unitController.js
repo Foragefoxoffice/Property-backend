@@ -42,6 +42,18 @@ exports.createUnit = asyncHandler(async (req, res) => {
     throw new ErrorResponse("Unit with this name already exists", 400);
   }
 
+  // ❌ Prevent duplicate symbol
+  const existingSymbol = await Unit.findOne({
+    $or: [
+      { "symbol.en": { $regex: new RegExp(`^${symbol_en}$`, "i") } },
+      { "symbol.vi": { $regex: new RegExp(`^${symbol_vi}$`, "i") } }
+    ]
+  });
+
+  if (existingSymbol) {
+    throw new ErrorResponse("Unit with this symbol already exists", 400);
+  }
+
   // Generate next unit code
   const existing = await Unit.find({}, { "code.en": 1 }).lean();
   const numericCodes = existing
@@ -91,6 +103,21 @@ exports.updateUnit = asyncHandler(async (req, res) => {
 
     if (duplicateName) {
       throw new ErrorResponse("Unit with this name already exists", 400);
+    }
+  }
+
+  // ❌ Prevent duplicate symbol on update
+  if (symbol_en || symbol_vi) {
+    const duplicateSymbol = await Unit.findOne({
+      _id: { $ne: unit._id },
+      $or: [
+        { "symbol.en": { $regex: new RegExp(`^${symbol_en || unit.symbol.en}$`, "i") } },
+        { "symbol.vi": { $regex: new RegExp(`^${symbol_vi || unit.symbol.vi}$`, "i") } }
+      ]
+    });
+
+    if (duplicateSymbol) {
+      throw new ErrorResponse("Unit with this symbol already exists", 400);
     }
   }
 
