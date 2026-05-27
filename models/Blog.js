@@ -21,8 +21,18 @@ const BlogSchema = new mongoose.Schema(
     },
     // The main slug for the blog URL
     slug: {
-      en: { type: String, unique: true },
-      vi: { type: String, unique: true },
+      en: {
+        type: String,
+        unique: true,
+        sparse: true,
+        trim: true,
+      },
+      vi: {
+        type: String,
+        unique: true,
+        sparse: true,
+        trim: true,
+      },
     },
     content: {
       en: { type: String, required: true },
@@ -105,8 +115,10 @@ const BlogSchema = new mongoose.Schema(
   }
 );
 
-// Pre-save hook to ensure slugs exist
-BlogSchema.pre("save", function (next) {
+// Pre-save hook to ensure slugs existBlogSchema.pre("save", function (next) {
+if (!this.slug) {
+  this.slug = {};
+} BlogSchema.pre("save", function (next) {
   // English Slug
   if (this.seoInformation?.slugUrl?.en) {
     this.slug.en = this.seoInformation.slugUrl.en;

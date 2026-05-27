@@ -2,6 +2,7 @@ const Blog = require("../models/Blog");
 const Category = require("../models/Category"); // Ensure we can populate
 const ErrorResponse = require("../utils/errorResponse");
 const asyncHandler = require("../utils/asyncHandler");
+const generateSlug = require("../utils/generateSlug");
 
 /* =========================================================
    📋 GET ALL BLOGS (PUBLIC)
@@ -25,7 +26,7 @@ exports.getAllBlogs = asyncHandler(async (req, res, next) => {
 ========================================================= */
 exports.getBlogBySlug = asyncHandler(async (req, res, next) => {
   const { slug } = req.params;
-  
+
   // Try finding by English or Vietnamese slug
   const blog = await Blog.findOne({
     $or: [{ "slug.en": slug }, { "slug.vi": slug }],
@@ -83,7 +84,22 @@ exports.getBlogById = asyncHandler(async (req, res, next) => {
    ✏️ CREATE NEW BLOG
 ========================================================= */
 exports.createBlog = asyncHandler(async (req, res, next) => {
-  const blog = await Blog.create(req.body);
+  const data = { ...req.body };
+
+  // Ensure slug exists
+  if (!data.slug) {
+    data.slug = {};
+  }
+
+  if (!data.slug.en && data.title?.en) {
+    data.slug.en = generateSlug(data.title.en);
+  }
+
+  if (!data.slug.vi && data.title?.vi) {
+    data.slug.vi = generateSlug(data.title.vi);
+  }
+
+  const blog = await Blog.create(data);
 
   res.status(201).json({
     success: true,
@@ -101,10 +117,31 @@ exports.updateBlog = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("Blog not found", 404));
   }
 
-  blog = await Blog.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true,
-  });
+  const data = { ...req.body };
+
+  // Ensure slug object exists
+  if (!data.slug) {
+    data.slug = {};
+  }
+
+  // Auto generate English slug
+  if (!data.slug.en && data.title?.en) {
+    data.slug.en = generateSlug(data.title.en);
+  }
+
+  // Auto generate Vietnamese slug
+  if (!data.slug.vi && data.title?.vi) {
+    data.slug.vi = generateSlug(data.title.vi);
+  }
+
+  blog = await Blog.findByIdAndUpdate(
+    req.params.id,
+    data,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
 
   res.status(200).json({
     success: true,
