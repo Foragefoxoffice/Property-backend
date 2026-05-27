@@ -122,6 +122,7 @@ const CreatePropertySchema = new mongoose.Schema(
       availableFrom: { type: Boolean, default: false },
       availabilityStatus: { type: Boolean, default: false },
       googleMap: { type: Boolean, default: false }, // ✅ Added for map
+      propertyType: { type: Boolean, default: false }, // ✅ Added for property type
     },
 
     propertyInformationVisibility: {
