@@ -1,17 +1,6 @@
 const mongoose = require("mongoose");
 
-// Helper function to generate slug
-const generateSlug = (text) => {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^\w\-]+/g, "")
-    .replace(/\-\-+/g, "-")
-    .replace(/^-+/, "")
-    .replace(/-+$/, "");
-};
+const generateSlug = require("../utils/generateSlug");
 
 const BlogSchema = new mongoose.Schema(
   {

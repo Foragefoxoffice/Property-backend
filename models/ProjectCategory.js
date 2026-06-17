@@ -1,16 +1,6 @@
 const mongoose = require("mongoose");
 
-const generateSlug = (text) => {
-    return text
-        .toString()
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/[^\w\-]+/g, "")
-        .replace(/\-\-+/g, "-")
-        .replace(/^-+/, "")
-        .replace(/-+$/, "");
-};
+const generateSlug = require("../utils/generateSlug");
 
 const projectCategorySchema = new mongoose.Schema(
     {
