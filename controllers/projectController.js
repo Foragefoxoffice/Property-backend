@@ -68,10 +68,17 @@ exports.getProjectById = asyncHandler(async (req, res, next) => {
 // @access    Public
 exports.getProjectBySlug = asyncHandler(async (req, res, next) => {
     const { slug } = req.params;
-    const project = await Project.findOne({
+    const isAdmin = req.user && req.user.role && req.user.role !== 'user';
+
+    let query = {
         $or: [{ "slug.en": slug }, { "slug.vi": slug }],
-        published: true,
-    }).populate("category");
+    };
+
+    if (!isAdmin) {
+        query.published = true;
+    }
+
+    const project = await Project.findOne(query).populate("category");
 
     if (!project) {
         return next(new ErrorResponse("Project not found", 404));
