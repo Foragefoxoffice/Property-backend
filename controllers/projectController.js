@@ -39,11 +39,17 @@ exports.getAdminProjects = asyncHandler(async (req, res, next) => {
 // @access    Public
 exports.getProjectById = asyncHandler(async (req, res, next) => {
     const idOrSlug = req.params.id;
+    const isAdmin = req.user && req.user.role && req.user.role !== 'user';
     let project;
+
+    let query = {};
+    if (!isAdmin) {
+        query.published = true;
+    }
 
     // 1. Try finding by ID if it's a valid ObjectId
     if (mongoose.Types.ObjectId.isValid(idOrSlug)) {
-        project = await Project.findById(idOrSlug).populate("category");
+        project = await Project.findOne({ _id: idOrSlug, ...query }).populate("category");
     }
 
     // 2. If not found by ID (or not a valid ID), try finding by slug
@@ -56,6 +62,7 @@ exports.getProjectById = asyncHandler(async (req, res, next) => {
                 { "projectSeoSlugUrl_vn": idOrSlug },
                 { "projectSeoSlugUrl_vi": idOrSlug }
             ],
+            ...query
         }).populate("category");
     }
 
@@ -86,9 +93,9 @@ exports.getProjectBySlug = asyncHandler(async (req, res, next) => {
         ],
     };
 
-    // if (!isAdmin) {
-    //     query.published = true;
-    // }
+    if (!isAdmin) {
+        query.published = true;
+    }
 
     const project = await Project.findOne(query).populate("category");
 
