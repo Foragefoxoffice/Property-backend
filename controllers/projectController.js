@@ -49,7 +49,13 @@ exports.getProjectById = asyncHandler(async (req, res, next) => {
     // 2. If not found by ID (or not a valid ID), try finding by slug
     if (!project) {
         project = await Project.findOne({
-            $or: [{ "slug.en": idOrSlug }, { "slug.vi": idOrSlug }],
+            $or: [
+                { "slug.en": idOrSlug }, 
+                { "slug.vi": idOrSlug },
+                { "projectSeoSlugUrl_en": idOrSlug },
+                { "projectSeoSlugUrl_vn": idOrSlug },
+                { "projectSeoSlugUrl_vi": idOrSlug }
+            ],
         }).populate("category");
     }
 
@@ -71,7 +77,13 @@ exports.getProjectBySlug = asyncHandler(async (req, res, next) => {
     const isAdmin = req.user && req.user.role && req.user.role !== 'user';
 
     let query = {
-        $or: [{ "slug.en": slug }, { "slug.vi": slug }],
+        $or: [
+            { "slug.en": slug }, 
+            { "slug.vi": slug },
+            { "projectSeoSlugUrl_en": slug },
+            { "projectSeoSlugUrl_vn": slug },
+            { "projectSeoSlugUrl_vi": slug }
+        ],
     };
 
     if (!isAdmin) {
@@ -110,6 +122,25 @@ exports.updateProject = asyncHandler(async (req, res, next) => {
 
     if (!project) {
         return next(new ErrorResponse("Project not found", 404));
+    }
+
+    const generateSlug = require("../utils/generateSlug");
+    
+    // Auto-generate slug if title is updated or if manual seo slug is provided
+    if (req.body.projectSeoSlugUrl_en) {
+        if (!req.body.slug) req.body.slug = { ...project.slug };
+        req.body.slug.en = req.body.projectSeoSlugUrl_en;
+    } else if (req.body.title && req.body.title.en) {
+        if (!req.body.slug) req.body.slug = { ...project.slug };
+        req.body.slug.en = generateSlug(req.body.title.en);
+    }
+
+    if (req.body.projectSeoSlugUrl_vn) {
+        if (!req.body.slug) req.body.slug = { ...project.slug };
+        req.body.slug.vi = req.body.projectSeoSlugUrl_vn;
+    } else if (req.body.title && req.body.title.vi) {
+        if (!req.body.slug) req.body.slug = { ...project.slug };
+        req.body.slug.vi = generateSlug(req.body.title.vi);
     }
 
     project = await Project.findByIdAndUpdate(req.params.id, req.body, {

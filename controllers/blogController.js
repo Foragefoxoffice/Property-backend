@@ -30,7 +30,13 @@ exports.getBlogBySlug = asyncHandler(async (req, res, next) => {
   const isAdmin = req.user && req.user.role && req.user.role !== 'user';
 
   let query = {
-    $or: [{ "slug.en": slug }, { "slug.vi": slug }],
+    $or: [
+        { "slug.en": slug }, 
+        { "slug.vi": slug },
+        { "blogSeoSlugUrl_en": slug },
+        { "blogSeoSlugUrl_vn": slug },
+        { "blogSeoSlugUrl_vi": slug }
+    ],
   };
 
   if (!isAdmin) {
