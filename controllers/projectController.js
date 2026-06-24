@@ -86,9 +86,9 @@ exports.getProjectBySlug = asyncHandler(async (req, res, next) => {
         ],
     };
 
-    if (!isAdmin) {
-        query.published = true;
-    }
+    // if (!isAdmin) {
+    //     query.published = true;
+    // }
 
     const project = await Project.findOne(query).populate("category");
 
