@@ -11,7 +11,7 @@ const {
 
 const router = express.Router();
 
-const { protect } = require("../middleware/auth");
+const { protect, optionalProtect } = require("../middleware/auth");
 
 /* =========================================================
    🔒 ADMIN ROUTES (Must come before public dynamic routes)
@@ -29,7 +29,7 @@ router.get("/", getAllBlogs);
 
 // Get by slug (Public view)
 // Placed last to avoid intercepting "admin" or other paths
-router.get("/:slug", getBlogBySlug);
+router.get("/:slug", optionalProtect, getBlogBySlug);
 
 /* =========================================================
    ✏️ WRITE OPERATIONS (Protected)

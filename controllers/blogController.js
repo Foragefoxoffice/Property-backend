@@ -27,19 +27,28 @@ exports.getAllBlogs = asyncHandler(async (req, res, next) => {
 exports.getBlogBySlug = asyncHandler(async (req, res, next) => {
   const { slug } = req.params;
 
-  // Try finding by English or Vietnamese slug
-  const blog = await Blog.findOne({
+  const isAdmin = req.user && req.user.role && req.user.role !== 'user';
+
+  let query = {
     $or: [{ "slug.en": slug }, { "slug.vi": slug }],
-    published: true,
-  }).populate("category");
+  };
+
+  if (!isAdmin) {
+    query.published = true;
+  }
+
+  // Try finding by English or Vietnamese slug
+  const blog = await Blog.findOne(query).populate("category");
 
   if (!blog) {
     return next(new ErrorResponse("Blog not found", 404));
   }
 
-  // Increment views
-  blog.views += 1;
-  await blog.save({ validateBeforeSave: false });
+  // Increment views only for public users
+  if (!isAdmin) {
+    blog.views += 1;
+    await blog.save({ validateBeforeSave: false });
+  }
 
   res.status(200).json({
     success: true,
