@@ -482,9 +482,17 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
 ========================================================= */
 exports.logout = asyncHandler(async (req, res) => {
   if (req.user) {
+    const io = req.app.get("io");
+    const email = req.user.email || req.user.staffsEmail || "";
+    const employeeId = req.user.employeeId || req.user.staffsId || "";
+
     req.user.currentSessionId = undefined;
     req.user.lastActiveAt = undefined;
     await req.user.save({ validateBeforeSave: false });
+
+    if (io) {
+      io.emit("sessionReleased", { email, employeeId });
+    }
   }
 
   res.cookie("token", "none", {
