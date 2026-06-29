@@ -90,6 +90,14 @@ const StaffSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    currentIp: {
+      type: String,
+      default: null,
+    },
+    currentDevice: {
+      type: String,
+      default: null,
+    },
     lastActiveAt: {
       type: Date,
       default: null,

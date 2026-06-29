@@ -231,9 +231,11 @@ exports.login = asyncHandler(async (req, res, next) => {
   const SESSION_TIMEOUT = 15 * 60 * 1000;
   if (user.currentSessionId && user.lastActiveAt && (Date.now() - new Date(user.lastActiveAt).getTime()) < SESSION_TIMEOUT) {
     console.log("❌ Session locked: User already logged in.");
+    const loggedInBy = user.name || user.staffsName?.en || "Unknown";
+
     const message = (req.headers["accept-language"] === "vi")
-      ? "Tài khoản này hiện đang được đăng nhập. Bạn không thể đăng nhập cùng lúc."
-      : "This account is currently logged in elsewhere. You cannot log in concurrently.";
+      ? `Tài khoản này hiện đang được đăng nhập bởi <b>${loggedInBy}</b>. Bạn không thể đăng nhập cùng lúc.`
+      : `This account is currently logged in elsewhere by <b>${loggedInBy}</b>. You cannot log in concurrently.`;
     return next(new ErrorResponse(message, 409));
   }
 
@@ -241,6 +243,24 @@ exports.login = asyncHandler(async (req, res, next) => {
   const sessionId = crypto.randomUUID();
   user.currentSessionId = sessionId;
   user.lastActiveAt = Date.now();
+
+  user.currentIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || req.ip || "Unknown";
+
+  const ua = req.headers['user-agent'] || '';
+  let deviceName = 'Unknown';
+  if (ua.includes('Windows')) deviceName = 'Windows PC';
+  else if (ua.includes('Macintosh')) deviceName = 'Mac';
+  else if (ua.includes('Linux')) deviceName = 'Linux';
+  else if (ua.includes('Android')) deviceName = 'Android';
+  else if (ua.includes('iPhone')) deviceName = 'iPhone';
+  else if (ua.includes('iPad')) deviceName = 'iPad';
+  if (ua.includes('Chrome')) deviceName += ' (Chrome)';
+  else if (ua.includes('Firefox')) deviceName += ' (Firefox)';
+  else if (ua.includes('Safari') && !ua.includes('Chrome')) deviceName += ' (Safari)';
+  else if (ua.includes('Edge')) deviceName += ' (Edge)';
+
+  user.currentDevice = deviceName;
+
   await user.save({ validateBeforeSave: false });
 
   // 5️⃣ Generate Token
