@@ -4,6 +4,7 @@ const CreateProperty = require("../models/CreateProperty");
 const ZoneSubArea = require("../models/ZoneSubArea");
 const Owner = require("../models/Owner");
 const Role = require("../models/Role");
+const RecordLock = require("../models/RecordLock");
 const mongoose = require("mongoose");
 const { sanitizeProperty } = require("../utils/propertySanitizer");
 
@@ -344,9 +345,19 @@ exports.getProperty = asyncHandler(async (req, res) => {
 /* =========================================================
    ✏️ UPDATE PROPERTY
 ========================================================= */
-exports.updateProperty = asyncHandler(async (req, res) => {
+exports.updateProperty = asyncHandler(async (req, res, next) => {
   const id = req.params.id;
   const body = deepNormalizeLocalized(req.body);
+
+  // ✅ Check Record Lock
+  const lock = await RecordLock.findOne({ recordId: id, collectionName: 'CreateProperty' }).populate("lockedBy", "name staffsName email staffsEmail");
+  if (lock && lock.lockedBy && lock.lockedBy._id.toString() !== req.user._id.toString()) {
+    const lockedByName = lock.lockedBy.name || lock.lockedBy.staffsName?.en || "Another user";
+    const message = (req.headers["accept-language"] === "vi")
+      ? `Bản ghi này đang được chỉnh sửa bởi ${lockedByName}. Bạn không thể lưu thay đổi lúc này.`
+      : `This record is currently being edited by ${lockedByName}. You cannot save changes right now.`;
+    return next(new ErrorResponse(message, 409));
+  }
 
   // ✅ Enforce Approval for Updates
   if (req.user && req.user.role) {

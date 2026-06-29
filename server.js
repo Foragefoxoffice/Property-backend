@@ -63,6 +63,7 @@ const projectCategoryRoutes = require("./routes/projectCategoryRoutes");
 const projectBannerRoutes = require("./routes/projectBannerRoutes");
 const projectPageRoutes = require("./routes/projectPageRoutes");
 const projectIntroRoutes = require("./routes/projectIntroRoutes");
+const lockRoutes = require("./routes/lockRoutes");
 
 // ===== Connect to MongoDB =====
 connectDB();
@@ -271,6 +272,7 @@ app.use("/api/v1/project-categories", projectCategoryRoutes);
 app.use("/api/v1/project-banner", projectBannerRoutes);
 app.use("/api/v1/project-page", projectPageRoutes);
 app.use("/api/v1/project-intro", projectIntroRoutes);
+app.use("/api/v1/locks", lockRoutes);
 
 /* =========================================================
    🎯 Serve Frontend with Dynamic Meta Tags

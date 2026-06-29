@@ -227,8 +227,24 @@ exports.login = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse(message, 401));
   }
 
+  // 4.5️⃣ Check Session Lock (15 min timeout)
+  const SESSION_TIMEOUT = 15 * 60 * 1000;
+  if (user.currentSessionId && user.lastActiveAt && (Date.now() - new Date(user.lastActiveAt).getTime()) < SESSION_TIMEOUT) {
+    console.log("❌ Session locked: User already logged in.");
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Tài khoản này hiện đang được đăng nhập. Bạn không thể đăng nhập cùng lúc."
+      : "This account is currently logged in elsewhere. You cannot log in concurrently.";
+    return next(new ErrorResponse(message, 409));
+  }
+
+  // Generate new session ID and save it
+  const sessionId = crypto.randomUUID();
+  user.currentSessionId = sessionId;
+  user.lastActiveAt = Date.now();
+  await user.save({ validateBeforeSave: false });
+
   // 5️⃣ Generate Token
-  const token = user.getSignedJwtToken();
+  const token = user.getSignedJwtToken(sessionId);
 
   let userData = {};
   if (isStaff) {
@@ -465,6 +481,12 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
    LOGOUT
 ========================================================= */
 exports.logout = asyncHandler(async (req, res) => {
+  if (req.user) {
+    req.user.currentSessionId = undefined;
+    req.user.lastActiveAt = undefined;
+    await req.user.save({ validateBeforeSave: false });
+  }
+
   res.cookie("token", "none", {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,

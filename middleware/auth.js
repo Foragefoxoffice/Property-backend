@@ -49,6 +49,17 @@ exports.protect = async (req, res, next) => {
       return next(new ErrorResponse('Your account is Inactive. Please contact admin.', 401));
     }
 
+    // Check Session Lock
+    if (decoded.sessionId && user.currentSessionId && decoded.sessionId !== user.currentSessionId) {
+      return next(new ErrorResponse('Session expired. You logged in from another location.', 401));
+    }
+
+    // Update lastActiveAt to keep session alive (debounced to 1 minute)
+    if (!user.lastActiveAt || (Date.now() - new Date(user.lastActiveAt).getTime()) > 60000) {
+      user.lastActiveAt = Date.now();
+      await user.save({ validateBeforeSave: false });
+    }
+
 
     req.user = user;
     next();
@@ -91,7 +102,17 @@ exports.optionalProtect = async (req, res, next) => {
     }
 
     if (user && user.status !== 'Inactive') {
-      req.user = user;
+      // Check Session Lock (if mismatch, they act as guest)
+      if (decoded.sessionId && user.currentSessionId && decoded.sessionId !== user.currentSessionId) {
+        req.user = undefined;
+      } else {
+        req.user = user;
+        // Update lastActiveAt to keep session alive (debounced to 1 minute)
+        if (!user.lastActiveAt || (Date.now() - new Date(user.lastActiveAt).getTime()) > 60000) {
+          user.lastActiveAt = Date.now();
+          await user.save({ validateBeforeSave: false });
+        }
+      }
     }
     
     next();

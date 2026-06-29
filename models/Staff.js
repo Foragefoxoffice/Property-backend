@@ -86,6 +86,14 @@ const StaffSchema = new mongoose.Schema(
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
+    currentSessionId: {
+      type: String,
+      default: null,
+    },
+    lastActiveAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -124,8 +132,12 @@ StaffSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 // Sign JWT and return
-StaffSchema.methods.getSignedJwtToken = function () {
-  return jwt.sign({ id: this._id, role: 'staff' }, process.env.JWT_SECRET, {
+StaffSchema.methods.getSignedJwtToken = function (sessionId = null) {
+  const payload = { id: this._id, role: 'staff' };
+  if (sessionId) {
+    payload.sessionId = sessionId;
+  }
+  return jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || "30d",
   });
 };
