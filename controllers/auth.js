@@ -233,6 +233,29 @@ exports.login = asyncHandler(async (req, res, next) => {
     console.log("❌ Session locked: User already logged in.");
     const loggedInBy = user.name || user.staffsName?.en || "Unknown";
 
+    const attemptIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || req.ip || "Unknown";
+    const ua = req.headers['user-agent'] || '';
+    let attemptDevice = 'Unknown';
+    if (ua.includes('Windows')) attemptDevice = 'Windows PC';
+    else if (ua.includes('Macintosh')) attemptDevice = 'Mac';
+    else if (ua.includes('Linux')) attemptDevice = 'Linux';
+    else if (ua.includes('Android')) attemptDevice = 'Android';
+    else if (ua.includes('iPhone')) attemptDevice = 'iPhone';
+    else if (ua.includes('iPad')) attemptDevice = 'iPad';
+    if (ua.includes('Chrome')) attemptDevice += ' (Chrome)';
+    else if (ua.includes('Firefox')) attemptDevice += ' (Firefox)';
+    else if (ua.includes('Safari') && !ua.includes('Chrome')) attemptDevice += ' (Safari)';
+    else if (ua.includes('Edge')) attemptDevice += ' (Edge)';
+
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("concurrentLoginAttempt", { 
+        userId: user._id.toString(), 
+        attemptIp, 
+        attemptDevice 
+      });
+    }
+
     const message = (req.headers["accept-language"] === "vi")
       ? `Tài khoản này hiện đang được đăng nhập bởi <b>${loggedInBy}</b>. Bạn không thể đăng nhập cùng lúc.`
       : `This account is currently logged in elsewhere by <b>${loggedInBy}</b>. You cannot log in concurrently.`;
