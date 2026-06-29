@@ -227,8 +227,8 @@ exports.login = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse(message, 401));
   }
 
-  // 4.5️⃣ Check Session Lock (15 min timeout)
-  const SESSION_TIMEOUT = 15 * 60 * 1000;
+  // 4.5️⃣ Check Session Lock (2 min timeout)
+  const SESSION_TIMEOUT = 2 * 60 * 1000;
   if (user.currentSessionId && user.lastActiveAt && (Date.now() - new Date(user.lastActiveAt).getTime()) < SESSION_TIMEOUT) {
     console.log("❌ Session locked: User already logged in.");
     const loggedInBy = user.name || user.staffsName?.en || "Unknown";
@@ -249,10 +249,10 @@ exports.login = asyncHandler(async (req, res, next) => {
 
     const io = req.app.get("io");
     if (io) {
-      io.emit("concurrentLoginAttempt", { 
-        userId: user._id.toString(), 
-        attemptIp, 
-        attemptDevice 
+      io.emit("concurrentLoginAttempt", {
+        userId: user._id.toString(),
+        attemptIp,
+        attemptDevice
       });
     }
 
