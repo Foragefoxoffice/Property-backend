@@ -121,9 +121,17 @@ StaffSchema.pre("validate", function (next) {
 StaffSchema.pre("save", async function (next) {
   // Auto-generate staffsId if not provided
   if (!this.staffsId) {
-    const count = await mongoose.model('Staff').countDocuments();
-    const nextNumber = (count + 1).toString().padStart(6, '0');
-    this.staffsId = `STF-${nextNumber}`;
+    // Find the staff member with the highest staffsId
+    const lastStaff = await mongoose.model('Staff').findOne({}, 'staffsId').sort({ staffsId: -1 });
+    let nextNumber = 1;
+    if (lastStaff && lastStaff.staffsId) {
+      const parts = lastStaff.staffsId.split('-');
+      if (parts.length === 2 && !isNaN(parts[1])) {
+        nextNumber = parseInt(parts[1], 10) + 1;
+      }
+    }
+    const nextNumberStr = nextNumber.toString().padStart(6, '0');
+    this.staffsId = `STF-${nextNumberStr}`;
   }
 
   if (!this.isModified("password")) {
