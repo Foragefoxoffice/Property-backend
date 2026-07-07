@@ -1308,9 +1308,11 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     {
       $facet: {
         metadata: [{ $count: "total" }],
-        data: [
+        data: limit > 0 ? [
           { $skip: skip },
           { $limit: limit }
+        ] : [
+          { $skip: skip }
         ]
       }
     }
@@ -1340,7 +1342,7 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     page,
     limit,
     total,
-    totalPages: Math.ceil(total / limit),
+    totalPages: limit > 0 ? Math.ceil(total / limit) : 1,
     count: properties.length,
     data: sanitizedProperties,
   });

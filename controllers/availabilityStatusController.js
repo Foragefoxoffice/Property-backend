@@ -8,16 +8,21 @@ exports.getAvailabilityStatuses = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const skip = (page - 1) * limit;
 
-  const statuses = await AvailabilityStatus.aggregate([
+  const pipeline = [
     {
       $addFields: {
         numericCode: { $toInt: "$code.en" }
       }
     },
-    { $sort: { numericCode: 1 } }, // ASCENDING
-    { $skip: skip },
-    { $limit: Number(limit) }
-  ]);
+    { $sort: { numericCode: 1 } } // ASCENDING
+  ];
+
+  if (Number(limit) > 0) {
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: Number(limit) });
+  }
+
+  const statuses = await AvailabilityStatus.aggregate(pipeline);
 
   const total = await AvailabilityStatus.countDocuments();
 
@@ -26,7 +31,7 @@ exports.getAvailabilityStatuses = asyncHandler(async (req, res) => {
     count: statuses.length,
     total,
     page: Number(page),
-    totalPages: Math.ceil(total / limit),
+    totalPages: Number(limit) > 0 ? Math.ceil(total / limit) : 1,
     data: statuses,
   });
 });
