@@ -334,6 +334,16 @@ exports.getProperty = asyncHandler(async (req, res) => {
     throw new ErrorResponse(message, 404);
   }
 
+  if (property.status !== "Published") {
+    const isStaff = req.user && req.user.role && req.user.role !== "user";
+    if (!isStaff) {
+      const message = (req.headers["accept-language"] === "vi")
+        ? "Không tìm thấy bất động sản"
+        : "Property not found";
+      throw new ErrorResponse(message, 404);
+    }
+  }
+
   const sanitizedProperty = sanitizeProperty(property, req.user);
 
   res.status(200).json({
@@ -423,6 +433,16 @@ exports.getPropertyByPropertyId = asyncHandler(async (req, res) => {
       ? "Không tìm thấy bất động sản"
       : "Property not found";
     throw new ErrorResponse(message, 404);
+  }
+
+  if (property.status !== "Published") {
+    const isStaff = req.user && req.user.role && req.user.role !== "user";
+    if (!isStaff) {
+      const message = (req.headers["accept-language"] === "vi")
+        ? "Không tìm thấy bất động sản"
+        : "Property not found";
+      throw new ErrorResponse(message, 404);
+    }
   }
 
   const sanitizedProperty = sanitizeProperty(property, req.user);
