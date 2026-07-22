@@ -721,7 +721,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   // --- NEW FILTERS ---
-  const { project, zone, block, propertyType, propertyNo, floor, currency, priceFrom, priceTo, keyword, availabilityStatus } = req.query;
+  const { project, zone, block, propertyType, propertyNo, floor, currency, priceFrom, priceTo, keyword, availabilityStatus, bedrooms, bathrooms, furnishing } = req.query;
 
   if (keyword) {
     andConditions.push({
@@ -812,6 +812,36 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       $or: [
         { "listingInformation.listingInformationAvailabilityStatus.en": { $regex: availabilityStatus, $options: "i" } },
         { "listingInformation.listingInformationAvailabilityStatus.vi": { $regex: availabilityStatus, $options: "i" } },
+      ],
+    });
+  }
+
+  // Bedrooms filter
+  if (bedrooms) {
+    const bedroomCount = parseInt(bedrooms);
+    if (bedroomCount === 4) {
+      andConditions.push({ "propertyInformation.informationBedrooms": { $gte: 4 } });
+    } else if (!isNaN(bedroomCount)) {
+      andConditions.push({ "propertyInformation.informationBedrooms": bedroomCount });
+    }
+  }
+
+  // Bathrooms filter
+  if (bathrooms) {
+    const bathroomCount = parseInt(bathrooms);
+    if (bathroomCount === 3) {
+      andConditions.push({ "propertyInformation.informationBathrooms": { $gte: 3 } });
+    } else if (!isNaN(bathroomCount)) {
+      andConditions.push({ "propertyInformation.informationBathrooms": bathroomCount });
+    }
+  }
+
+  // Furnishing filter
+  if (furnishing) {
+    andConditions.push({
+      $or: [
+        { "propertyInformation.informationFurnishing.en": { $regex: furnishing, $options: "i" } },
+        { "propertyInformation.informationFurnishing.vi": { $regex: furnishing, $options: "i" } },
       ],
     });
   }
