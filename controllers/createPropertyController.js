@@ -1079,7 +1079,7 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
   let {
     type,              // Transaction type: Sale / Lease / Home Stay
     page = 1,
-    limit = 10,
+    limit = 20,
     // New comprehensive filters
     propertyId = "",   // Property ID search
     keyword = "",      // Keyword search
