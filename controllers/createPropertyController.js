@@ -790,7 +790,33 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
 
   const { owner } = req.query;
   if (ownerId) {
-    andConditions.push({ "contactManagement.contactManagementOwnerId": ownerId });
+    const ownerDoc = await Owner.findById(ownerId).lean();
+    if (ownerDoc) {
+      const ownerNames = [ownerDoc.ownerName?.en, ownerDoc.ownerName?.vi].filter(Boolean);
+      andConditions.push({
+        $or: [
+          { "contactManagement.contactManagementOwnerId": new mongoose.Types.ObjectId(ownerId) },
+          {
+            $and: [
+              {
+                $or: [
+                  { "contactManagement.contactManagementOwnerId": { $exists: false } },
+                  { "contactManagement.contactManagementOwnerId": null }
+                ]
+              },
+              {
+                $or: [
+                  { "contactManagement.contactManagementOwner.en": { $in: ownerNames } },
+                  { "contactManagement.contactManagementOwner.vi": { $in: ownerNames } }
+                ]
+              }
+            ]
+          }
+        ]
+      });
+    } else {
+      andConditions.push({ "contactManagement.contactManagementOwnerId": ownerId });
+    }
   } else if (owner) {
     andConditions.push({
       $or: [
@@ -932,20 +958,26 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   // 🔄 FALLBACK: If owner phone is missing on property, fetch it from Owner model (Migration support)
   const propertiesToFix = properties.filter(
     (p) =>
-      p.contactManagement?.contactManagementOwner &&
+      (p.contactManagement?.contactManagementOwnerId || p.contactManagement?.contactManagementOwner) &&
       (!p.contactManagement.contactManagementOwnerPhone ||
         p.contactManagement.contactManagementOwnerPhone.length === 0)
   );
 
   if (propertiesToFix.length > 0) {
     const ownerNames = [];
+    const ownerIds = [];
     propertiesToFix.forEach(p => {
-      if (p.contactManagement?.contactManagementOwner?.en) ownerNames.push(p.contactManagement.contactManagementOwner.en);
-      if (p.contactManagement?.contactManagementOwner?.vi) ownerNames.push(p.contactManagement.contactManagementOwner.vi);
+      if (p.contactManagement?.contactManagementOwnerId) {
+        ownerIds.push(p.contactManagement.contactManagementOwnerId);
+      } else {
+        if (p.contactManagement?.contactManagementOwner?.en) ownerNames.push(p.contactManagement.contactManagementOwner.en);
+        if (p.contactManagement?.contactManagementOwner?.vi) ownerNames.push(p.contactManagement.contactManagementOwner.vi);
+      }
     });
 
     const owners = await Owner.find({
       $or: [
+        { _id: { $in: ownerIds } },
         { "ownerName.en": { $in: ownerNames } },
         { "ownerName.vi": { $in: ownerNames } }
       ]
@@ -956,6 +988,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
     const ownerMap = owners.reduce((acc, o) => {
       if (o.ownerName?.en) acc[o.ownerName.en] = o.phoneNumbers;
       if (o.ownerName?.vi) acc[o.ownerName.vi] = o.phoneNumbers;
+      acc[o._id.toString()] = o.phoneNumbers;
       return acc;
     }, {});
 
@@ -965,9 +998,13 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
         (!p.contactManagement.contactManagementOwnerPhone ||
           p.contactManagement.contactManagementOwnerPhone.length === 0)
       ) {
+        const ownerId = p.contactManagement.contactManagementOwnerId;
         const nameEn = p.contactManagement.contactManagementOwner.en;
         const nameVi = p.contactManagement.contactManagementOwner.vi;
-        if (nameEn && ownerMap[nameEn]) {
+        
+        if (ownerId && ownerMap[ownerId.toString()]) {
+          p.contactManagement.contactManagementOwnerPhone = ownerMap[ownerId.toString()];
+        } else if (nameEn && ownerMap[nameEn]) {
           p.contactManagement.contactManagementOwnerPhone = ownerMap[nameEn];
         } else if (nameVi && ownerMap[nameVi]) {
           p.contactManagement.contactManagementOwnerPhone = ownerMap[nameVi];
@@ -1245,7 +1282,33 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
   // Owner filter
   if (ownerId) {
     matchStage.$and = matchStage.$and || [];
-    matchStage.$and.push({ "contactManagement.contactManagementOwnerId": new mongoose.Types.ObjectId(ownerId) });
+    const ownerDoc = await Owner.findById(ownerId).lean();
+    if (ownerDoc) {
+      const ownerNames = [ownerDoc.ownerName?.en, ownerDoc.ownerName?.vi].filter(Boolean);
+      matchStage.$and.push({
+        $or: [
+          { "contactManagement.contactManagementOwnerId": new mongoose.Types.ObjectId(ownerId) },
+          {
+            $and: [
+              {
+                $or: [
+                  { "contactManagement.contactManagementOwnerId": { $exists: false } },
+                  { "contactManagement.contactManagementOwnerId": null }
+                ]
+              },
+              {
+                $or: [
+                  { "contactManagement.contactManagementOwner.en": { $in: ownerNames } },
+                  { "contactManagement.contactManagementOwner.vi": { $in: ownerNames } }
+                ]
+              }
+            ]
+          }
+        ]
+      });
+    } else {
+      matchStage.$and.push({ "contactManagement.contactManagementOwnerId": new mongoose.Types.ObjectId(ownerId) });
+    }
   } else if (owner) {
     matchStage.$and = matchStage.$and || [];
     matchStage.$and.push({
