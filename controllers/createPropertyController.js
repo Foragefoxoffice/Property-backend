@@ -790,33 +790,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
 
   const { owner } = req.query;
   if (ownerId) {
-    const ownerDoc = await Owner.findById(ownerId).lean();
-    if (ownerDoc) {
-      const ownerNames = [ownerDoc.ownerName?.en, ownerDoc.ownerName?.vi].filter(Boolean);
-      andConditions.push({
-        $or: [
-          { "contactManagement.contactManagementOwnerId": new mongoose.Types.ObjectId(ownerId) },
-          {
-            $and: [
-              {
-                $or: [
-                  { "contactManagement.contactManagementOwnerId": { $exists: false } },
-                  { "contactManagement.contactManagementOwnerId": null }
-                ]
-              },
-              {
-                $or: [
-                  { "contactManagement.contactManagementOwner.en": { $in: ownerNames } },
-                  { "contactManagement.contactManagementOwner.vi": { $in: ownerNames } }
-                ]
-              }
-            ]
-          }
-        ]
-      });
-    } else {
-      andConditions.push({ "contactManagement.contactManagementOwnerId": ownerId });
-    }
+    andConditions.push({ "contactManagement.contactManagementOwnerId": new mongoose.Types.ObjectId(ownerId) });
   } else if (owner) {
     andConditions.push({
       $or: [
@@ -1282,33 +1256,7 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
   // Owner filter
   if (ownerId) {
     matchStage.$and = matchStage.$and || [];
-    const ownerDoc = await Owner.findById(ownerId).lean();
-    if (ownerDoc) {
-      const ownerNames = [ownerDoc.ownerName?.en, ownerDoc.ownerName?.vi].filter(Boolean);
-      matchStage.$and.push({
-        $or: [
-          { "contactManagement.contactManagementOwnerId": new mongoose.Types.ObjectId(ownerId) },
-          {
-            $and: [
-              {
-                $or: [
-                  { "contactManagement.contactManagementOwnerId": { $exists: false } },
-                  { "contactManagement.contactManagementOwnerId": null }
-                ]
-              },
-              {
-                $or: [
-                  { "contactManagement.contactManagementOwner.en": { $in: ownerNames } },
-                  { "contactManagement.contactManagementOwner.vi": { $in: ownerNames } }
-                ]
-              }
-            ]
-          }
-        ]
-      });
-    } else {
-      matchStage.$and.push({ "contactManagement.contactManagementOwnerId": new mongoose.Types.ObjectId(ownerId) });
-    }
+    matchStage.$and.push({ "contactManagement.contactManagementOwnerId": new mongoose.Types.ObjectId(ownerId) });
   } else if (owner) {
     matchStage.$and = matchStage.$and || [];
     matchStage.$and.push({
