@@ -16,6 +16,7 @@ const {
   getTrashProperties,
   getListingProperties,
   validatePropertyNo,
+  syncLegacyOwners,
 } = require("../controllers/createPropertyController");
 
 const { bulkUploadProperties } = require("../controllers/bulkUploadController");
@@ -46,6 +47,7 @@ router.route("/").get(optionalProtect, getProperties).post(protect, createProper
 router.get("/transaction", optionalProtect, getPropertiesByTransactionType);
 router.get("/trash", protect, getTrashProperties);
 router.get("/listing", optionalProtect, getListingProperties); // New optimized listing API
+router.post("/sync-legacy-owners", protect, syncLegacyOwners);
 
 
 router

@@ -1422,6 +1422,67 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
 });
 
 /* =========================================================
+   🔄 SYNC LEGACY OWNERS
+========================================================= */
+exports.syncLegacyOwners = asyncHandler(async (req, res) => {
+  const properties = await CreateProperty.find({});
+  const owners = await Owner.find({}).lean();
+
+  let migratedCount = 0;
+
+  for (const prop of properties) {
+    const cm = prop.contactManagement || {};
+    // Skip if already has ownerId
+    if (cm.contactManagementOwnerId) continue;
+
+    const nameEn = cm.contactManagementOwner?.en || "";
+    const nameVi = cm.contactManagementOwner?.vi || "";
+    const phoneNumbers = cm.contactManagementOwnerPhone || [];
+
+    if (!nameEn && !nameVi) continue;
+
+    // Try to find matching owner
+    let match = null;
+
+    // 1. Try to match by name AND phone number first
+    if (phoneNumbers.length > 0) {
+      match = owners.find(o => {
+        const nameMatch = (o.ownerName?.en && (o.ownerName.en === nameEn || o.ownerName.en === nameVi)) ||
+                          (o.ownerName?.vi && (o.ownerName.vi === nameEn || o.ownerName.vi === nameVi));
+        if (!nameMatch) return false;
+        
+        // Check if any phone matches
+        return o.phoneNumbers?.some(phone => phoneNumbers.includes(phone));
+      });
+    }
+
+    // 2. Fall back to name-only match if no name+phone match found
+    if (!match) {
+      match = owners.find(o => 
+        (o.ownerName?.en && (o.ownerName.en === nameEn || o.ownerName.en === nameVi)) ||
+        (o.ownerName?.vi && (o.ownerName.vi === nameEn || o.ownerName.vi === nameVi))
+      );
+    }
+
+    if (match) {
+      prop.contactManagement.contactManagementOwnerId = match._id;
+      // Sync phone numbers just in case
+      prop.contactManagement.contactManagementOwnerPhone = match.phoneNumbers || [];
+      await prop.save();
+      migratedCount++;
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    message: (req.headers["accept-language"] === "vi")
+      ? `Đồng bộ thành công ${migratedCount} bất động sản.`
+      : `Successfully migrated ${migratedCount} legacy properties.`,
+    count: migratedCount
+  });
+});
+
+/* =========================================================
    🔍 VALIDATE PROPERTY NO
 ========================================================= */
 exports.validatePropertyNo = asyncHandler(async (req, res) => {
