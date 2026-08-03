@@ -184,6 +184,18 @@ exports.updateOwner = asyncHandler(async (req, res) => {
 
   await owner.save();
 
+  // Sync landlord name and phone changes to assigned properties
+  await CreateProperty.updateMany(
+    { "contactManagement.contactManagementOwnerId": owner._id },
+    {
+      $set: {
+        "contactManagement.contactManagementOwner.en": owner.ownerName.en,
+        "contactManagement.contactManagementOwner.vi": owner.ownerName.vi,
+        "contactManagement.contactManagementOwnerPhone": owner.phoneNumbers,
+      }
+    }
+  );
+
   res.status(200).json({
     success: true,
     message: "Owner updated successfully",
@@ -199,6 +211,7 @@ exports.deleteOwner = asyncHandler(async (req, res) => {
 
   const isUsed = await CreateProperty.exists({
     $or: [
+      { "contactManagement.contactManagementOwnerId": owner._id },
       { "contactManagement.contactManagementOwner.en": owner.ownerName.en },
       { "contactManagement.contactManagementOwner.vi": owner.ownerName.vi }
     ]

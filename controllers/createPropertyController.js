@@ -721,7 +721,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   // --- NEW FILTERS ---
-  const { project, zone, block, propertyType, propertyNo, floor, currency, priceFrom, priceTo, keyword, availabilityStatus, bedrooms, bathrooms, furnishing } = req.query;
+  const { project, zone, block, propertyType, propertyNo, floor, currency, priceFrom, priceTo, keyword, availabilityStatus, bedrooms, bathrooms, furnishing, ownerId } = req.query;
 
   if (keyword) {
     andConditions.push({
@@ -784,7 +784,9 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   const { owner } = req.query;
-  if (owner) {
+  if (ownerId) {
+    andConditions.push({ "contactManagement.contactManagementOwnerId": ownerId });
+  } else if (owner) {
     andConditions.push({
       $or: [
         { "contactManagement.contactManagementOwner.en": { $regex: owner, $options: "i" } },
@@ -904,6 +906,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'financialDetails.financialDetailsLeasePrice ' +
       'financialDetails.financialDetailsPricePerNight ' +
       'contactManagement.contactManagementOwner ' +
+      'contactManagement.contactManagementOwnerId ' +
       'contactManagement.contactManagementOwnerPhone ' +
       'seoInformation.slugUrl ' +
       'financialVisibility ' +
@@ -1093,6 +1096,7 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
     minPrice = "",     // Minimum price
     maxPrice = "",     // Maximum price
     owner = "",        // Owner name filter
+    ownerId = "",      // Owner ID filter
     status = "",       // Status filter (overrides default "Published")
     sortBy = "newest",  // Sort: newest, oldest, price-low, price-high
     availabilityStatus = "" // Availability Status filter
@@ -1234,7 +1238,10 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
   }
 
   // Owner filter
-  if (owner) {
+  if (ownerId) {
+    matchStage.$and = matchStage.$and || [];
+    matchStage.$and.push({ "contactManagement.contactManagementOwnerId": new mongoose.Types.ObjectId(ownerId) });
+  } else if (owner) {
     matchStage.$and = matchStage.$and || [];
     matchStage.$and.push({
       $or: [
