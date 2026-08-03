@@ -91,6 +91,11 @@ function deepNormalizeLocalized(data) {
       continue;
     }
 
+    if (key === "contactManagementOwnerId" && val === "") {
+      data[key] = null;
+      continue;
+    }
+
     // If it's a known localized field, always normalize it
     if (LOCALIZED_FIELDS.includes(key)) {
       data[key] = normalizeLocalized(val);
