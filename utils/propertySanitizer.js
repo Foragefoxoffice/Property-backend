@@ -8,17 +8,16 @@
  */
 const sanitizeProperty = (data, user) => {
   const role = user?.role?.toLowerCase() || "";
-  const isAdmin =
-    role === "admin" || role === "super admin" || role === "superadmin";
+  const isStaff = role && role !== "user";
 
   const performSanitization = (property) => {
     // If it's a Mongoose document, convert to object
     const p = property.toObject ? property.toObject() : { ...property };
 
     // =========================================================
-    // 🛡️ HIDE FOR NON-ADMINS ONLY
+    // 🛡️ HIDE FOR NON-STAFF ONLY
     // =========================================================
-    if (!isAdmin) {
+    if (!isStaff) {
       // 1. Remove Contact Management (Landlord info & Agent Fee)
       delete p.contactManagement;
 
