@@ -47,6 +47,7 @@ const CreatePropertySchema = new mongoose.Schema(
       listingInformationDateListed: { type: Date, default: Date.now },
       listingInformationAvailabilityStatus: LocalizedString,
       listingInformationAvailableFrom: { type: Date },
+      listingInformationLastUpdated: { type: Date },
       listingInformationGoogleMapsIframe: LocalizedString, // ✅ Added
     },
 
@@ -122,6 +123,7 @@ const CreatePropertySchema = new mongoose.Schema(
       dateListed: { type: Boolean, default: false },
       availableFrom: { type: Boolean, default: false },
       availabilityStatus: { type: Boolean, default: false },
+      lastUpdated: { type: Boolean, default: false },
       googleMap: { type: Boolean, default: false }, // ✅ Added for map
       propertyType: { type: Boolean, default: false }, // ✅ Added for property type
     },

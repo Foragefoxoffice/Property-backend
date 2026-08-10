@@ -32,6 +32,9 @@ const sanitizeProperty = (data, user) => {
         if (!p.listingInformationVisibility?.availabilityStatus) {
           delete p.listingInformation.listingInformationAvailabilityStatus;
         }
+        if (!p.listingInformationVisibility?.lastUpdated) {
+          delete p.listingInformation.listingInformationLastUpdated;
+        }
       }
 
       // 3. Remove Internal Financial Details (Agent Fee & Agenda)
