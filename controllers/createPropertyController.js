@@ -5,6 +5,7 @@ const ZoneSubArea = require("../models/ZoneSubArea");
 const Owner = require("../models/Owner");
 const Role = require("../models/Role");
 const RecordLock = require("../models/RecordLock");
+const SalesAgentFee = require("../models/SalesAgentFee");
 const mongoose = require("mongoose");
 const { sanitizeProperty } = require("../utils/propertySanitizer");
 
@@ -12,12 +13,15 @@ const { sanitizeProperty } = require("../utils/propertySanitizer");
    🧰 Helpers: Localized Fields
 ========================================================= */
 function normalizeLocalized(val) {
-  if (!val) return { en: "", vi: "" };
-  if (typeof val === "string") return { en: val, vi: val };
+  if (val === undefined || val === null || val === "") return { en: "", vi: "" };
+  if (typeof val === "string" || typeof val === "number") {
+    const str = String(val);
+    return { en: str, vi: str };
+  }
   if (typeof val === "object") {
     return {
-      en: val.en || val.vi || "",
-      vi: val.vi || val.en || "",
+      en: String(val.en || val.vi || ""),
+      vi: String(val.vi || val.en || ""),
     };
   }
   return { en: "", vi: "" };
@@ -44,6 +48,7 @@ const LOCALIZED_FIELDS = [
   "financialDetailsMainFee",
   "financialDetailsContractLength",
   "financialDetailsAgentPaymentAgenda",
+  "financialDetailsAgentFee",
   "financialDetailsFeeTax",
   "financialDetailsLegalDoc",
   "contactManagementOwner",
@@ -196,6 +201,46 @@ async function validatePropertyNoUnique(propertyNo, transactionType, excludeId =
   }
 }
 
+async function handleAutoSaveSalesAgentFee(agentFee) {
+  if (!agentFee) return;
+  const enVal = (typeof agentFee === 'string') ? agentFee : agentFee.en;
+  const viVal = (typeof agentFee === 'string') ? agentFee : agentFee.vi;
+  
+  const queryEn = enVal ? String(enVal).trim() : "";
+  const queryVi = viVal ? String(viVal).trim() : "";
+
+  if (!queryEn && !queryVi) return;
+
+  // Check if exists
+  const existing = await SalesAgentFee.findOne({
+    $or: [
+      { "name.en": { $regex: new RegExp(`^${queryEn}$`, "i") } },
+      { "name.vi": { $regex: new RegExp(`^${queryVi}$`, "i") } }
+    ]
+  });
+
+  if (!existing) {
+    // Compute next auto code
+    const existingCodes = await SalesAgentFee.find({}, { "code.en": 1 }).lean();
+    const numericCodes = existingCodes
+      .map(r => parseInt(r.code?.en))
+      .filter(n => !isNaN(n));
+
+    let nextNumber = 1;
+    if (numericCodes.length > 0) {
+      nextNumber = Math.max(...numericCodes) + 1;
+    }
+    const autoCode = String(nextNumber).padStart(3, "0");
+
+    await SalesAgentFee.create({
+      code: { en: autoCode, vi: autoCode },
+      name: { en: queryEn || queryVi, vi: queryVi || queryEn },
+      status: "Active"
+    });
+    console.log(`🆕 Auto-created Sales Agent Fee master entry: "${queryEn || queryVi}"`);
+  }
+}
+
 /* =========================================================
    🏠 CREATE PROPERTY
 ========================================================= */
@@ -222,6 +267,11 @@ exports.createProperty = asyncHandler(async (req, res) => {
     }
 
     const body = deepNormalizeLocalized(req.body || {});
+    
+    // Auto-save Agent Fee to master list if it is a new option
+    if (body.financialDetails?.financialDetailsAgentFee) {
+      await handleAutoSaveSalesAgentFee(body.financialDetails.financialDetailsAgentFee);
+    }
     const normalizedSize = JSON.stringify(body).length;
     console.log("✅ After deepNormalizeLocalized Size:", normalizedSize, "bytes", `(${(normalizedSize / 1024 / 1024).toFixed(2)} MB)`);
 
@@ -363,6 +413,11 @@ exports.getProperty = asyncHandler(async (req, res) => {
 exports.updateProperty = asyncHandler(async (req, res, next) => {
   const id = req.params.id;
   const body = deepNormalizeLocalized(req.body);
+
+  // Auto-save Agent Fee to master list if it is a new option
+  if (body.financialDetails?.financialDetailsAgentFee) {
+    await handleAutoSaveSalesAgentFee(body.financialDetails.financialDetailsAgentFee);
+  }
 
   // ✅ Check Record Lock
   const lock = await RecordLock.findOne({ recordId: id, collectionName: 'CreateProperty' }).populate("lockedBy", "name staffsName email staffsEmail");
