@@ -906,6 +906,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'listingInformation.listingInformationProjectCommunity ' +
       'listingInformation.listingInformationZoneSubArea ' +
       'listingInformation.listingInformationAvailabilityStatus ' +
+      'listingInformation.listingInformationLastUpdated ' +
       'financialDetails.financialDetailsCurrency ' +
       'financialDetails.financialDetailsPrice ' +
       'financialDetails.financialDetailsLeasePrice ' +
@@ -1059,6 +1060,7 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
       'listingInformation.listingInformationProjectCommunity ' +
       'listingInformation.listingInformationZoneSubArea ' +
       'listingInformation.listingInformationAvailabilityStatus ' +
+      'listingInformation.listingInformationLastUpdated ' +
       'financialDetails.financialDetailsCurrency ' +
       'financialDetails.financialDetailsPrice ' +
       'financialDetails.financialDetailsLeasePrice ' +
@@ -1345,6 +1347,7 @@ exports.getListingProperties = asyncHandler(async (req, res) => {
         'listingInformation.listingInformationDateListed': 1,
         'listingInformation.listingInformationAvailableFrom': 1,
         'listingInformation.listingInformationPropertyNo': 1,
+        'listingInformation.listingInformationLastUpdated': 1,
         // Financial Details
         'financialDetails.financialDetailsCurrency': 1,
         'financialDetails.financialDetailsPrice': 1,
