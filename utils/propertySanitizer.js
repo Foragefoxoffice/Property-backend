@@ -58,8 +58,6 @@ const sanitizeProperty = (data, user) => {
       delete p.statusHistory;
 
       if (p.financialDetails) {
-        delete p.financialDetails.financialDetailsFeeTax;
-        delete p.financialDetails.financialDetailsLegalDoc;
         delete p.financialDetails.financialDetailsInternalNotes;
       }
     }
