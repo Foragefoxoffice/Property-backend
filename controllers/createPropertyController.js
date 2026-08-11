@@ -966,6 +966,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'financialDetails.financialDetailsPrice ' +
       'financialDetails.financialDetailsLeasePrice ' +
       'financialDetails.financialDetailsPricePerNight ' +
+      'imagesVideos.propertyImages ' +
       'contactManagement.contactManagementOwner ' +
       'contactManagement.contactManagementOwnerId ' +
       'contactManagement.contactManagementOwnerPhone ' +
@@ -1120,6 +1121,7 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
       'financialDetails.financialDetailsPrice ' +
       'financialDetails.financialDetailsLeasePrice ' +
       'financialDetails.financialDetailsPricePerNight ' +
+      'imagesVideos.propertyImages ' +
       'contactManagement.contactManagementOwner ' +
       'contactManagement.contactManagementOwnerPhone ' +
       'seoInformation.slugUrl ' +
