@@ -110,9 +110,8 @@ exports.deleteSalesAgentFee = asyncHandler(async (req, res) => {
     $and: [
       {
         $or: [
-          { "listingInformation.listingInformationTransactionType.en": "Sale" },
-          { "listingInformation.listingInformationTransactionType.vi": "Bán" },
-          { "listingInformation.listingInformationTransactionType": "Sale" }
+          { "listingInformation.listingInformationTransactionType.en": { $regex: /^sale$/i } },
+          { "listingInformation.listingInformationTransactionType.vi": { $regex: /^bán$/i } }
         ]
       },
       {
