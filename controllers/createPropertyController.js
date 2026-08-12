@@ -267,11 +267,6 @@ exports.createProperty = asyncHandler(async (req, res) => {
     }
 
     const body = deepNormalizeLocalized(req.body || {});
-    
-    // Auto-save Agent Fee to master list if it is a new option
-    if (body.financialDetails?.financialDetailsAgentFee) {
-      await handleAutoSaveSalesAgentFee(body.financialDetails.financialDetailsAgentFee);
-    }
     const normalizedSize = JSON.stringify(body).length;
     console.log("✅ After deepNormalizeLocalized Size:", normalizedSize, "bytes", `(${(normalizedSize / 1024 / 1024).toFixed(2)} MB)`);
 
@@ -413,11 +408,6 @@ exports.getProperty = asyncHandler(async (req, res) => {
 exports.updateProperty = asyncHandler(async (req, res, next) => {
   const id = req.params.id;
   const body = deepNormalizeLocalized(req.body);
-
-  // Auto-save Agent Fee to master list if it is a new option
-  if (body.financialDetails?.financialDetailsAgentFee) {
-    await handleAutoSaveSalesAgentFee(body.financialDetails.financialDetailsAgentFee);
-  }
 
   // ✅ Check Record Lock
   const lock = await RecordLock.findOne({ recordId: id, collectionName: 'CreateProperty' }).populate("lockedBy", "name staffsName email staffsEmail");
