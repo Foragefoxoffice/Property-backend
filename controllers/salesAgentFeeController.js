@@ -105,17 +105,29 @@ exports.deleteSalesAgentFee = asyncHandler(async (req, res) => {
   const record = await SalesAgentFee.findById(req.params.id);
   if (!record) throw new ErrorResponse("Sales Agent Fee not found", 404);
 
+  // Check if used ONLY in Sale properties (Sales Agent Fee Master is specific to Sale properties)
   const isUsed = await CreateProperty.exists({
-    $or: [
-      { "financialDetails.financialDetailsAgentFee.en": record.name.en },
-      { "financialDetails.financialDetailsAgentFee.vi": record.name.vi }
+    $and: [
+      {
+        $or: [
+          { "listingInformation.listingInformationTransactionType.en": "Sale" },
+          { "listingInformation.listingInformationTransactionType.vi": "Bán" },
+          { "listingInformation.listingInformationTransactionType": "Sale" }
+        ]
+      },
+      {
+        $or: [
+          { "financialDetails.financialDetailsAgentFee.en": record.name.en },
+          { "financialDetails.financialDetailsAgentFee.vi": record.name.vi }
+        ]
+      }
     ]
   });
 
   if (isUsed) {
     return res.status(400).json({
       success: false,
-      message: "Cannot delete this master data because it is present in a created property. Delete the property first."
+      message: "Cannot delete this master data because it is present in a created Sale property. Delete or update the property first."
     });
   }
 

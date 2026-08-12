@@ -1556,3 +1556,37 @@ exports.validatePropertyNo = asyncHandler(async (req, res) => {
     message: "Property No is available",
   });
 });
+
+/* =========================================================
+   🔄 SYNC LEGACY AGENT FEES (Batch Migration)
+========================================================= */
+exports.syncLegacyAgentFees = asyncHandler(async (req, res) => {
+  const properties = await CreateProperty.find({});
+  let migratedCount = 0;
+
+  for (const prop of properties) {
+    const finFee = prop.financialDetails?.financialDetailsAgentFee;
+    const hasFinFee = finFee && (
+      (typeof finFee === 'object' && (finFee.en || finFee.vi)) ||
+      (typeof finFee === 'number' && finFee !== 0) ||
+      (typeof finFee === 'string' && finFee.trim() !== "")
+    );
+
+    if (!hasFinFee) {
+      const cmFee = prop.contactManagement?.contactManagementAgentFee;
+      if (cmFee) {
+        const strVal = String(cmFee);
+        if (!prop.financialDetails) prop.financialDetails = {};
+        prop.financialDetails.financialDetailsAgentFee = { en: strVal, vi: strVal };
+        await prop.save();
+        migratedCount++;
+      }
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `Successfully migrated legacy Agent Fee data for ${migratedCount} properties.`,
+    migratedCount,
+  });
+});
