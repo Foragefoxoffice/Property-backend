@@ -789,39 +789,43 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   if (project) {
-    andConditions.push({
-      $or: [
-        { "listingInformation.listingInformationProjectCommunity.en": { $regex: project, $options: "i" } },
-        { "listingInformation.listingInformationProjectCommunity.vi": { $regex: project, $options: "i" } },
-      ],
+    const projectArray = Array.isArray(project) ? project : project.split(',').map(p => p.trim());
+    const projOr = [];
+    projectArray.forEach(p => {
+       projOr.push({ "listingInformation.listingInformationProjectCommunity.en": { $regex: p, $options: "i" } });
+       projOr.push({ "listingInformation.listingInformationProjectCommunity.vi": { $regex: p, $options: "i" } });
     });
+    andConditions.push({ $or: projOr });
   }
 
   if (zone) {
-    andConditions.push({
-      $or: [
-        { "listingInformation.listingInformationZoneSubArea.en": { $regex: zone, $options: "i" } },
-        { "listingInformation.listingInformationZoneSubArea.vi": { $regex: zone, $options: "i" } },
-      ],
+    const zoneArray = Array.isArray(zone) ? zone : zone.split(',').map(z => z.trim());
+    const zoneOr = [];
+    zoneArray.forEach(z => {
+       zoneOr.push({ "listingInformation.listingInformationZoneSubArea.en": { $regex: z, $options: "i" } });
+       zoneOr.push({ "listingInformation.listingInformationZoneSubArea.vi": { $regex: z, $options: "i" } });
     });
+    andConditions.push({ $or: zoneOr });
   }
 
   if (block) {
-    andConditions.push({
-      $or: [
-        { "listingInformation.listingInformationBlockName.en": { $regex: block, $options: "i" } },
-        { "listingInformation.listingInformationBlockName.vi": { $regex: block, $options: "i" } },
-      ],
+    const blockArray = Array.isArray(block) ? block : block.split(',').map(b => b.trim());
+    const blockOr = [];
+    blockArray.forEach(b => {
+       blockOr.push({ "listingInformation.listingInformationBlockName.en": { $regex: b, $options: "i" } });
+       blockOr.push({ "listingInformation.listingInformationBlockName.vi": { $regex: b, $options: "i" } });
     });
+    andConditions.push({ $or: blockOr });
   }
 
   if (propertyType) {
-    andConditions.push({
-      $or: [
-        { "listingInformation.listingInformationPropertyType.en": { $regex: propertyType, $options: "i" } },
-        { "listingInformation.listingInformationPropertyType.vi": { $regex: propertyType, $options: "i" } },
-      ],
+    const ptArray = Array.isArray(propertyType) ? propertyType : propertyType.split(',').map(x => x.trim());
+    const ptOr = [];
+    ptArray.forEach(pt => {
+       ptOr.push({ "listingInformation.listingInformationPropertyType.en": { $regex: pt, $options: "i" } });
+       ptOr.push({ "listingInformation.listingInformationPropertyType.vi": { $regex: pt, $options: "i" } });
     });
+    andConditions.push({ $or: ptOr });
   }
 
   if (propertyNo) {
@@ -846,56 +850,74 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
   }
 
   if (floor) {
-    andConditions.push({
-      $or: [
-        { "propertyInformation.informationFloors.en": { $regex: floor, $options: "i" } },
-        { "propertyInformation.informationFloors.vi": { $regex: floor, $options: "i" } },
-        { "propertyInformation.informationFloors": { $regex: floor, $options: "i" } }, // in case it's a string
-      ],
+    const floorArray = Array.isArray(floor) ? floor : floor.split(',').map(f => f.trim());
+    const floorOr = [];
+    floorArray.forEach(f => {
+      floorOr.push({ "propertyInformation.informationFloors.en": { $regex: f, $options: "i" } });
+      floorOr.push({ "propertyInformation.informationFloors.vi": { $regex: f, $options: "i" } });
+      floorOr.push({ "propertyInformation.informationFloors": { $regex: f, $options: "i" } });
     });
+    andConditions.push({ $or: floorOr });
   }
 
   if (currency) {
-    query["financialDetails.financialDetailsCurrency"] = { $regex: currency, $options: "i" };
+    const currencyArray = Array.isArray(currency) ? currency : currency.split(',').map(c => c.trim());
+    const currOr = [];
+    currencyArray.forEach(c => {
+      currOr.push({ "financialDetails.financialDetailsCurrency": { $regex: c, $options: "i" } });
+    });
+    andConditions.push({ $or: currOr });
   }
 
   if (availabilityStatus) {
-    andConditions.push({
-      $or: [
-        { "listingInformation.listingInformationAvailabilityStatus.en": { $regex: availabilityStatus, $options: "i" } },
-        { "listingInformation.listingInformationAvailabilityStatus.vi": { $regex: availabilityStatus, $options: "i" } },
-      ],
+    const availArray = Array.isArray(availabilityStatus) ? availabilityStatus : availabilityStatus.split(',').map(a => a.trim());
+    const availOr = [];
+    availArray.forEach(a => {
+      availOr.push({ "listingInformation.listingInformationAvailabilityStatus.en": { $regex: a, $options: "i" } });
+      availOr.push({ "listingInformation.listingInformationAvailabilityStatus.vi": { $regex: a, $options: "i" } });
     });
+    andConditions.push({ $or: availOr });
   }
 
   // Bedrooms filter
   if (bedrooms) {
-    const bedroomCount = parseInt(bedrooms);
-    if (bedroomCount === 4) {
-      andConditions.push({ "propertyInformation.informationBedrooms": { $gte: 4 } });
-    } else if (!isNaN(bedroomCount)) {
-      andConditions.push({ "propertyInformation.informationBedrooms": bedroomCount });
-    }
+    const bedArray = Array.isArray(bedrooms) ? bedrooms : bedrooms.split(',').map(b => b.trim());
+    const bedOr = [];
+    bedArray.forEach(b => {
+      const bedroomCount = parseInt(b);
+      if (bedroomCount === 4) {
+        bedOr.push({ "propertyInformation.informationBedrooms": { $gte: 4 } });
+      } else if (!isNaN(bedroomCount)) {
+        bedOr.push({ "propertyInformation.informationBedrooms": bedroomCount });
+      }
+    });
+    if (bedOr.length > 0) andConditions.push({ $or: bedOr });
   }
 
   // Bathrooms filter
   if (bathrooms) {
-    const bathroomCount = parseInt(bathrooms);
-    if (bathroomCount === 3) {
-      andConditions.push({ "propertyInformation.informationBathrooms": { $gte: 3 } });
-    } else if (!isNaN(bathroomCount)) {
-      andConditions.push({ "propertyInformation.informationBathrooms": bathroomCount });
-    }
+    const bathArray = Array.isArray(bathrooms) ? bathrooms : bathrooms.split(',').map(b => b.trim());
+    const bathOr = [];
+    bathArray.forEach(b => {
+      const bathroomCount = parseInt(b);
+      if (bathroomCount === 3) {
+        bathOr.push({ "propertyInformation.informationBathrooms": { $gte: 3 } });
+      } else if (!isNaN(bathroomCount)) {
+        bathOr.push({ "propertyInformation.informationBathrooms": bathroomCount });
+      }
+    });
+    if (bathOr.length > 0) andConditions.push({ $or: bathOr });
   }
 
   // Furnishing filter
   if (furnishing) {
-    andConditions.push({
-      $or: [
-        { "propertyInformation.informationFurnishing.en": { $regex: furnishing, $options: "i" } },
-        { "propertyInformation.informationFurnishing.vi": { $regex: furnishing, $options: "i" } },
-      ],
+    const furnArray = Array.isArray(furnishing) ? furnishing : furnishing.split(',').map(f => f.trim());
+    const furnOr = [];
+    furnArray.forEach(f => {
+      furnOr.push({ "propertyInformation.informationFurnishing.en": { $regex: f, $options: "i" } });
+      furnOr.push({ "propertyInformation.informationFurnishing.vi": { $regex: f, $options: "i" } });
     });
+    andConditions.push({ $or: furnOr });
   }
 
   // Price Range
