@@ -210,11 +210,7 @@ exports.deleteOwner = asyncHandler(async (req, res) => {
   if (!owner) throw new ErrorResponse("Owner not found", 404);
 
   const isUsed = await CreateProperty.exists({
-    $or: [
-      { "contactManagement.contactManagementOwnerId": owner._id },
-      { "contactManagement.contactManagementOwner.en": owner.ownerName.en },
-      { "contactManagement.contactManagementOwner.vi": owner.ownerName.vi }
-    ]
+    "contactManagement.contactManagementOwnerId": owner._id
   });
 
   if (isUsed) {
