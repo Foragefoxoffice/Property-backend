@@ -974,14 +974,25 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'listingInformation.listingInformationZoneSubArea ' +
       'listingInformation.listingInformationAvailabilityStatus ' +
       'listingInformation.listingInformationLastUpdated ' +
+      'listingInformation.listingInformationAvailableFrom ' +
+      'propertyInformation.informationFloors ' +
+      'propertyInformation.informationBedrooms ' +
+      'propertyInformation.informationBathrooms ' +
+      'propertyInformation.informationFurnishing ' +
+      'propertyInformation.informationView ' +
       'financialDetails.financialDetailsCurrency ' +
       'financialDetails.financialDetailsPrice ' +
       'financialDetails.financialDetailsLeasePrice ' +
       'financialDetails.financialDetailsPricePerNight ' +
+      'financialDetails.financialDetailsAgentPaymentAgenda ' +
+      'financialDetails.financialDetailsAgentFee ' +
+      'financialDetails.financialDetailsLegalDoc ' +
       'imagesVideos.propertyImages ' +
       'contactManagement.contactManagementOwner ' +
       'contactManagement.contactManagementOwnerId ' +
       'contactManagement.contactManagementOwnerPhone ' +
+      'contactManagement.contactManagementOwnerNotes ' +
+      'contactManagement.contactManagementInternalNotes ' +
       'seoInformation.slugUrl ' +
       'financialVisibility ' +
       'titleVisibility ' +
@@ -1129,13 +1140,25 @@ exports.getTrashProperties = asyncHandler(async (req, res) => {
       'listingInformation.listingInformationZoneSubArea ' +
       'listingInformation.listingInformationAvailabilityStatus ' +
       'listingInformation.listingInformationLastUpdated ' +
+      'listingInformation.listingInformationAvailableFrom ' +
+      'propertyInformation.informationFloors ' +
+      'propertyInformation.informationBedrooms ' +
+      'propertyInformation.informationBathrooms ' +
+      'propertyInformation.informationFurnishing ' +
+      'propertyInformation.informationView ' +
       'financialDetails.financialDetailsCurrency ' +
       'financialDetails.financialDetailsPrice ' +
       'financialDetails.financialDetailsLeasePrice ' +
       'financialDetails.financialDetailsPricePerNight ' +
+      'financialDetails.financialDetailsAgentPaymentAgenda ' +
+      'financialDetails.financialDetailsAgentFee ' +
+      'financialDetails.financialDetailsLegalDoc ' +
       'imagesVideos.propertyImages ' +
       'contactManagement.contactManagementOwner ' +
+      'contactManagement.contactManagementOwnerId ' +
       'contactManagement.contactManagementOwnerPhone ' +
+      'contactManagement.contactManagementOwnerNotes ' +
+      'contactManagement.contactManagementInternalNotes ' +
       'seoInformation.slugUrl ' +
       'financialVisibility ' +
       'titleVisibility ' +
