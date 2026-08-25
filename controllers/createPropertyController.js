@@ -993,6 +993,7 @@ exports.getPropertiesByTransactionType = asyncHandler(async (req, res) => {
       'contactManagement.contactManagementOwnerPhone ' +
       'contactManagement.contactManagementOwnerNotes ' +
       'contactManagement.contactManagementInternalNotes ' +
+      'contactManagement.contactManagementSource ' +
       'seoInformation.slugUrl ' +
       'financialVisibility ' +
       'titleVisibility ' +
