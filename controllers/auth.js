@@ -159,7 +159,7 @@ exports.userRegister = asyncHandler(async (req, res, next) => {
    LOGIN (Email/EmpID + Password) -> Checks User OR Staff
 ========================================================= */
 exports.login = asyncHandler(async (req, res, next) => {
-  const { email, employeeId, password } = req.body;
+  const { email, employeeId, password, portal } = req.body;
 
 
   if ((!email && !employeeId) || !password) {
@@ -198,6 +198,21 @@ exports.login = asyncHandler(async (req, res, next) => {
       ? "Chúng tôi không tìm thấy tài khoản với những chi tiết này. Vui lòng kiểm tra lại thông tin và thử lại."
       : "We couldn't find an account with those details. Please check your credentials and try again.";
     return next(new ErrorResponse(message, 401));
+  }
+
+  // 2.5️⃣ Check Portal Access
+  if (portal === 'user' && isStaff) {
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Nhân viên và Quản trị viên phải đăng nhập qua nút Đăng nhập Nhân viên bên dưới."
+      : "Staff and Admins must login via the Staff Login button below.";
+    return next(new ErrorResponse(message, 403));
+  }
+
+  if (portal === 'staff' && !isStaff) {
+    const message = (req.headers["accept-language"] === "vi")
+      ? "Người dùng không có quyền truy cập vào cổng quản trị."
+      : "Users do not have access to the staff portal.";
+    return next(new ErrorResponse(message, 403));
   }
 
   // 3️⃣ Check Verification
